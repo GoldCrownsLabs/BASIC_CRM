@@ -1,24 +1,71 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+// app/_layout.tsx
+import { Drawer } from 'expo-router/drawer';
 import { StatusBar } from 'expo-status-bar';
+import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
+import CustomDrawerContent from '@/components/CustomDrawerContent';
+import { AppThemeProvider, useAppTheme } from '@/contaxt/ThemeContext';
+
+// Inner component जो theme का उपयोग करेगा
+function AppContent() {
+  const { isDark } = useAppTheme();
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <>
+      <Drawer
+        drawerContent={CustomDrawerContent}
+        screenOptions={{
+          headerShown: false,
+          drawerPosition: 'left',
+          swipeEnabled: true,
+          drawerStyle: {
+            backgroundColor: 'transparent',
+          },
+        }}
+      >
+        <Drawer.Screen 
+          name="(tabs)" 
+          options={{
+            title: 'Home',
+            drawerLabel: 'Dashboard',
+          }}
+        />
+        <Drawer.Screen 
+          name="(auth)" 
+          options={{
+            title: 'Auth',
+            drawerLabel: 'Authentication',
+            drawerItemStyle: { display: 'none' },
+          }}
+        />
+        <Drawer.Screen 
+          name="index" 
+          options={{
+            title: 'Loading',
+            drawerLabel: 'Loading Screen',
+            drawerItemStyle: { display: 'none' },
+          }}
+        />
+        <Drawer.Screen 
+          name="modal" 
+          options={{
+            title: 'Modal',
+            drawerLabel: 'Modal',
+          }}
+        />
+      </Drawer>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+    </>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AppThemeProvider>
+      <AppContent />
+    </AppThemeProvider>
   );
 }
