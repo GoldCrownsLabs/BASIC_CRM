@@ -4,7 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  FlatList,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -14,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// Mock data for contacts
+// Mock data for contacts (same as before)
 const contactsData = [
   { 
     id: '1', 
@@ -112,6 +111,31 @@ const contactsData = [
     tags: ['Hot Lead', 'Decision Maker'],
     source: 'Website'
   },
+  // Add more contacts for testing scroll
+  { 
+    id: '9', 
+    name: 'George Wilson', 
+    email: 'george@example.com', 
+    phone: '+1234567891', 
+    company: 'Tech Corp',
+    title: 'Developer',
+    status: 'active',
+    lastContact: '2024-01-14',
+    tags: ['Regular'],
+    source: 'Referral'
+  },
+  { 
+    id: '10', 
+    name: 'Helen Taylor', 
+    email: 'helen@example.com', 
+    phone: '+1234567892', 
+    company: 'Design Studio',
+    title: 'Designer',
+    status: 'active',
+    lastContact: '2024-01-13',
+    tags: ['VIP'],
+    source: 'Website'
+  },
 ];
 
 const filters = ['All', 'Active', 'Inactive', 'VIP', 'Hot Lead'];
@@ -188,8 +212,9 @@ export default function ContactsScreen() {
     setFilteredContacts(filtered);
   };
 
-  const renderContact = ({ item }: { item: any }) => (
+  const renderContact = (item: any) => (
     <TouchableOpacity 
+      key={item.id}
       style={[styles.contactCard, { backgroundColor: colors.card }]}
       onPress={() => router.push(`/(app)/contacts/${item.id}`)}
       activeOpacity={0.7}
@@ -264,143 +289,8 @@ export default function ContactsScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.card }]}>
-        <View style={styles.headerTop}>
-          <ThemedText type="title" style={{ color: colors.text }}>
-            Contacts
-          </ThemedText>
-          <View style={styles.headerActions}>
-            <TouchableOpacity style={[styles.iconButton, { backgroundColor: colors.primary + '15' }]}>
-              <Ionicons name="filter" size={20} color={colors.primary} />
-            </TouchableOpacity>
-            <Link href="/contacts/new" asChild>
-              <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]}>
-                <Ionicons name="add" size={20} color="white" />
-                <ThemedText type="defaultSemiBold" style={styles.addButtonText}>
-                  Add Contact
-                </ThemedText>
-              </TouchableOpacity>
-            </Link>
-          </View>
-        </View>
-        
-        {/* Search Bar */}
-        <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
-          <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
-          <TextInput
-            style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Search contacts..."
-            placeholderTextColor={colors.textSecondary}
-            value={searchQuery}
-            onChangeText={handleSearch}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => handleSearch('')}>
-              <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
-          )}
-        </View>
-        
-        {/* Quick Filters */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          style={styles.filtersContainer}
-        >
-          {filters.map((filter) => (
-            <TouchableOpacity
-              key={filter}
-              style={[
-                styles.filterButton,
-                { 
-                  backgroundColor: selectedFilter === filter ? colors.primary + '20' : colors.background,
-                  borderColor: selectedFilter === filter ? colors.primary : colors.border
-                }
-              ]}
-              onPress={() => handleFilter(filter)}
-            >
-              <ThemedText style={[
-                styles.filterText,
-                { color: selectedFilter === filter ? colors.primary : colors.textSecondary }
-              ]}>
-                {filter}
-              </ThemedText>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-        
-        {/* Sort Options */}
-        <View style={styles.sortContainer}>
-          <ThemedText style={[styles.sortLabel, { color: colors.textSecondary }]}>
-            Sort by:
-          </ThemedText>
-          {sortOptions.map((sort) => (
-            <TouchableOpacity
-              key={sort}
-              style={[
-                styles.sortButton,
-                { 
-                  backgroundColor: selectedSort === sort ? colors.primary + '20' : 'transparent'
-                }
-              ]}
-              onPress={() => handleSort(sort)}
-            >
-              <ThemedText style={[
-                styles.sortText,
-                { color: selectedSort === sort ? colors.primary : colors.textSecondary }
-              ]}>
-                {sort}
-              </ThemedText>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      {/* Stats Summary */}
-      <View style={[styles.statsContainer, { backgroundColor: colors.card }]}>
-        <View style={styles.statItem}>
-          <ThemedText type="title" style={[styles.statNumber, { color: colors.primary }]}>
-            {contactsData.length}
-          </ThemedText>
-          <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
-            Total
-          </ThemedText>
-        </View>
-        <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-        <View style={styles.statItem}>
-          <ThemedText type="title" style={[styles.statNumber, { color: '#4CAF50' }]}>
-            {contactsData.filter(c => c.status === 'active').length}
-          </ThemedText>
-          <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
-            Active
-          </ThemedText>
-        </View>
-        <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-        <View style={styles.statItem}>
-          <ThemedText type="title" style={[styles.statNumber, { color: '#FF9800' }]}>
-            {contactsData.filter(c => c.tags.includes('VIP')).length}
-          </ThemedText>
-          <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
-            VIP
-          </ThemedText>
-        </View>
-        <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-        <View style={styles.statItem}>
-          <ThemedText type="title" style={[styles.statNumber, { color: '#2196F3' }]}>
-            {contactsData.filter(c => c.tags.includes('Hot Lead')).length}
-          </ThemedText>
-          <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
-            Hot Leads
-          </ThemedText>
-        </View>
-      </View>
-
-      {/* Contacts List */}
-      <FlatList
-        data={filteredContacts}
-        keyExtractor={(item) => item.id}
-        renderItem={renderContact}
+      <ScrollView 
+        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -410,20 +300,168 @@ export default function ContactsScreen() {
             colors={[colors.primary]}
           />
         }
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="people-outline" size={60} color={colors.textSecondary} />
-            <ThemedText type="default" style={{ color: colors.textSecondary, marginTop: 10 }}>
-              No contacts found
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Header */}
+        <View style={[styles.header, { backgroundColor: colors.card }]}>
+          <View style={styles.headerTop}>
+            <ThemedText type="title" style={{ color: colors.text }}>
+              Contacts
             </ThemedText>
-            <ThemedText style={{ color: colors.textSecondary, fontSize: 12, marginTop: 5 }}>
-              Try changing your search or filter
+            <View style={styles.headerActions}>
+              <TouchableOpacity style={[styles.iconButton, { backgroundColor: colors.primary + '15' }]}>
+                <Ionicons name="filter" size={20} color={colors.primary} />
+              </TouchableOpacity>
+              <Link href="/contacts/new" asChild>
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]}>
+                  <Ionicons name="add" size={20} color="white" />
+                  <ThemedText type="defaultSemiBold" style={styles.addButtonText}>
+                    Add Contact
+                  </ThemedText>
+                </TouchableOpacity>
+              </Link>
+            </View>
+          </View>
+          
+          {/* Search Bar */}
+          <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
+            <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
+            <TextInput
+              style={[styles.searchInput, { color: colors.text }]}
+              placeholder="Search contacts..."
+              placeholderTextColor={colors.textSecondary}
+              value={searchQuery}
+              onChangeText={handleSearch}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => handleSearch('')}>
+                <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </View>
+          
+          {/* Quick Filters */}
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            style={styles.filtersContainer}
+          >
+            {filters.map((filter) => (
+              <TouchableOpacity
+                key={filter}
+                style={[
+                  styles.filterButton,
+                  { 
+                    backgroundColor: selectedFilter === filter ? colors.primary + '20' : colors.background,
+                    borderColor: selectedFilter === filter ? colors.primary : colors.border
+                  }
+                ]}
+                onPress={() => handleFilter(filter)}
+              >
+                <ThemedText style={[
+                  styles.filterText,
+                  { color: selectedFilter === filter ? colors.primary : colors.textSecondary }
+                ]}>
+                  {filter}
+                </ThemedText>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          
+          {/* Sort Options */}
+          <View style={styles.sortContainer}>
+            <ThemedText style={[styles.sortLabel, { color: colors.textSecondary }]}>
+              Sort by:
+            </ThemedText>
+            {sortOptions.map((sort) => (
+              <TouchableOpacity
+                key={sort}
+                style={[
+                  styles.sortButton,
+                  { 
+                    backgroundColor: selectedSort === sort ? colors.primary + '20' : 'transparent'
+                  }
+                ]}
+                onPress={() => handleSort(sort)}
+              >
+                <ThemedText style={[
+                  styles.sortText,
+                  { color: selectedSort === sort ? colors.primary : colors.textSecondary }
+                ]}>
+                  {sort}
+                </ThemedText>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Stats Summary */}
+        <View style={[styles.statsContainer, { backgroundColor: colors.card }]}>
+          <View style={styles.statItem}>
+            <ThemedText type="title" style={[styles.statNumber, { color: colors.primary }]}>
+              {contactsData.length}
+            </ThemedText>
+            <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
+              Total
             </ThemedText>
           </View>
-        }
-        ListFooterComponent={<View style={styles.footerSpacer} />}
-      />
+          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+          <View style={styles.statItem}>
+            <ThemedText type="title" style={[styles.statNumber, { color: '#4CAF50' }]}>
+              {contactsData.filter(c => c.status === 'active').length}
+            </ThemedText>
+            <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
+              Active
+            </ThemedText>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+          <View style={styles.statItem}>
+            <ThemedText type="title" style={[styles.statNumber, { color: '#FF9800' }]}>
+              {contactsData.filter(c => c.tags.includes('VIP')).length}
+            </ThemedText>
+            <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
+              VIP
+            </ThemedText>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+          <View style={styles.statItem}>
+            <ThemedText type="title" style={[styles.statNumber, { color: '#2196F3' }]}>
+              {contactsData.filter(c => c.tags.includes('Hot Lead')).length}
+            </ThemedText>
+            <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
+              Hot Leads
+            </ThemedText>
+          </View>
+        </View>
+
+        {/* Contacts List */}
+        <View style={styles.contactsListContainer}>
+          <View style={styles.listHeader}>
+            <ThemedText type="subtitle" style={{ color: colors.text }}>
+              Contacts ({filteredContacts.length})
+            </ThemedText>
+          </View>
+
+          {filteredContacts.length > 0 ? (
+            <View style={styles.contactsGrid}>
+              {filteredContacts.map(renderContact)}
+            </View>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="people-outline" size={60} color={colors.textSecondary} />
+              <ThemedText type="default" style={{ color: colors.textSecondary, marginTop: 10 }}>
+                No contacts found
+              </ThemedText>
+              <ThemedText style={{ color: colors.textSecondary, fontSize: 12, marginTop: 5 }}>
+                Try changing your search or filter
+              </ThemedText>
+            </View>
+          )}
+        </View>
+
+        {/* Bottom Spacer */}
+        <View style={styles.bottomSpacer} />
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -431,6 +469,12 @@ export default function ContactsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20,
   },
   header: {
     padding: 20,
@@ -521,6 +565,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginHorizontal: 15,
     marginTop: 15,
+    marginBottom: 15,
     borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -544,13 +589,18 @@ const styles = StyleSheet.create({
     width: 1,
     height: 30,
   },
-  listContent: {
-    padding: 15,
+  contactsListContainer: {
+    paddingHorizontal: 15,
+  },
+  listHeader: {
+    marginBottom: 15,
+  },
+  contactsGrid: {
+    gap: 12,
   },
   contactCard: {
     borderRadius: 16,
     padding: 16,
-    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -638,7 +688,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 50,
   },
-  footerSpacer: {
+  bottomSpacer: {
     height: 100,
   },
 });

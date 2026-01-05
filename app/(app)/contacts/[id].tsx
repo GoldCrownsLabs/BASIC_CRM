@@ -4,7 +4,7 @@ import { Text, View } from 'react-native'
 const ContactID = () => {
   return (
     <View>
-      <Text>ahdfjkhadjlfak</Text>
+      <Text style={{marginTop:40}}>ahdfjkhadjlfak</Text>
     </View>
   )
 }

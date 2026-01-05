@@ -4,7 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  FlatList,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -128,6 +127,35 @@ const leadsData = [
     priority: 'High',
     notes: 'Strong interest shown'
   },
+  // Add more leads for testing scroll
+  {
+    id: '9',
+    name: 'Tech Giants Inc',
+    contact: 'Alex Turner',
+    email: 'alex@techgiants.com',
+    phone: '+1122334466',
+    value: 68000,
+    stage: 'Contacted',
+    source: 'LinkedIn',
+    created: '2024-01-16',
+    expectedClose: '2024-03-20',
+    priority: 'High',
+    notes: 'Initial meeting scheduled'
+  },
+  {
+    id: '10',
+    name: 'Cloud Solutions',
+    contact: 'Maria Garcia',
+    email: 'maria@cloud.com',
+    phone: '+2233445566',
+    value: 45000,
+    stage: 'Proposal',
+    source: 'Website',
+    created: '2024-01-14',
+    expectedClose: '2024-02-25',
+    priority: 'Medium',
+    notes: 'Waiting for budget approval'
+  },
 ];
 
 // Lead stages with colors and order
@@ -249,13 +277,14 @@ export default function LeadsScreen() {
     return diffDays;
   };
 
-  const renderLead = ({ item }: { item: any }) => {
+  const renderLead = (item: any) => {
     const daysToClose = calculateDaysToClose(item.expectedClose);
     const stageColor = getStageColor(item.stage);
     const priorityColor = getPriorityColor(item.priority);
     
     return (
       <TouchableOpacity 
+        key={item.id}
         style={[styles.leadCard, { backgroundColor: colors.card }]}
         onPress={() => router.push(`/(app)/leads/${item.id}`)}
         activeOpacity={0.7}
@@ -327,180 +356,8 @@ export default function LeadsScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.card }]}>
-        <View style={styles.headerTop}>
-          <ThemedText type="title" style={{ color: colors.text }}>
-            Leads Pipeline
-          </ThemedText>
-          <View style={styles.headerActions}>
-            <TouchableOpacity style={[styles.iconButton, { backgroundColor: colors.primary + '15' }]}>
-              <Ionicons name="stats-chart" size={20} color={colors.primary} />
-            </TouchableOpacity>
-            <Link href="/leads/new" asChild>
-              <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]}>
-                <Ionicons name="add" size={20} color="white" />
-                <ThemedText type="defaultSemiBold" style={styles.addButtonText}>
-                  Add Lead
-                </ThemedText>
-              </TouchableOpacity>
-            </Link>
-          </View>
-        </View>
-        
-        {/* Search Bar */}
-        <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
-          <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
-          <TextInput
-            style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Search leads..."
-            placeholderTextColor={colors.textSecondary}
-            value={searchQuery}
-            onChangeText={handleSearch}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => handleSearch('')}>
-              <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
-          )}
-        </View>
-        
-        {/* Pipeline Stats */}
-        <View style={[styles.pipelineStats, { backgroundColor: colors.background }]}>
-          {leadStages.map((stage) => {
-            const count = leadsData.filter(lead => lead.stage === stage.label).length;
-            const totalValue = leadsData
-              .filter(lead => lead.stage === stage.label)
-              .reduce((sum, lead) => sum + lead.value, 0);
-            
-            return (
-              <TouchableOpacity
-                key={stage.id}
-                style={[
-                  styles.pipelineItem,
-                  { 
-                    backgroundColor: selectedStage === stage.label ? stage.color + '20' : colors.card,
-                    borderColor: stage.color
-                  }
-                ]}
-                onPress={() => handleStageFilter(stage.label)}
-              >
-                <View style={[styles.stageDot, { backgroundColor: stage.color }]} />
-                <ThemedText style={[styles.stageLabel, { color: colors.text }]}>
-                  {stage.label}
-                </ThemedText>
-                <ThemedText style={[styles.stageCount, { color: stage.color }]}>
-                  {count}
-                </ThemedText>
-                <ThemedText style={[styles.stageValue, { color: colors.textSecondary }]}>
-                  {formatCurrency(totalValue)}
-                </ThemedText>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-        
-        {/* Quick Filters */}
-        <View style={styles.filtersRow}>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            style={styles.filterScroll}
-          >
-            <TouchableOpacity
-              style={[
-                styles.filterButton,
-                { 
-                  backgroundColor: selectedSource === 'All' ? colors.primary + '20' : colors.background,
-                  borderColor: selectedSource === 'All' ? colors.primary : colors.border
-                }
-              ]}
-              onPress={() => handleSourceFilter('All')}
-            >
-              <ThemedText style={[
-                styles.filterText,
-                { color: selectedSource === 'All' ? colors.primary : colors.textSecondary }
-              ]}>
-                All Sources
-              </ThemedText>
-            </TouchableOpacity>
-            
-            {leadSources.map((source) => (
-              <TouchableOpacity
-                key={source}
-                style={[
-                  styles.filterButton,
-                  { 
-                    backgroundColor: selectedSource === source ? colors.primary + '20' : colors.background,
-                    borderColor: selectedSource === source ? colors.primary : colors.border
-                  }
-                ]}
-                onPress={() => handleSourceFilter(source)}
-              >
-                <ThemedText style={[
-                  styles.filterText,
-                  { color: selectedSource === source ? colors.primary : colors.textSecondary }
-                ]}>
-                  {source}
-                </ThemedText>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-        
-        {/* Priority Filters */}
-        <View style={styles.priorityFilters}>
-          {priorities.map((priority) => (
-            <TouchableOpacity
-              key={priority}
-              style={[
-                styles.priorityButton,
-                { 
-                  backgroundColor: selectedPriority === priority ? getPriorityColor(priority) + '20' : colors.background,
-                  borderColor: selectedPriority === priority ? getPriorityColor(priority) : colors.border
-                }
-              ]}
-              onPress={() => handlePriorityFilter(priority)}
-            >
-              <Ionicons 
-                name={getPriorityIcon(priority) as any} 
-                size={16} 
-                color={selectedPriority === priority ? getPriorityColor(priority) : colors.textSecondary} 
-              />
-              <ThemedText style={[
-                styles.priorityText,
-                { color: selectedPriority === priority ? getPriorityColor(priority) : colors.textSecondary }
-              ]}>
-                {priority}
-              </ThemedText>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      {/* Total Pipeline Value */}
-      <View style={[styles.totalValueContainer, { backgroundColor: colors.card }]}>
-        <View style={styles.totalValueContent}>
-          <Ionicons name="trending-up" size={24} color={colors.primary} />
-          <View style={styles.totalValueText}>
-            <ThemedText style={[styles.totalLabel, { color: colors.textSecondary }]}>
-              Total Pipeline Value
-            </ThemedText>
-            <ThemedText type="title" style={[styles.totalAmount, { color: colors.primary }]}>
-              {formatCurrency(leadsData.reduce((sum, lead) => sum + lead.value, 0))}
-            </ThemedText>
-          </View>
-        </View>
-        <ThemedText style={[styles.leadCount, { color: colors.textSecondary }]}>
-          {leadsData.length} Leads • {leadsData.filter(l => l.stage === 'Won').length} Won • {leadsData.filter(l => l.stage === 'Lost').length} Lost
-        </ThemedText>
-      </View>
-
-      {/* Leads List */}
-      <FlatList
-        data={filteredLeads}
-        keyExtractor={(item) => item.id}
-        renderItem={renderLead}
+      <ScrollView 
+        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -510,20 +367,205 @@ export default function LeadsScreen() {
             colors={[colors.primary]}
           />
         }
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="trending-up-outline" size={60} color={colors.textSecondary} />
-            <ThemedText type="default" style={{ color: colors.textSecondary, marginTop: 10 }}>
-              No leads found
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Header */}
+        <View style={[styles.header, { backgroundColor: colors.card }]}>
+          <View style={styles.headerTop}>
+            <ThemedText type="title" style={{ color: colors.text }}>
+              Leads Pipeline
             </ThemedText>
-            <ThemedText style={{ color: colors.textSecondary, fontSize: 12, marginTop: 5 }}>
-              Try changing your filters
+            <View style={styles.headerActions}>
+              <TouchableOpacity style={[styles.iconButton, { backgroundColor: colors.primary + '15' }]}>
+                <Ionicons name="stats-chart" size={20} color={colors.primary} />
+              </TouchableOpacity>
+              <Link href="/leads/new" asChild>
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]}>
+                  <Ionicons name="add" size={20} color="white" />
+                  <ThemedText type="defaultSemiBold" style={styles.addButtonText}>
+                    Add Lead
+                  </ThemedText>
+                </TouchableOpacity>
+              </Link>
+            </View>
+          </View>
+          
+          {/* Search Bar */}
+          <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
+            <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
+            <TextInput
+              style={[styles.searchInput, { color: colors.text }]}
+              placeholder="Search leads..."
+              placeholderTextColor={colors.textSecondary}
+              value={searchQuery}
+              onChangeText={handleSearch}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => handleSearch('')}>
+                <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </View>
+          
+          {/* Pipeline Stats */}
+          <View style={[styles.pipelineStats, { backgroundColor: colors.background }]}>
+            {leadStages.map((stage) => {
+              const count = leadsData.filter(lead => lead.stage === stage.label).length;
+              const totalValue = leadsData
+                .filter(lead => lead.stage === stage.label)
+                .reduce((sum, lead) => sum + lead.value, 0);
+              
+              return (
+                <TouchableOpacity
+                  key={stage.id}
+                  style={[
+                    styles.pipelineItem,
+                    { 
+                      backgroundColor: selectedStage === stage.label ? stage.color + '20' : colors.card,
+                      borderColor: stage.color
+                    }
+                  ]}
+                  onPress={() => handleStageFilter(stage.label)}
+                >
+                  <View style={[styles.stageDot, { backgroundColor: stage.color }]} />
+                  <ThemedText style={[styles.stageLabel, { color: colors.text }]}>
+                    {stage.label}
+                  </ThemedText>
+                  <ThemedText style={[styles.stageCount, { color: stage.color }]}>
+                    {count}
+                  </ThemedText>
+                  <ThemedText style={[styles.stageValue, { color: colors.textSecondary }]}>
+                    {formatCurrency(totalValue)}
+                  </ThemedText>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          
+          {/* Quick Filters */}
+          <View style={styles.filtersRow}>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              style={styles.filterScroll}
+            >
+              <TouchableOpacity
+                style={[
+                  styles.filterButton,
+                  { 
+                    backgroundColor: selectedSource === 'All' ? colors.primary + '20' : colors.background,
+                    borderColor: selectedSource === 'All' ? colors.primary : colors.border
+                  }
+                ]}
+                onPress={() => handleSourceFilter('All')}
+              >
+                <ThemedText style={[
+                  styles.filterText,
+                  { color: selectedSource === 'All' ? colors.primary : colors.textSecondary }
+                ]}>
+                  All Sources
+                </ThemedText>
+              </TouchableOpacity>
+              
+              {leadSources.map((source) => (
+                <TouchableOpacity
+                  key={source}
+                  style={[
+                    styles.filterButton,
+                    { 
+                      backgroundColor: selectedSource === source ? colors.primary + '20' : colors.background,
+                      borderColor: selectedSource === source ? colors.primary : colors.border
+                    }
+                  ]}
+                  onPress={() => handleSourceFilter(source)}
+                >
+                  <ThemedText style={[
+                    styles.filterText,
+                    { color: selectedSource === source ? colors.primary : colors.textSecondary }
+                  ]}>
+                    {source}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+          
+          {/* Priority Filters */}
+          <View style={styles.priorityFilters}>
+            {priorities.map((priority) => (
+              <TouchableOpacity
+                key={priority}
+                style={[
+                  styles.priorityButton,
+                  { 
+                    backgroundColor: selectedPriority === priority ? getPriorityColor(priority) + '20' : colors.background,
+                    borderColor: selectedPriority === priority ? getPriorityColor(priority) : colors.border
+                  }
+                ]}
+                onPress={() => handlePriorityFilter(priority)}
+              >
+                <Ionicons 
+                  name={getPriorityIcon(priority) as any} 
+                  size={16} 
+                  color={selectedPriority === priority ? getPriorityColor(priority) : colors.textSecondary} 
+                />
+                <ThemedText style={[
+                  styles.priorityText,
+                  { color: selectedPriority === priority ? getPriorityColor(priority) : colors.textSecondary }
+                ]}>
+                  {priority}
+                </ThemedText>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Total Pipeline Value */}
+        <View style={[styles.totalValueContainer, { backgroundColor: colors.card }]}>
+          <View style={styles.totalValueContent}>
+            <Ionicons name="trending-up" size={24} color={colors.primary} />
+            <View style={styles.totalValueText}>
+              <ThemedText style={[styles.totalLabel, { color: colors.textSecondary }]}>
+                Total Pipeline Value
+              </ThemedText>
+              <ThemedText type="title" style={[styles.totalAmount, { color: colors.primary }]}>
+                {formatCurrency(leadsData.reduce((sum, lead) => sum + lead.value, 0))}
+              </ThemedText>
+            </View>
+          </View>
+          <ThemedText style={[styles.leadCount, { color: colors.textSecondary }]}>
+            {leadsData.length} Leads • {leadsData.filter(l => l.stage === 'Won').length} Won • {leadsData.filter(l => l.stage === 'Lost').length} Lost
+          </ThemedText>
+        </View>
+
+        {/* Leads List */}
+        <View style={styles.leadsListContainer}>
+          <View style={styles.listHeader}>
+            <ThemedText type="subtitle" style={{ color: colors.text }}>
+              Leads ({filteredLeads.length})
             </ThemedText>
           </View>
-        }
-        ListFooterComponent={<View style={styles.footerSpacer} />}
-      />
+
+          {filteredLeads.length > 0 ? (
+            <View style={styles.leadsGrid}>
+              {filteredLeads.map(renderLead)}
+            </View>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="trending-up-outline" size={60} color={colors.textSecondary} />
+              <ThemedText type="default" style={{ color: colors.textSecondary, marginTop: 10 }}>
+                No leads found
+              </ThemedText>
+              <ThemedText style={{ color: colors.textSecondary, fontSize: 12, marginTop: 5 }}>
+                Try changing your filters
+              </ThemedText>
+            </View>
+          )}
+        </View>
+
+        {/* Bottom Spacer */}
+        <View style={styles.bottomSpacer} />
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -531,6 +573,12 @@ export default function LeadsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20,
   },
   header: {
     padding: 20,
@@ -654,6 +702,7 @@ const styles = StyleSheet.create({
   totalValueContainer: {
     marginHorizontal: 15,
     marginTop: 15,
+    marginBottom: 15,
     padding: 16,
     borderRadius: 16,
     shadowColor: '#000',
@@ -682,13 +731,18 @@ const styles = StyleSheet.create({
   leadCount: {
     fontSize: 11,
   },
-  listContent: {
-    padding: 15,
+  leadsListContainer: {
+    paddingHorizontal: 15,
+  },
+  listHeader: {
+    marginBottom: 15,
+  },
+  leadsGrid: {
+    gap: 12,
   },
   leadCard: {
     borderRadius: 16,
     padding: 16,
-    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -769,7 +823,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 50,
   },
-  footerSpacer: {
+  bottomSpacer: {
     height: 100,
   },
 });
