@@ -9,6 +9,7 @@ interface ThemedViewProps extends ViewProps {
 }
 
 export function ThemedView({ style, lightColor, darkColor, ...otherProps }: ThemedViewProps) {
+  
   const { colors } = useAppTheme();
   const backgroundColor = darkColor && colors.text === '#ffffff' ? darkColor : lightColor || colors.card;
 
