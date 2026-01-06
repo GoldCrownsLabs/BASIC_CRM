@@ -1,12 +1,12 @@
 import React from 'react'
 import { Text, View } from 'react-native'
 
-const ContactID = () => {
+const index = () => {
   return (
     <View>
-      <Text style={{marginTop:40}}>ahdfjkhadjlfak</Text>
+      <Text>help</Text>
     </View>
   )
 }
 
-export default ContactID
+export default index

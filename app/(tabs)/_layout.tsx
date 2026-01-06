@@ -1,11 +1,11 @@
-import { HapticTab } from '@/components/haptic-tab';
-import { useAppTheme } from '@/contaxt/ThemeContext';
-import { useAppNavigation } from '@/hooks/useAppNavigation';
-import { useAuthStore } from '@/store/auth.store';
-import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
-import React from 'react';
-import { Image, Text, View } from 'react-native';
+import { HapticTab } from "@/components/haptic-tab";
+import { useAppTheme } from "@/contaxt/ThemeContext";
+import { useAppNavigation } from "@/hooks/useAppNavigation";
+import { useAuthStore } from "@/store/auth.store";
+import { Ionicons } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
+import React from "react";
+import { Image, Text, View } from "react-native";
 
 export default function TabLayout() {
   const { colors } = useAppTheme();
@@ -29,12 +29,18 @@ export default function TabLayout() {
           shadowOpacity: 0,
         },
         headerTitleStyle: {
-          fontWeight: '600',
+          fontWeight: "600",
           color: colors.text,
         },
 
         headerLeft: () => (
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 15 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginLeft: 15,
+            }}
+          >
             <Ionicons
               name="menu"
               size={28}
@@ -43,8 +49,10 @@ export default function TabLayout() {
               style={{ marginRight: 12 }}
             />
             <View>
-              <Text style={{ fontSize: 16, fontWeight: 'bold', color: colors.text }}>
-                Hi, {user?.name?.split(' ')[0] || 'User'}
+              <Text
+                style={{ fontSize: 16, fontWeight: "bold", color: colors.text }}
+              >
+                Hi, {user?.name?.split(" ")[0] || "User"}
               </Text>
               <Text style={{ fontSize: 12, color: colors.textSecondary }}>
                 Sales Manager
@@ -73,11 +81,12 @@ export default function TabLayout() {
                   height: 40,
                   borderRadius: 20,
                   backgroundColor: colors.primary,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                }}>
-                <Text style={{ color: 'white', fontWeight: 'bold' }}>
-                  {user?.name?.charAt(0) || 'U'}
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <Text style={{ color: "white", fontWeight: "bold" }}>
+                  {user?.name?.charAt(0) || "U"}
                 </Text>
               </View>
             )}
@@ -90,9 +99,13 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: "Home",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={color} />
+            <Ionicons
+              name={focused ? "home" : "home-outline"}
+              size={24}
+              color={color}
+            />
           ),
         }}
       />
@@ -100,9 +113,13 @@ export default function TabLayout() {
       <Tabs.Screen
         name="contacts"
         options={{
-          title: 'Contacts',
+          title: "Contacts",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'people' : 'people-outline'} size={24} color={color} />
+            <Ionicons
+              name={focused ? "people" : "people-outline"}
+              size={24}
+              color={color}
+            />
           ),
         }}
       />
@@ -110,10 +127,10 @@ export default function TabLayout() {
       <Tabs.Screen
         name="leads"
         options={{
-          title: 'Leads',
+          title: "Leads",
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? 'trending-up' : 'trending-up-outline'}
+              name={focused ? "trending-up" : "trending-up-outline"}
               size={24}
               color={color}
             />
@@ -124,10 +141,10 @@ export default function TabLayout() {
       <Tabs.Screen
         name="tasks"
         options={{
-          title: 'Tasks',
+          title: "Tasks",
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? 'checkmark-circle' : 'checkmark-circle-outline'}
+              name={focused ? "checkmark-circle" : "checkmark-circle-outline"}
               size={24}
               color={color}
             />
@@ -138,9 +155,13 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: "Profile",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />
+            <Ionicons
+              name={focused ? "person" : "person-outline"}
+              size={24}
+              color={color}
+            />
           ),
         }}
       />
@@ -148,6 +169,7 @@ export default function TabLayout() {
       {/* ❌ HIDDEN FROM TAB BAR (BUT NAVIGABLE) */}
       <Tabs.Screen name="activities" options={{ href: null }} />
       <Tabs.Screen name="explore" options={{ href: null }} />
+      <Tabs.Screen name="(tools)" options={{ href: null }} />
     </Tabs>
   );
 }

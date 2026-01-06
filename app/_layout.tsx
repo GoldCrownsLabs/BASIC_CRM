@@ -1,15 +1,13 @@
 // app/_layout.tsx
-import { Drawer } from 'expo-router/drawer';
-import { StatusBar } from 'expo-status-bar';
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
-
+import { Drawer } from 'expo-router/drawer';
+import { StatusBar } from 'expo-status-bar';
 
 import CustomDrawerContent from '@/components/CustomDrawerContent';
 import { AppThemeProvider, useAppTheme } from '@/contaxt/ThemeContext';
 
-// Inner component जो theme का उपयोग करेगा
 function AppContent() {
   const { isDark } = useAppTheme();
 
@@ -26,37 +24,41 @@ function AppContent() {
           },
         }}
       >
-        <Drawer.Screen 
-          name="(tabs)" 
+        {/* MAIN APP (Bottom Tabs live here) */}
+        <Drawer.Screen
+          name="(tabs)"
           options={{
             title: 'Home',
             drawerLabel: 'Dashboard',
           }}
         />
-        <Drawer.Screen 
-          name="(auth)" 
+
+        {/* TOOLS (NO TAB, BUT TABS STILL VISIBLE) */}
+        <Drawer.Screen
+          name="tools"
           options={{
-            title: 'Auth',
-            drawerLabel: 'Authentication',
+            title: 'Tools',
+            drawerLabel: 'Tools',
+          }}
+        />
+
+        {/* AUTH (HIDDEN FROM DRAWER) */}
+        <Drawer.Screen
+          name="(auth)"
+          options={{
             drawerItemStyle: { display: 'none' },
           }}
         />
-        <Drawer.Screen 
-          name="index" 
+
+        {/* OPTIONAL */}
+        <Drawer.Screen
+          name="index"
           options={{
-            title: 'Loading',
-            drawerLabel: 'Loading Screen',
             drawerItemStyle: { display: 'none' },
-          }}
-        />
-        <Drawer.Screen 
-          name="modal" 
-          options={{
-            title: 'Modal',
-            drawerLabel: 'Modal',
           }}
         />
       </Drawer>
+
       <StatusBar style={isDark ? 'light' : 'dark'} />
     </>
   );

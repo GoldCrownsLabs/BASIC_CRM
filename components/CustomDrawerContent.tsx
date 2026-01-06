@@ -47,56 +47,58 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
   };
 
   // Document के according important features
-  const importantFeatures = [
-    {
-      label: 'Analytics & Reports',
-      icon: 'bar-chart-outline',
-      onPress: () => {
-        router.push('/analytics');
-        props.navigation.closeDrawer();
-      },
+const importantFeatures = [
+  {
+    label: 'Analytics & Reports',
+    icon: 'bar-chart-outline',
+    onPress: () => {
+      router.push('/analytics'); // ✅ analytics/index.tsx
+      props.navigation.closeDrawer();
     },
-    {
-      label: 'Calendar View',
-      icon: 'calendar-outline',
-      onPress: () => {
-        router.push('/calendar');
-        props.navigation.closeDrawer();
-      },
+  },
+  {
+    label: 'Calendar View',
+    icon: 'calendar-outline',
+    onPress: () => {
+      router.push('/calendar'); // ✅ calendar.tsx OR calendar/index.tsx
+      props.navigation.closeDrawer();
     },
-    {
-      label: 'Email Templates',
-      icon: 'mail-outline',
-      onPress: () => {
-        router.push('/email-templates');
-        props.navigation.closeDrawer();
-      },
+  },
+  {
+    label: 'Email Templates',
+    icon: 'mail-outline',
+    onPress: () => {
+      router.push('/email-templates'); // ✅ email-templates.tsx
+      props.navigation.closeDrawer();
     },
-    {
-      label: 'Import/Export',
-      icon: 'download-outline',
-      onPress: () => {
-        router.push('/import-export');
-        props.navigation.closeDrawer();
-      },
+  },
+  {
+    label: 'Import / Export',
+    icon: 'download-outline',
+    onPress: () => {
+      router.push('/import-export'); // ✅ import-export.tsx
+      props.navigation.closeDrawer();
     },
-    {
-      label: 'Settings',
-      icon: 'settings-outline',
-      onPress: () => {
-        router.push('/settings');
-        props.navigation.closeDrawer();
-      },
+  },
+  {
+    label: 'Settings',
+    icon: 'settings-outline',
+    onPress: () => {
+      router.push('/settings'); // ✅ agar settings tab/page hai
+      props.navigation.closeDrawer();
     },
-    {
-      label: 'Help & Support',
-      icon: 'help-circle-outline',
-      onPress: () => {
-        router.push('/help');
-        props.navigation.closeDrawer();
-      },
+  },
+  {
+    label: 'Help & Support',
+    icon: 'help-circle-outline',
+    onPress: () => {
+      router.push('/help'); // ✅ help.tsx / help/index.tsx
+      props.navigation.closeDrawer();
     },
-  ];
+  },
+];
+
+
 
   // Quick access to recent items
   const recentItems = [
