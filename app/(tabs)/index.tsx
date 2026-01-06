@@ -1,6 +1,8 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { useAppTheme } from "@/contaxt/ThemeContext"; // Note: typo in 'context'
+import { useAppTheme } from "@/contaxt/ThemeContext";
+
+import { dashboardData } from "@/data/home";
 import { useAuthStore } from "@/store/auth.store";
 import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
@@ -9,93 +11,10 @@ import {
   Animated,
   RefreshControl,
   ScrollView,
-  StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-// Mock data for dashboard
-const mockData = {
-  stats: {
-    totalLeads: 42,
-    openTasks: 18,
-    totalContacts: 156,
-    todayActivities: 7,
-    qualifiedLeads: 12,
-    revenue: 125000,
-  },
-  recentActivities: [
-    {
-      id: 1,
-      type: "call",
-      title: "Call with John Doe",
-      time: "10:30 AM",
-      contact: "John Doe",
-      status: "completed",
-    },
-    {
-      id: 2,
-      type: "meeting",
-      title: "Meeting with ABC Corp",
-      time: "2:00 PM",
-      contact: "Sarah Smith",
-      status: "upcoming",
-    },
-    {
-      id: 3,
-      type: "email",
-      title: "Follow-up email sent",
-      time: "4:45 PM",
-      contact: "Mike Johnson",
-      status: "completed",
-    },
-    {
-      id: 4,
-      type: "task",
-      title: "Prepare proposal",
-      time: "11:00 AM",
-      contact: "ABC Corp",
-      status: "pending",
-    },
-    {
-      id: 5,
-      type: "note",
-      title: "Meeting notes updated",
-      time: "3:30 PM",
-      contact: "Emma Wilson",
-      status: "completed",
-    },
-  ],
-  topLeads: [
-    {
-      id: 1,
-      name: "ABC Corporation",
-      value: 50000,
-      stage: "Proposal",
-      days: 3,
-    },
-    {
-      id: 2,
-      name: "XYZ Enterprises",
-      value: 35000,
-      stage: "Negotiation",
-      days: 5,
-    },
-    {
-      id: 3,
-      name: "Tech Solutions Inc",
-      value: 25000,
-      stage: "Qualified",
-      days: 2,
-    },
-  ],
-  performance: {
-    conversionRate: 28,
-    avgResponseTime: 2.5,
-    tasksCompleted: 65,
-  },
-};
 
 const activityIcons = {
   call: "call-outline",
@@ -117,20 +36,18 @@ const stageColors = {
 
 export default function DashboardScreen() {
   const { user } = useAuthStore();
-  const { colors, isDark } = useAppTheme(); // Added isDark to check theme mode
+  const { colors, isDark } = useAppTheme();
 
   const [refreshing, setRefreshing] = useState(false);
   const [greeting, setGreeting] = useState("");
   const fadeAnim = useState(new Animated.Value(0))[0];
 
   useEffect(() => {
-    // Set greeting based on time
     const hour = new Date().getHours();
     if (hour < 12) setGreeting("Good Morning");
     else if (hour < 18) setGreeting("Good Afternoon");
     else setGreeting("Good Evening");
 
-    // Animation on mount
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 500,
@@ -140,7 +57,6 @@ export default function DashboardScreen() {
 
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
-    // Simulate API call
     setTimeout(() => setRefreshing(false), 1500);
   }, []);
 
@@ -163,7 +79,15 @@ export default function DashboardScreen() {
         : colors.primary;
 
     return (
-      <View style={[styles.activityIcon, { backgroundColor: color + "20" }]}>
+      <View style={{
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 12,
+        backgroundColor: color + "20",
+      }}>
         <Ionicons name={iconName as any} size={20} color={color} />
       </View>
     );
@@ -173,10 +97,15 @@ export default function DashboardScreen() {
     const stageColor =
       stageColors[stage as keyof typeof stageColors] || colors.primary;
     return (
-      <View style={[styles.stageBadge, { backgroundColor: stageColor + "20" }]}>
+      <View style={{
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+        backgroundColor: stageColor + "20",
+      }}>
         <ThemedText
           type="default"
-          style={[styles.stageText, { color: stageColor }]}
+          style={{ color: stageColor, fontSize: 11, fontWeight: "600" }}
         >
           {stage}
         </ThemedText>
@@ -184,22 +113,14 @@ export default function DashboardScreen() {
     );
   };
 
-  // Helper function to get background color for cards with opacity
-  const getCardBackground = (opacity: string = "") => {
-    return colors.card + opacity;
-  };
-
-  // Helper function to get muted background
   const getMutedBackground = () => {
     return isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)";
   };
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView
-        style={styles.scrollView}
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -212,23 +133,33 @@ export default function DashboardScreen() {
       >
         {/* Welcome Header */}
         <Animated.View
-          style={[
-            styles.header,
-            {
-              backgroundColor: colors.card,
-              opacity: fadeAnim,
-              transform: [
-                {
-                  translateY: fadeAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [20, 0],
-                  }),
-                },
-              ],
-            },
-          ]}
+          style={{
+            padding: 20,
+            marginHorizontal: 15,
+            marginTop: 15,
+            borderRadius: 20,
+            backgroundColor: colors.card,
+            opacity: fadeAnim,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: 4,
+            transform: [
+              {
+                translateY: fadeAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [20, 0],
+                }),
+              },
+            ],
+          }}
         >
-          <View style={styles.headerTop}>
+          <View style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+          }}>
             <View>
               <ThemedText
                 type="subtitle"
@@ -248,10 +179,15 @@ export default function DashboardScreen() {
               </ThemedText>
             </View>
             <TouchableOpacity
-              style={[
-                styles.notificationBtn,
-                { backgroundColor: colors.primary + "15" },
-              ]}
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                justifyContent: "center",
+                alignItems: "center",
+                position: "relative",
+                backgroundColor: colors.primary + "15",
+              }}
             >
               <Ionicons
                 name="notifications-outline"
@@ -259,10 +195,15 @@ export default function DashboardScreen() {
                 color={colors.primary}
               />
               <View
-                style={[
-                  styles.notificationDot,
-                  { backgroundColor: colors.error },
-                ]}
+                style={{
+                  position: "absolute",
+                  top: 10,
+                  right: 10,
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: colors.error,
+                }}
               />
             </TouchableOpacity>
           </View>
@@ -282,38 +223,61 @@ export default function DashboardScreen() {
 
         {/* Stats Overview */}
         <Animated.View
-          style={[
-            styles.statsContainer,
-            {
-              opacity: fadeAnim,
-              transform: [
-                {
-                  translateY: fadeAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [30, 0],
-                  }),
-                },
-              ],
-            },
-          ]}
+          style={{
+            paddingHorizontal: 15,
+            marginTop: 15,
+            opacity: fadeAnim,
+            transform: [
+              {
+                translateY: fadeAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [30, 0],
+                }),
+              },
+            ],
+          }}
         >
           <ThemedText
             type="subtitle"
-            style={[styles.sectionTitle, { color: colors.text }]}
+            style={{ marginBottom: 15, color: colors.text }}
           >
             Overview
           </ThemedText>
 
-          <View style={styles.statsGrid}>
-            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-              <View style={[styles.statIcon, { backgroundColor: "#2196F320" }]}>
+          <View style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            justifyContent: "space-between",
+          }}>
+            <View style={{
+              width: "48%",
+              padding: 15,
+              borderRadius: 16,
+              marginBottom: 12,
+              alignItems: "center",
+              backgroundColor: colors.card,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.05,
+              shadowRadius: 4,
+              elevation: 2,
+            }}>
+              <View style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                justifyContent: "center",
+                alignItems: "center",
+                marginBottom: 10,
+                backgroundColor: "#2196F320",
+              }}>
                 <Ionicons name="trending-up" size={24} color="#2196F3" />
               </View>
               <ThemedText
                 type="title"
-                style={[styles.statNumber, { color: "#2196F3" }]}
+                style={{ fontSize: 24, fontWeight: "700", marginBottom: 4, color: "#2196F3" }}
               >
-                {mockData.stats.totalLeads}
+                {dashboardData.stats.totalLeads}
               </ThemedText>
               <ThemedText
                 type="default"
@@ -323,15 +287,35 @@ export default function DashboardScreen() {
               </ThemedText>
             </View>
 
-            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-              <View style={[styles.statIcon, { backgroundColor: "#4CAF5020" }]}>
+            <View style={{
+              width: "48%",
+              padding: 15,
+              borderRadius: 16,
+              marginBottom: 12,
+              alignItems: "center",
+              backgroundColor: colors.card,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.05,
+              shadowRadius: 4,
+              elevation: 2,
+            }}>
+              <View style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                justifyContent: "center",
+                alignItems: "center",
+                marginBottom: 10,
+                backgroundColor: "#4CAF5020",
+              }}>
                 <Ionicons name="people" size={24} color="#4CAF50" />
               </View>
               <ThemedText
                 type="title"
-                style={[styles.statNumber, { color: "#4CAF50" }]}
+                style={{ fontSize: 24, fontWeight: "700", marginBottom: 4, color: "#4CAF50" }}
               >
-                {mockData.stats.totalContacts}
+                {dashboardData.stats.totalContacts}
               </ThemedText>
               <ThemedText
                 type="default"
@@ -341,15 +325,35 @@ export default function DashboardScreen() {
               </ThemedText>
             </View>
 
-            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-              <View style={[styles.statIcon, { backgroundColor: "#FF980020" }]}>
+            <View style={{
+              width: "48%",
+              padding: 15,
+              borderRadius: 16,
+              marginBottom: 12,
+              alignItems: "center",
+              backgroundColor: colors.card,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.05,
+              shadowRadius: 4,
+              elevation: 2,
+            }}>
+              <View style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                justifyContent: "center",
+                alignItems: "center",
+                marginBottom: 10,
+                backgroundColor: "#FF980020",
+              }}>
                 <Ionicons name="checkmark-circle" size={24} color="#FF9800" />
               </View>
               <ThemedText
                 type="title"
-                style={[styles.statNumber, { color: "#FF9800" }]}
+                style={{ fontSize: 24, fontWeight: "700", marginBottom: 4, color: "#FF9800" }}
               >
-                {mockData.stats.openTasks}
+                {dashboardData.stats.openTasks}
               </ThemedText>
               <ThemedText
                 type="default"
@@ -359,15 +363,35 @@ export default function DashboardScreen() {
               </ThemedText>
             </View>
 
-            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-              <View style={[styles.statIcon, { backgroundColor: "#9C27B020" }]}>
+            <View style={{
+              width: "48%",
+              padding: 15,
+              borderRadius: 16,
+              marginBottom: 12,
+              alignItems: "center",
+              backgroundColor: colors.card,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.05,
+              shadowRadius: 4,
+              elevation: 2,
+            }}>
+              <View style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                justifyContent: "center",
+                alignItems: "center",
+                marginBottom: 10,
+                backgroundColor: "#9C27B020",
+              }}>
                 <Ionicons name="cash" size={24} color="#9C27B0" />
               </View>
               <ThemedText
                 type="title"
-                style={[styles.statNumber, { color: "#9C27B0" }]}
+                style={{ fontSize: 24, fontWeight: "700", marginBottom: 4, color: "#9C27B0" }}
               >
-                {formatCurrency(mockData.stats.revenue).replace("$", "")}K
+                {formatCurrency(dashboardData.stats.revenue).replace("$", "")}K
               </ThemedText>
               <ThemedText
                 type="default"
@@ -380,8 +404,24 @@ export default function DashboardScreen() {
         </Animated.View>
 
         {/* Quick Actions */}
-        <ThemedView style={[styles.section, { backgroundColor: colors.card }]}>
-          <View style={styles.sectionHeader}>
+        <ThemedView style={{
+          marginHorizontal: 15,
+          marginTop: 15,
+          padding: 20,
+          borderRadius: 20,
+          backgroundColor: colors.card,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          elevation: 4,
+        }}>
+          <View style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 15,
+          }}>
             <ThemedText type="subtitle" style={{ color: colors.text }}>
               Quick Actions
             </ThemedText>
@@ -392,61 +432,102 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.actionsGrid}>
-            <Link href="/(app)/contacts" asChild>
+          <View style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            justifyContent: "space-between",
+            gap: 12,
+          }}>
+            <Link href="/(tabs)/contacts" asChild>
               <TouchableOpacity
-                style={[
-                  styles.actionBtn,
-                  { backgroundColor: colors.primary + "15" },
-                ]}
+                style={{
+                  width: "48%",
+                  padding: 16,
+                  borderRadius: 14,
+                  alignItems: "center",
+                  backgroundColor: colors.primary + "15",
+                }}
               >
                 <View
-                  style={[
-                    styles.actionIcon,
-                    { backgroundColor: colors.primary },
-                  ]}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginBottom: 8,
+                    backgroundColor: colors.primary,
+                  }}
                 >
                   <Ionicons name="person-add" size={20} color="white" />
                 </View>
                 <ThemedText
                   type="defaultSemiBold"
-                  style={[styles.actionText, { color: colors.primary }]}
+                  style={{ fontSize: 13, textAlign: "center", color: colors.primary }}
                 >
                   Add Contact
                 </ThemedText>
               </TouchableOpacity>
             </Link>
 
-            <Link href="/leads/new" asChild>
+            <Link href="/(tabs)/leads" asChild>
               <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: "#4CAF5015" }]}
+                style={{
+                  width: "48%",
+                  padding: 16,
+                  borderRadius: 14,
+                  alignItems: "center",
+                  backgroundColor: "#4CAF5015",
+                }}
               >
                 <View
-                  style={[styles.actionIcon, { backgroundColor: "#4CAF50" }]}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginBottom: 8,
+                    backgroundColor: "#4CAF50",
+                  }}
                 >
                   <Ionicons name="trending-up" size={20} color="white" />
                 </View>
                 <ThemedText
                   type="defaultSemiBold"
-                  style={[styles.actionText, { color: "#4CAF50" }]}
+                  style={{ fontSize: 13, textAlign: "center", color: "#4CAF50" }}
                 >
                   Add Lead
                 </ThemedText>
               </TouchableOpacity>
             </Link>
 
-            <Link href="/(app)/tasks/new" asChild>
+            <Link href="/(tabs)/tasks" asChild>
               <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: "#FF980015" }]}
+                style={{
+                  width: "48%",
+                  padding: 16,
+                  borderRadius: 14,
+                  alignItems: "center",
+                  backgroundColor: "#FF980015",
+                }}
               >
                 <View
-                  style={[styles.actionIcon, { backgroundColor: "#FF9800" }]}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginBottom: 8,
+                    backgroundColor: "#FF9800",
+                  }}
                 >
                   <Ionicons name="checkmark-circle" size={20} color="white" />
                 </View>
                 <ThemedText
                   type="defaultSemiBold"
-                  style={[styles.actionText, { color: "#FF9800" }]}
+                  style={{ fontSize: 13, textAlign: "center", color: "#FF9800" }}
                 >
                   Add Task
                 </ThemedText>
@@ -455,16 +536,30 @@ export default function DashboardScreen() {
 
             <Link href="/activities" asChild>
               <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: "#9C27B015" }]}
+                style={{
+                  width: "48%",
+                  padding: 16,
+                  borderRadius: 14,
+                  alignItems: "center",
+                  backgroundColor: "#9C27B015",
+                }}
               >
                 <View
-                  style={[styles.actionIcon, { backgroundColor: "#9C27B0" }]}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginBottom: 8,
+                    backgroundColor: "#9C27B0",
+                  }}
                 >
                   <Ionicons name="calendar" size={20} color="white" />
                 </View>
                 <ThemedText
                   type="defaultSemiBold"
-                  style={[styles.actionText, { color: "#9C27B0" }]}
+                  style={{ fontSize: 13, textAlign: "center", color: "#9C27B0" }}
                 >
                   Log Activity
                 </ThemedText>
@@ -474,8 +569,24 @@ export default function DashboardScreen() {
         </ThemedView>
 
         {/* Recent Activities */}
-        <ThemedView style={[styles.section, { backgroundColor: colors.card }]}>
-          <View style={styles.sectionHeader}>
+        <ThemedView style={{
+          marginHorizontal: 15,
+          marginTop: 15,
+          padding: 20,
+          borderRadius: 20,
+          backgroundColor: colors.card,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          elevation: 4,
+        }}>
+          <View style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 15,
+          }}>
             <ThemedText type="subtitle" style={{ color: colors.text }}>
               Recent Activities
             </ThemedText>
@@ -488,17 +599,20 @@ export default function DashboardScreen() {
             </Link>
           </View>
 
-          <View style={styles.activitiesList}>
-            {mockData.recentActivities.slice(0, 4).map((activity) => (
+          <View style={{ gap: 12 }}>
+            {dashboardData.recentActivities.slice(0, 4).map((activity) => (
               <TouchableOpacity
                 key={activity.id}
-                style={[
-                  styles.activityItem,
-                  { backgroundColor: getMutedBackground() },
-                ]}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  padding: 12,
+                  borderRadius: 12,
+                  backgroundColor: getMutedBackground(),
+                }}
               >
                 {renderActivityIcon(activity.type, activity.status)}
-                <View style={styles.activityContent}>
+                <View style={{ flex: 1 }}>
                   <ThemedText
                     type="defaultSemiBold"
                     style={{ color: colors.text }}
@@ -513,31 +627,30 @@ export default function DashboardScreen() {
                   </ThemedText>
                 </View>
                 <View
-                  style={[
-                    styles.activityStatus,
-                    {
-                      backgroundColor:
-                        activity.status === "completed"
-                          ? "#4CAF5020"
-                          : activity.status === "upcoming"
-                          ? "#FF980020"
-                          : colors.primary + "20",
-                    },
-                  ]}
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    borderRadius: 12,
+                    backgroundColor:
+                      activity.status === "completed"
+                        ? "#4CAF5020"
+                        : activity.status === "upcoming"
+                        ? "#FF980020"
+                        : colors.primary + "20",
+                  }}
                 >
                   <ThemedText
                     type="default"
-                    style={[
-                      styles.statusText,
-                      {
-                        color:
-                          activity.status === "completed"
-                            ? "#4CAF50"
-                            : activity.status === "upcoming"
-                            ? "#FF9800"
-                            : colors.primary,
-                      },
-                    ]}
+                    style={{
+                      fontSize: 11,
+                      fontWeight: "600",
+                      color:
+                        activity.status === "completed"
+                          ? "#4CAF50"
+                          : activity.status === "upcoming"
+                          ? "#FF9800"
+                          : colors.primary,
+                    }}
                   >
                     {activity.status.charAt(0).toUpperCase() +
                       activity.status.slice(1)}
@@ -549,8 +662,24 @@ export default function DashboardScreen() {
         </ThemedView>
 
         {/* Top Leads */}
-        <ThemedView style={[styles.section, { backgroundColor: colors.card }]}>
-          <View style={styles.sectionHeader}>
+        <ThemedView style={{
+          marginHorizontal: 15,
+          marginTop: 15,
+          padding: 20,
+          borderRadius: 20,
+          backgroundColor: colors.card,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          elevation: 4,
+        }}>
+          <View style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 15,
+          }}>
             <ThemedText type="subtitle" style={{ color: colors.text }}>
               Top Leads
             </ThemedText>
@@ -563,18 +692,30 @@ export default function DashboardScreen() {
             </Link>
           </View>
 
-          <View style={styles.leadsList}>
-            {mockData.topLeads.map((lead) => (
+          <View style={{ gap: 12 }}>
+            {dashboardData.topLeads.map((lead) => (
               <TouchableOpacity
                 key={lead.id}
-                style={[
-                  styles.leadItem,
-                  { backgroundColor: getMutedBackground() },
-                ]}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: 12,
+                  borderRadius: 12,
+                  backgroundColor: getMutedBackground(),
+                }}
               >
-                <View style={styles.leadInfo}>
-                  <View style={styles.leadAvatar}>
-                    <ThemedText type="title" style={styles.leadInitial}>
+                <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+                  <View style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    backgroundColor: "#2196F3",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginRight: 12,
+                  }}>
+                    <ThemedText type="title" style={{ color: "white", fontSize: 16, fontWeight: "600" }}>
                       {lead.name.charAt(0)}
                     </ThemedText>
                   </View>
@@ -600,18 +741,33 @@ export default function DashboardScreen() {
         </ThemedView>
 
         {/* Performance Metrics */}
-        <ThemedView style={[styles.section, { backgroundColor: colors.card }]}>
+        <ThemedView style={{
+          marginHorizontal: 15,
+          marginTop: 15,
+          padding: 20,
+          borderRadius: 20,
+          backgroundColor: colors.card,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          elevation: 4,
+        }}>
           <ThemedText type="subtitle" style={{ color: colors.text }}>
             Performance
           </ThemedText>
 
-          <View style={styles.metricsGrid}>
-            <View style={styles.metricItem}>
+          <View style={{
+            flexDirection: "column",
+            justifyContent: "space-between",
+            marginTop: 10,
+          }}>
+            <View style={{ width: "100%", alignItems: "flex-start" }}>
               <ThemedText
                 type="title"
-                style={[styles.metricValue, { color: "#4CAF50" }]}
+                style={{ fontSize: 20, fontWeight: "700", marginBottom: 4, color: "#4CAF50" }}
               >
-                {mockData.performance.conversionRate}%
+                {dashboardData.performance.conversionRate}%
               </ThemedText>
               <ThemedText
                 type="default"
@@ -620,26 +776,32 @@ export default function DashboardScreen() {
                 Conversion Rate
               </ThemedText>
               <View
-                style={[styles.metricBar, { backgroundColor: colors.border }]}
+                style={{
+                  width: "100%",
+                  height: 4,
+                  borderRadius: 2,
+                  marginTop: 8,
+                  overflow: "hidden",
+                  backgroundColor: colors.border,
+                }}
               >
                 <View
-                  style={[
-                    styles.metricFill,
-                    {
-                      width: `${mockData.performance.conversionRate}%`,
-                      backgroundColor: "#4CAF50",
-                    },
-                  ]}
+                  style={{
+                    height: "100%",
+                    borderRadius: 2,
+                    width: `${dashboardData.performance.conversionRate}%`,
+                    backgroundColor: "#4CAF50",
+                  }}
                 />
               </View>
             </View>
 
-            <View style={styles.metricItem}>
+            <View style={{ width: "100%", alignItems: "flex-start", marginTop: 20 }}>
               <ThemedText
                 type="title"
-                style={[styles.metricValue, { color: "#2196F3" }]}
+                style={{ fontSize: 20, fontWeight: "700", marginBottom: 4, color: "#2196F3" }}
               >
-                {mockData.performance.avgResponseTime}h
+                {dashboardData.performance.avgResponseTime}h
               </ThemedText>
               <ThemedText
                 type="default"
@@ -648,26 +810,32 @@ export default function DashboardScreen() {
                 Avg Response Time
               </ThemedText>
               <View
-                style={[styles.metricBar, { backgroundColor: colors.border }]}
+                style={{
+                  width: "100%",
+                  height: 4,
+                  borderRadius: 2,
+                  marginTop: 8,
+                  overflow: "hidden",
+                  backgroundColor: colors.border,
+                }}
               >
                 <View
-                  style={[
-                    styles.metricFill,
-                    {
-                      width: "60%",
-                      backgroundColor: "#2196F3",
-                    },
-                  ]}
+                  style={{
+                    height: "100%",
+                    borderRadius: 2,
+                    width: "60%",
+                    backgroundColor: "#2196F3",
+                  }}
                 />
               </View>
             </View>
 
-            <View style={styles.metricItem}>
+            <View style={{ width: "100%", alignItems: "flex-start", marginTop: 20 }}>
               <ThemedText
                 type="title"
-                style={[styles.metricValue, { color: "#FF9800" }]}
+                style={{ fontSize: 20, fontWeight: "700", marginBottom: 4, color: "#FF9800" }}
               >
-                {mockData.performance.tasksCompleted}%
+                {dashboardData.performance.tasksCompleted}%
               </ThemedText>
               <ThemedText
                 type="default"
@@ -676,16 +844,22 @@ export default function DashboardScreen() {
                 Tasks Completed
               </ThemedText>
               <View
-                style={[styles.metricBar, { backgroundColor: colors.border }]}
+                style={{
+                  width: "100%",
+                  height: 4,
+                  borderRadius: 2,
+                  marginTop: 8,
+                  overflow: "hidden",
+                  backgroundColor: colors.border,
+                }}
               >
                 <View
-                  style={[
-                    styles.metricFill,
-                    {
-                      width: `${mockData.performance.tasksCompleted}%`,
-                      backgroundColor: "#FF9800",
-                    },
-                  ]}
+                  style={{
+                    height: "100%",
+                    borderRadius: 2,
+                    width: `${dashboardData.performance.tasksCompleted}%`,
+                    backgroundColor: "#FF9800",
+                  }}
                 />
               </View>
             </View>
@@ -693,8 +867,22 @@ export default function DashboardScreen() {
         </ThemedView>
 
         {/* Sync Status */}
-        <View style={[styles.syncStatus, { backgroundColor: colors.card }]}>
-          <View style={styles.syncInfo}>
+        <View style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: 15,
+          marginHorizontal: 15,
+          marginTop: 15,
+          borderRadius: 16,
+          backgroundColor: colors.card,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.05,
+          shadowRadius: 4,
+          elevation: 2,
+        }}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
             <Ionicons name="cloud-done" size={20} color="#4CAF50" />
             <ThemedText
               type="default"
@@ -711,240 +899,8 @@ export default function DashboardScreen() {
         </View>
 
         {/* Bottom Spacer */}
-        <View style={styles.bottomSpacer} />
+        <View style={{ height: 100 }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  header: {
-    padding: 20,
-    marginHorizontal: 15,
-    marginTop: 15,
-    borderRadius: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  headerTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  notificationBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: "center",
-    alignItems: "center",
-    position: "relative",
-  },
-  notificationDot: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  statsContainer: {
-    paddingHorizontal: 15,
-    marginTop: 15,
-  },
-  sectionTitle: {
-    marginBottom: 15,
-  },
-  statsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  statCard: {
-    width: "48%",
-    padding: 15,
-    borderRadius: 16,
-    marginBottom: 12,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  statIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  section: {
-    marginHorizontal: 15,
-    marginTop: 15,
-    padding: 20,
-    borderRadius: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 15,
-  },
-  actionsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  actionBtn: {
-    width: "48%",
-    padding: 16,
-    borderRadius: 14,
-    alignItems: "center",
-  },
-  actionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  actionText: {
-    fontSize: 13,
-    textAlign: "center",
-  },
-  activitiesList: {
-    gap: 12,
-  },
-  activityItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    borderRadius: 12,
-  },
-  activityIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  activityContent: {
-    flex: 1,
-  },
-  activityStatus: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  leadsList: {
-    gap: 12,
-  },
-  leadItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 12,
-    borderRadius: 12,
-  },
-  leadInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  leadAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#2196F3",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  leadInitial: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  stageBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  stageText: {
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  metricsGrid: {
-    flexDirection: "column",
-    justifyContent: "space-between",
-    marginTop: 10,
-  },
-  metricItem: {
-    width: "100%",
-    alignItems: "flex-start",
-  },
-  metricValue: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  metricBar: {
-    width: "100%",
-    height: 4,
-    borderRadius: 2,
-    marginTop: 8,
-    overflow: "hidden",
-  },
-  metricFill: {
-    height: "100%",
-    borderRadius: 2,
-  },
-  syncStatus: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 15,
-    marginHorizontal: 15,
-    marginTop: 15,
-    borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  syncInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  bottomSpacer: {
-    height: 100,
-  },
-});

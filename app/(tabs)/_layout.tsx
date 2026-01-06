@@ -110,19 +110,7 @@ export default function TabLayout() {
         }}
       />
 
-      <Tabs.Screen
-        name="contacts"
-        options={{
-          title: "Contacts",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "people" : "people-outline"}
-              size={24}
-              color={color}
-            />
-          ),
-        }}
-      />
+     
 
       <Tabs.Screen
         name="leads"
@@ -145,6 +133,19 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "checkmark-circle" : "checkmark-circle-outline"}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+       <Tabs.Screen
+        name="contacts"
+        options={{
+          title: "Contacts",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "people" : "people-outline"}
               size={24}
               color={color}
             />
