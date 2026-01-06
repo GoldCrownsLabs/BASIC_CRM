@@ -1,154 +1,44 @@
-import { ThemedText } from '@/components/themed-text';
-import { useAppTheme } from '@/contaxt/ThemeContext';
-import { Ionicons } from '@expo/vector-icons';
-import { Link, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/contaxt/ThemeContext";
+import { Contact, contactsData, filters, sortOptions } from "@/data/contact";
+import { Ionicons } from "@expo/vector-icons";
+import React, { useState } from "react";
 import {
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   RefreshControl,
   ScrollView,
-  StyleSheet,
   TextInput,
   TouchableOpacity,
-  View
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-// Mock data for contacts (same as before)
-const contactsData = [
-  { 
-    id: '1', 
-    name: 'John Doe', 
-    email: 'john@example.com', 
-    phone: '+1234567890', 
-    company: 'ABC Corp',
-    title: 'CEO',
-    status: 'active',
-    lastContact: '2024-01-15',
-    tags: ['VIP', 'Regular'],
-    source: 'Referral'
-  },
-  { 
-    id: '2', 
-    name: 'Jane Smith', 
-    email: 'jane@example.com', 
-    phone: '+0987654321', 
-    company: 'XYZ Inc',
-    title: 'Marketing Director',
-    status: 'active',
-    lastContact: '2024-01-14',
-    tags: ['Hot Lead'],
-    source: 'Website'
-  },
-  { 
-    id: '3', 
-    name: 'Bob Johnson', 
-    email: 'bob@example.com', 
-    phone: '+1122334455', 
-    company: 'Tech Solutions',
-    title: 'CTO',
-    status: 'inactive',
-    lastContact: '2024-01-10',
-    tags: ['Cold'],
-    source: 'Conference'
-  },
-  { 
-    id: '4', 
-    name: 'Alice Brown', 
-    email: 'alice@example.com', 
-    phone: '+5566778899', 
-    company: 'Global Ltd',
-    title: 'Sales Manager',
-    status: 'active',
-    lastContact: '2024-01-13',
-    tags: ['VIP', 'Decision Maker'],
-    source: 'Referral'
-  },
-  { 
-    id: '5', 
-    name: 'Charlie Wilson', 
-    email: 'charlie@example.com', 
-    phone: '+6677889900', 
-    company: 'Startup Co',
-    title: 'Founder',
-    status: 'active',
-    lastContact: '2024-01-12',
-    tags: ['Hot Lead'],
-    source: 'Social Media'
-  },
-  { 
-    id: '6', 
-    name: 'Diana Miller', 
-    email: 'diana@example.com', 
-    phone: '+7788990011', 
-    company: 'Innovate LLC',
-    title: 'Product Manager',
-    status: 'inactive',
-    lastContact: '2024-01-05',
-    tags: ['Follow-up'],
-    source: 'Email Campaign'
-  },
-  { 
-    id: '7', 
-    name: 'Edward Davis', 
-    email: 'edward@example.com', 
-    phone: '+8899001122', 
-    company: 'Future Inc',
-    title: 'VP Sales',
-    status: 'active',
-    lastContact: '2024-01-14',
-    tags: ['VIP'],
-    source: 'Referral'
-  },
-  { 
-    id: '8', 
-    name: 'Fiona Garcia', 
-    email: 'fiona@example.com', 
-    phone: '+9900112233', 
-    company: 'Next Gen',
-    title: 'CEO',
-    status: 'active',
-    lastContact: '2024-01-15',
-    tags: ['Hot Lead', 'Decision Maker'],
-    source: 'Website'
-  },
-  // Add more contacts for testing scroll
-  { 
-    id: '9', 
-    name: 'George Wilson', 
-    email: 'george@example.com', 
-    phone: '+1234567891', 
-    company: 'Tech Corp',
-    title: 'Developer',
-    status: 'active',
-    lastContact: '2024-01-14',
-    tags: ['Regular'],
-    source: 'Referral'
-  },
-  { 
-    id: '10', 
-    name: 'Helen Taylor', 
-    email: 'helen@example.com', 
-    phone: '+1234567892', 
-    company: 'Design Studio',
-    title: 'Designer',
-    status: 'active',
-    lastContact: '2024-01-13',
-    tags: ['VIP'],
-    source: 'Website'
-  },
-];
-
-const filters = ['All', 'Active', 'Inactive', 'VIP', 'Hot Lead'];
-const sortOptions = ['Recent', 'A-Z', 'Last Contact', 'Company'];
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ContactsScreen() {
   const { colors } = useAppTheme();
-  const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState('All');
-  const [selectedSort, setSelectedSort] = useState('Recent');
-  const [filteredContacts, setFilteredContacts] = useState(contactsData);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedFilter, setSelectedFilter] = useState("All");
+  const [selectedSort, setSelectedSort] = useState("Recent");
+  const [filteredContacts, setFilteredContacts] =
+    useState<Contact[]>(contactsData);
+  const [addContactModalVisible, setAddContactModalVisible] = useState(false);
+  const [contactDetailModalVisible, setContactDetailModalVisible] =
+    useState(false);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+
+  // Add contact form state
+  const [newContact, setNewContact] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    confirmPhone: "",
+    company: "",
+    title: "",
+  });
 
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
@@ -170,117 +60,290 @@ export default function ContactsScreen() {
     filterAndSortContacts(searchQuery, selectedFilter, sort);
   };
 
-  const filterAndSortContacts = (search: string, filter: string, sort: string) => {
+  const filterAndSortContacts = (
+    search: string,
+    filter: string,
+    sort: string
+  ) => {
     let filtered = [...contactsData];
-    
+
     // Search filter
     if (search) {
-      filtered = filtered.filter(contact =>
-        contact.name.toLowerCase().includes(search.toLowerCase()) ||
-        contact.email.toLowerCase().includes(search.toLowerCase()) ||
-        contact.company.toLowerCase().includes(search.toLowerCase()) ||
-        contact.phone.includes(search)
+      filtered = filtered.filter(
+        (contact) =>
+          contact.name.toLowerCase().includes(search.toLowerCase()) ||
+          contact.email.toLowerCase().includes(search.toLowerCase()) ||
+          contact.company.toLowerCase().includes(search.toLowerCase()) ||
+          contact.phone.includes(search)
       );
     }
-    
+
     // Status filter
-    if (filter === 'Active') {
-      filtered = filtered.filter(contact => contact.status === 'active');
-    } else if (filter === 'Inactive') {
-      filtered = filtered.filter(contact => contact.status === 'inactive');
-    } else if (filter === 'VIP') {
-      filtered = filtered.filter(contact => contact.tags.includes('VIP'));
-    } else if (filter === 'Hot Lead') {
-      filtered = filtered.filter(contact => contact.tags.includes('Hot Lead'));
+    if (filter === "Active") {
+      filtered = filtered.filter((contact) => contact.status === "active");
+    } else if (filter === "Inactive") {
+      filtered = filtered.filter((contact) => contact.status === "inactive");
+    } else if (filter === "VIP") {
+      filtered = filtered.filter((contact) => contact.tags.includes("VIP"));
+    } else if (filter === "Hot Lead") {
+      filtered = filtered.filter((contact) =>
+        contact.tags.includes("Hot Lead")
+      );
     }
-    
+
     // Sort
     switch (sort) {
-      case 'A-Z':
+      case "A-Z":
         filtered.sort((a, b) => a.name.localeCompare(b.name));
         break;
-      case 'Last Contact':
-        filtered.sort((a, b) => new Date(b.lastContact).getTime() - new Date(a.lastContact).getTime());
+      case "Last Contact":
+        filtered.sort(
+          (a, b) =>
+            new Date(b.lastContact).getTime() -
+            new Date(a.lastContact).getTime()
+        );
         break;
-      case 'Company':
+      case "Company":
         filtered.sort((a, b) => a.company.localeCompare(b.company));
         break;
       default: // Recent
-        filtered.sort((a, b) => new Date(b.lastContact).getTime() - new Date(a.lastContact).getTime());
+        filtered.sort(
+          (a, b) =>
+            new Date(b.lastContact).getTime() -
+            new Date(a.lastContact).getTime()
+        );
     }
-    
+
     setFilteredContacts(filtered);
   };
 
-  const renderContact = (item: any) => (
-    <TouchableOpacity 
+  const handleViewContact = (contact: Contact) => {
+    setSelectedContact(contact);
+    setContactDetailModalVisible(true);
+  };
+
+  const handleAddContact = () => {
+    // Basic validation
+    if (!newContact.name.trim()) {
+      Alert.alert("Error", "Please enter a name");
+      return;
+    }
+
+    if (!newContact.email.trim()) {
+      Alert.alert("Error", "Please enter an email");
+      return;
+    }
+
+    if (!newContact.phone.trim()) {
+      Alert.alert("Error", "Please enter a phone number");
+      return;
+    }
+
+    if (newContact.phone !== newContact.confirmPhone) {
+      Alert.alert("Error", "Phone numbers do not match");
+      return;
+    }
+
+    // Create new contact
+    const contact: Contact = {
+      id: (contactsData.length + 1).toString(),
+      name: newContact.name,
+      email: newContact.email,
+      phone: newContact.phone,
+      company: newContact.company,
+      title: newContact.title,
+      status: "active",
+      lastContact: new Date().toISOString().split("T")[0],
+      tags: ["Regular"],
+      source: "Manual",
+    };
+
+    // Add to contactsData
+    contactsData.unshift(contact);
+
+    // Update filtered contacts
+    filterAndSortContacts(searchQuery, selectedFilter, selectedSort);
+
+    // Reset form and close modal
+    setNewContact({
+      name: "",
+      email: "",
+      phone: "",
+      confirmPhone: "",
+      company: "",
+      title: "",
+    });
+    setAddContactModalVisible(false);
+
+    Alert.alert("Success", "Contact added successfully!");
+  };
+
+  const renderContact = (item: Contact) => (
+    <TouchableOpacity
       key={item.id}
-      style={[styles.contactCard, { backgroundColor: colors.card }]}
-      onPress={() => router.push(`/(app)/contacts/${item.id}`)}
+      style={{
+        borderRadius: 16,
+        padding: 16,
+        backgroundColor: colors.card,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+        marginBottom: 12,
+      }}
+      onPress={() => handleViewContact(item)}
       activeOpacity={0.7}
     >
-      <View style={styles.contactHeader}>
-        <View style={[styles.avatar, { backgroundColor: item.status === 'active' ? '#4CAF50' : '#FF9800' }]}>
-          <ThemedText type="title" style={styles.avatarText}>
+      <View
+        style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}
+      >
+        <View
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: 24,
+            justifyContent: "center",
+            alignItems: "center",
+            marginRight: 12,
+            backgroundColor: item.status === "active" ? "#4CAF50" : "#FF9800",
+          }}
+        >
+          <ThemedText type="title" style={{ color: "white", fontSize: 18 }}>
             {item.name.charAt(0)}
           </ThemedText>
         </View>
-        <View style={styles.contactMainInfo}>
-          <View style={styles.nameRow}>
+        <View style={{ flex: 1 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              marginBottom: 4,
+            }}
+          >
             <ThemedText type="defaultSemiBold" style={{ color: colors.text }}>
               {item.name}
             </ThemedText>
-            {item.tags.includes('VIP') && (
-              <View style={[styles.vipBadge, { backgroundColor: '#FFD700' }]}>
+            {item.tags.includes("VIP") && (
+              <View
+                style={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: 9,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  backgroundColor: "#FFD700",
+                }}
+              >
                 <Ionicons name="star" size={12} color="#333" />
               </View>
             )}
           </View>
-          <ThemedText style={[styles.title, { color: colors.textSecondary }]}>
+          <ThemedText style={{ fontSize: 13, color: colors.textSecondary }}>
             {item.title} • {item.company}
           </ThemedText>
         </View>
-        <TouchableOpacity style={styles.moreButton}>
-          <Ionicons name="ellipsis-vertical" size={20} color={colors.textSecondary} />
+        <TouchableOpacity style={{ padding: 4 }}>
+          <Ionicons
+            name="ellipsis-vertical"
+            size={20}
+            color={colors.textSecondary}
+          />
         </TouchableOpacity>
       </View>
-      
-      <View style={[styles.contactDetails, { borderTopColor: colors.border }]}>
-        <View style={styles.detailItem}>
-          <Ionicons name="mail-outline" size={16} color={colors.textSecondary} />
-          <ThemedText style={[styles.detailText, { color: colors.textSecondary }]}>
+
+      <View
+        style={{
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          paddingTop: 12,
+          marginBottom: 12,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            marginBottom: 8,
+          }}
+        >
+          <Ionicons
+            name="mail-outline"
+            size={16}
+            color={colors.textSecondary}
+          />
+          <ThemedText
+            style={{ fontSize: 14, color: colors.textSecondary, marginLeft: 8 }}
+          >
             {item.email}
           </ThemedText>
         </View>
-        <View style={styles.detailItem}>
-          <Ionicons name="call-outline" size={16} color={colors.textSecondary} />
-          <ThemedText style={[styles.detailText, { color: colors.textSecondary }]}>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <Ionicons
+            name="call-outline"
+            size={16}
+            color={colors.textSecondary}
+          />
+          <ThemedText
+            style={{ fontSize: 14, color: colors.textSecondary, marginLeft: 8 }}
+          >
             {item.phone}
           </ThemedText>
         </View>
       </View>
-      
-      <View style={styles.contactFooter}>
-        <View style={styles.tagsContainer}>
+
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
           {item.tags.slice(0, 2).map((tag: string, index: number) => (
-            <View 
-              key={index} 
-              style={[styles.tag, { backgroundColor: colors.primary + '20' }]}
+            <View
+              key={index}
+              style={{
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                borderRadius: 12,
+                backgroundColor: colors.primary + "20",
+              }}
             >
-              <ThemedText style={[styles.tagText, { color: colors.primary }]}>
+              <ThemedText
+                style={{
+                  fontSize: 11,
+                  fontWeight: "500",
+                  color: colors.primary,
+                }}
+              >
                 {tag}
               </ThemedText>
             </View>
           ))}
           {item.tags.length > 2 && (
-            <View style={[styles.tag, { backgroundColor: colors.border }]}>
-              <ThemedText style={[styles.tagText, { color: colors.textSecondary }]}>
+            <View
+              style={{
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                borderRadius: 12,
+                backgroundColor: colors.border,
+              }}
+            >
+              <ThemedText
+                style={{
+                  fontSize: 11,
+                  fontWeight: "500",
+                  color: colors.textSecondary,
+                }}
+              >
                 +{item.tags.length - 2}
               </ThemedText>
             </View>
           )}
         </View>
-        <ThemedText style={[styles.lastContact, { color: colors.textSecondary }]}>
+        <ThemedText style={{ fontSize: 11, color: colors.textSecondary }}>
           Last contact: {new Date(item.lastContact).toLocaleDateString()}
         </ThemedText>
       </View>
@@ -288,9 +351,9 @@ export default function ContactsScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView 
-        style={styles.scrollView}
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <ScrollView
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -300,94 +363,148 @@ export default function ContactsScreen() {
             colors={[colors.primary]}
           />
         }
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={{ paddingBottom: 20 }}
       >
         {/* Header */}
-        <View style={[styles.header, { backgroundColor: colors.card }]}>
-          <View style={styles.headerTop}>
+        <View
+          style={{
+            padding: 20,
+            backgroundColor: colors.card,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 15,
+            }}
+          >
             <ThemedText type="title" style={{ color: colors.text }}>
               Contacts
             </ThemedText>
-            <View style={styles.headerActions}>
-              <TouchableOpacity style={[styles.iconButton, { backgroundColor: colors.primary + '15' }]}>
-                <Ionicons name="filter" size={20} color={colors.primary} />
-              </TouchableOpacity>
-              <Link href="/contacts/new" asChild>
-                <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]}>
-                  <Ionicons name="add" size={20} color="white" />
-                  <ThemedText type="defaultSemiBold" style={styles.addButtonText}>
-                    Add Contact
-                  </ThemedText>
-                </TouchableOpacity>
-              </Link>
-            </View>
           </View>
-          
+
           {/* Search Bar */}
-          <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
-            <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              borderRadius: 12,
+              marginBottom: 15,
+              backgroundColor: colors.background,
+            }}
+          >
+            <Ionicons
+              name="search"
+              size={20}
+              color={colors.textSecondary}
+              style={{ marginRight: 10 }}
+            />
             <TextInput
-              style={[styles.searchInput, { color: colors.text }]}
+              style={{ flex: 1, fontSize: 16, color: colors.text }}
               placeholder="Search contacts..."
               placeholderTextColor={colors.textSecondary}
               value={searchQuery}
               onChangeText={handleSearch}
             />
             {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => handleSearch('')}>
-                <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+              <TouchableOpacity onPress={() => handleSearch("")}>
+                <Ionicons
+                  name="close-circle"
+                  size={20}
+                  color={colors.textSecondary}
+                />
               </TouchableOpacity>
             )}
           </View>
-          
+
           {/* Quick Filters */}
-          <ScrollView 
-            horizontal 
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
-            style={styles.filtersContainer}
+            style={{ marginBottom: 10 }}
           >
             {filters.map((filter) => (
               <TouchableOpacity
                 key={filter}
-                style={[
-                  styles.filterButton,
-                  { 
-                    backgroundColor: selectedFilter === filter ? colors.primary + '20' : colors.background,
-                    borderColor: selectedFilter === filter ? colors.primary : colors.border
-                  }
-                ]}
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 20,
+                  borderWidth: 1,
+                  marginRight: 8,
+                  backgroundColor:
+                    selectedFilter === filter
+                      ? colors.primary + "20"
+                      : colors.background,
+                  borderColor:
+                    selectedFilter === filter ? colors.primary : colors.border,
+                }}
                 onPress={() => handleFilter(filter)}
               >
-                <ThemedText style={[
-                  styles.filterText,
-                  { color: selectedFilter === filter ? colors.primary : colors.textSecondary }
-                ]}>
+                <ThemedText
+                  style={{
+                    fontSize: 13,
+                    fontWeight: "500",
+                    color:
+                      selectedFilter === filter
+                        ? colors.primary
+                        : colors.textSecondary,
+                  }}
+                >
                   {filter}
                 </ThemedText>
               </TouchableOpacity>
             ))}
           </ScrollView>
-          
+
           {/* Sort Options */}
-          <View style={styles.sortContainer}>
-            <ThemedText style={[styles.sortLabel, { color: colors.textSecondary }]}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 8,
+            }}
+          >
+            <ThemedText
+              style={{
+                fontSize: 13,
+                color: colors.textSecondary,
+                marginRight: 8,
+              }}
+            >
               Sort by:
             </ThemedText>
             {sortOptions.map((sort) => (
               <TouchableOpacity
                 key={sort}
-                style={[
-                  styles.sortButton,
-                  { 
-                    backgroundColor: selectedSort === sort ? colors.primary + '20' : 'transparent'
-                  }
-                ]}
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 16,
+                  backgroundColor:
+                    selectedSort === sort
+                      ? colors.primary + "20"
+                      : "transparent",
+                }}
                 onPress={() => handleSort(sort)}
               >
-                <ThemedText style={[
-                  styles.sortText,
-                  { color: selectedSort === sort ? colors.primary : colors.textSecondary }
-                ]}>
+                <ThemedText
+                  style={{
+                    fontSize: 12,
+                    fontWeight: "500",
+                    color:
+                      selectedSort === sort
+                        ? colors.primary
+                        : colors.textSecondary,
+                  }}
+                >
                   {sort}
                 </ThemedText>
               </TouchableOpacity>
@@ -396,63 +513,150 @@ export default function ContactsScreen() {
         </View>
 
         {/* Stats Summary */}
-        <View style={[styles.statsContainer, { backgroundColor: colors.card }]}>
-          <View style={styles.statItem}>
-            <ThemedText type="title" style={[styles.statNumber, { color: colors.primary }]}>
+        <View
+          style={{
+            flexDirection: "row",
+            paddingVertical: 15,
+            paddingHorizontal: 20,
+            marginHorizontal: 15,
+            marginTop: 15,
+            marginBottom: 15,
+            borderRadius: 16,
+            backgroundColor: colors.card,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.05,
+            shadowRadius: 3,
+            elevation: 2,
+          }}
+        >
+          <View style={{ flex: 1, alignItems: "center" }}>
+            <ThemedText
+              type="title"
+              style={{
+                fontSize: 18,
+                fontWeight: "bold",
+                color: colors.primary,
+              }}
+            >
               {contactsData.length}
             </ThemedText>
-            <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
+            <ThemedText
+              style={{
+                fontSize: 11,
+                marginTop: 4,
+                color: colors.textSecondary,
+              }}
+            >
               Total
             </ThemedText>
           </View>
-          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-          <View style={styles.statItem}>
-            <ThemedText type="title" style={[styles.statNumber, { color: '#4CAF50' }]}>
-              {contactsData.filter(c => c.status === 'active').length}
+          <View
+            style={{ width: 1, height: 30, backgroundColor: colors.border }}
+          />
+          <View style={{ flex: 1, alignItems: "center" }}>
+            <ThemedText
+              type="title"
+              style={{
+                fontSize: 18,
+                fontWeight: "bold",
+                color: colors.success,
+              }}
+            >
+              {contactsData.filter((c) => c.status === "active").length}
             </ThemedText>
-            <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
+            <ThemedText
+              style={{
+                fontSize: 11,
+                marginTop: 4,
+                color: colors.textSecondary,
+              }}
+            >
               Active
             </ThemedText>
           </View>
-          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-          <View style={styles.statItem}>
-            <ThemedText type="title" style={[styles.statNumber, { color: '#FF9800' }]}>
-              {contactsData.filter(c => c.tags.includes('VIP')).length}
+          <View
+            style={{ width: 1, height: 30, backgroundColor: colors.border }}
+          />
+          <View style={{ flex: 1, alignItems: "center" }}>
+            <ThemedText
+              type="title"
+              style={{
+                fontSize: 18,
+                fontWeight: "bold",
+                color: colors.warning,
+              }}
+            >
+              {contactsData.filter((c) => c.tags.includes("VIP")).length}
             </ThemedText>
-            <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
+            <ThemedText
+              style={{
+                fontSize: 11,
+                marginTop: 4,
+                color: colors.textSecondary,
+              }}
+            >
               VIP
             </ThemedText>
           </View>
-          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-          <View style={styles.statItem}>
-            <ThemedText type="title" style={[styles.statNumber, { color: '#2196F3' }]}>
-              {contactsData.filter(c => c.tags.includes('Hot Lead')).length}
+          <View
+            style={{ width: 1, height: 30, backgroundColor: colors.border }}
+          />
+          <View style={{ flex: 1, alignItems: "center" }}>
+            <ThemedText
+              type="title"
+              style={{ fontSize: 18, fontWeight: "bold", color: colors.info }}
+            >
+              {contactsData.filter((c) => c.tags.includes("Hot Lead")).length}
             </ThemedText>
-            <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
+            <ThemedText
+              style={{
+                fontSize: 11,
+                marginTop: 4,
+                color: colors.textSecondary,
+              }}
+            >
               Hot Leads
             </ThemedText>
           </View>
         </View>
 
         {/* Contacts List */}
-        <View style={styles.contactsListContainer}>
-          <View style={styles.listHeader}>
+        <View style={{ paddingHorizontal: 15 }}>
+          <View style={{ marginBottom: 15 }}>
             <ThemedText type="subtitle" style={{ color: colors.text }}>
               Contacts ({filteredContacts.length})
             </ThemedText>
           </View>
 
           {filteredContacts.length > 0 ? (
-            <View style={styles.contactsGrid}>
-              {filteredContacts.map(renderContact)}
-            </View>
+            <View>{filteredContacts.map(renderContact)}</View>
           ) : (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="people-outline" size={60} color={colors.textSecondary} />
-              <ThemedText type="default" style={{ color: colors.textSecondary, marginTop: 10 }}>
+            <View
+              style={{
+                alignItems: "center",
+                justifyContent: "center",
+                paddingVertical: 50,
+              }}
+            >
+              <Ionicons
+                name="people-outline"
+                size={60}
+                color={colors.textSecondary}
+              />
+              <ThemedText
+                type="default"
+                style={{ color: colors.textSecondary, marginTop: 10 }}
+              >
                 No contacts found
               </ThemedText>
-              <ThemedText style={{ color: colors.textSecondary, fontSize: 12, marginTop: 5 }}>
+              <ThemedText
+                style={{
+                  color: colors.textSecondary,
+                  fontSize: 12,
+                  marginTop: 5,
+                }}
+              >
                 Try changing your search or filter
               </ThemedText>
             </View>
@@ -460,235 +664,712 @@ export default function ContactsScreen() {
         </View>
 
         {/* Bottom Spacer */}
-        <View style={styles.bottomSpacer} />
+        <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Floating Add Button */}
+      <TouchableOpacity
+        style={{
+          position: "absolute",
+          right: 20,
+          bottom: 30,
+          width: 60,
+          height: 60,
+          borderRadius: 30,
+          backgroundColor: colors.primary,
+          justifyContent: "center",
+          alignItems: "center",
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 4.65,
+          elevation: 8,
+        }}
+        onPress={() => setAddContactModalVisible(true)}
+      >
+        <Ionicons name="add" size={30} color="white" />
+      </TouchableOpacity>
+
+      {/* Add Contact Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={addContactModalVisible}
+        onRequestClose={() => setAddContactModalVisible(false)}
+      >
+        <View style={{ flex: 1 }}>
+          {/* Background Overlay */}
+          <TouchableWithoutFeedback
+            onPress={() => setAddContactModalVisible(false)}
+          >
+            <View
+              style={{
+                flex: 1,
+                backgroundColor: "rgba(0,0,0,0.5)",
+              }}
+            />
+          </TouchableWithoutFeedback>
+
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: colors.card,
+                borderTopLeftRadius: 20,
+                borderTopRightRadius: 20,
+                padding: 20,
+              
+               
+              }}
+            >
+              {/* Modal Header */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 20,
+                }}
+              >
+                <ThemedText type="title" style={{ color: colors.text }}>
+                  Add New Contact
+                </ThemedText>
+                <TouchableOpacity
+                  onPress={() => setAddContactModalVisible(false)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Scrollable Form */}
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                bounces={true}
+                keyboardShouldPersistTaps="handled"
+                style={{ flex: 1 }}
+              >
+                <View style={{ marginBottom: 15 }}>
+                  <ThemedText
+                    style={{
+                      color: colors.text,
+                      marginBottom: 8,
+                      fontWeight: "600",
+                    }}
+                  >
+                    Full Name *
+                  </ThemedText>
+                  <TextInput
+                    style={{
+                      backgroundColor: colors.background,
+                      borderRadius: 10,
+                      padding: 12,
+                      color: colors.text,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                    }}
+                    placeholder="Enter full name"
+                    placeholderTextColor={colors.textSecondary}
+                    value={newContact.name}
+                    onChangeText={(text) =>
+                      setNewContact({ ...newContact, name: text })
+                    }
+                    returnKeyType="next"
+                  />
+                </View>
+
+                <View style={{ marginBottom: 15 }}>
+                  <ThemedText
+                    style={{
+                      color: colors.text,
+                      marginBottom: 8,
+                      fontWeight: "600",
+                    }}
+                  >
+                    Email Address *
+                  </ThemedText>
+                  <TextInput
+                    style={{
+                      backgroundColor: colors.background,
+                      borderRadius: 10,
+                      padding: 12,
+                      color: colors.text,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                    }}
+                    placeholder="Enter email address"
+                    placeholderTextColor={colors.textSecondary}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={newContact.email}
+                    onChangeText={(text) =>
+                      setNewContact({ ...newContact, email: text })
+                    }
+                    returnKeyType="next"
+                  />
+                </View>
+
+                <View style={{ marginBottom: 15 }}>
+                  <ThemedText
+                    style={{
+                      color: colors.text,
+                      marginBottom: 8,
+                      fontWeight: "600",
+                    }}
+                  >
+                    Phone Number *
+                  </ThemedText>
+                  <TextInput
+                    style={{
+                      backgroundColor: colors.background,
+                      borderRadius: 10,
+                      padding: 12,
+                      color: colors.text,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                    }}
+                    placeholder="Enter phone number"
+                    placeholderTextColor={colors.textSecondary}
+                    keyboardType="phone-pad"
+                    value={newContact.phone}
+                    onChangeText={(text) =>
+                      setNewContact({ ...newContact, phone: text })
+                    }
+                    returnKeyType="next"
+                  />
+                </View>
+
+                <View style={{ marginBottom: 15 }}>
+                  <ThemedText
+                    style={{
+                      color: colors.text,
+                      marginBottom: 8,
+                      fontWeight: "600",
+                    }}
+                  >
+                    Confirm Phone Number *
+                  </ThemedText>
+                  <TextInput
+                    style={{
+                      backgroundColor: colors.background,
+                      borderRadius: 10,
+                      padding: 12,
+                      color: colors.text,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                    }}
+                    placeholder="Confirm phone number"
+                    placeholderTextColor={colors.textSecondary}
+                    keyboardType="phone-pad"
+                    value={newContact.confirmPhone}
+                    onChangeText={(text) =>
+                      setNewContact({ ...newContact, confirmPhone: text })
+                    }
+                    returnKeyType="next"
+                  />
+                </View>
+
+                <View style={{ marginBottom: 15 }}>
+                  <ThemedText
+                    style={{
+                      color: colors.text,
+                      marginBottom: 8,
+                      fontWeight: "600",
+                    }}
+                  >
+                    Company
+                  </ThemedText>
+                  <TextInput
+                    style={{
+                      backgroundColor: colors.background,
+                      borderRadius: 10,
+                      padding: 12,
+                      color: colors.text,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                    }}
+                    placeholder="Enter company name"
+                    placeholderTextColor={colors.textSecondary}
+                    value={newContact.company}
+                    onChangeText={(text) =>
+                      setNewContact({ ...newContact, company: text })
+                    }
+                    returnKeyType="next"
+                  />
+                </View>
+
+                <View style={{ marginBottom: 25 }}>
+                  <ThemedText
+                    style={{
+                      color: colors.text,
+                      marginBottom: 8,
+                      fontWeight: "600",
+                    }}
+                  >
+                    Job Title
+                  </ThemedText>
+                  <TextInput
+                    style={{
+                      backgroundColor: colors.background,
+                      borderRadius: 10,
+                      padding: 12,
+                      color: colors.text,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                    }}
+                    placeholder="Enter job title"
+                    placeholderTextColor={colors.textSecondary}
+                    value={newContact.title}
+                    onChangeText={(text) =>
+                      setNewContact({ ...newContact, title: text })
+                    }
+                    returnKeyType="done"
+                    onSubmitEditing={handleAddContact}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: colors.primary,
+                    padding: 16,
+                    borderRadius: 12,
+                    alignItems: "center",
+                    marginBottom: 30, // Increased bottom margin for better scrolling
+                  }}
+                  onPress={handleAddContact}
+                  activeOpacity={0.8}
+                >
+                  <ThemedText
+                    style={{
+                      color: "white",
+                      fontSize: 16,
+                      fontWeight: "600",
+                    }}
+                  >
+                    Add Contact
+                  </ThemedText>
+                </TouchableOpacity>
+
+                {/* Extra padding at bottom for iOS safe area */}
+                {Platform.OS === "ios" && <View style={{ height: 20 }} />}
+              </ScrollView>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
+
+      {/* Contact Detail Modal */}
+      <Modal
+        animationType="slide"
+        transparent
+        visible={contactDetailModalVisible}
+        onRequestClose={() => setContactDetailModalVisible(false)}
+      >
+        {/* Background Overlay */}
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }}>
+          {/* Modal Container */}
+          <View style={{ flex: 1, justifyContent: "flex-end" }}>
+            <TouchableWithoutFeedback
+              onPress={() => setContactDetailModalVisible(false)}
+            >
+              <View style={{ flex: 1 }} />
+            </TouchableWithoutFeedback>
+
+            <View
+              style={{
+                backgroundColor: colors.card,
+                borderTopLeftRadius: 20,
+                borderTopRightRadius: 20,
+                padding: 20,
+                maxHeight: "90%",
+              }}
+            >
+              {selectedContact && (
+                <>
+                  {/* ================= HEADER (FIXED) ================= */}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: 10,
+                    }}
+                  >
+                    <ThemedText type="title" style={{ color: colors.text }}>
+                      Contact Details
+                    </ThemedText>
+
+                    <TouchableOpacity
+                      onPress={() => setContactDetailModalVisible(false)}
+                    >
+                      <Ionicons name="close" size={24} color={colors.text} />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* ================= SCROLLABLE CONTENT ================= */}
+                  <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 30 }}
+                    scrollEnabled={true}
+                    bounces={true}
+                  >
+                    {/* Avatar */}
+                    <View style={{ alignItems: "center", marginBottom: 20 }}>
+                      <View
+                        style={{
+                          width: 80,
+                          height: 80,
+                          borderRadius: 40,
+                          justifyContent: "center",
+                          alignItems: "center",
+                          marginBottom: 15,
+                          backgroundColor:
+                            selectedContact.status === "active"
+                              ? colors.success
+                              : colors.warning,
+                        }}
+                      >
+                        <ThemedText
+                          type="title"
+                          style={{ color: "white", fontSize: 32 }}
+                        >
+                          {selectedContact.name.charAt(0)}
+                        </ThemedText>
+                      </View>
+
+                      <ThemedText
+                        type="title"
+                        style={{ fontSize: 22, color: colors.text }}
+                      >
+                        {selectedContact.name}
+                      </ThemedText>
+
+                      <ThemedText
+                        style={{
+                          color: colors.textSecondary,
+                          marginTop: 5,
+                        }}
+                      >
+                        {selectedContact.title} at {selectedContact.company}
+                      </ThemedText>
+                    </View>
+
+                    {/* Contact Information */}
+                    <View style={{ marginBottom: 25 }}>
+                      <ThemedText
+                        type="subtitle"
+                        style={{ marginBottom: 15, color: colors.text }}
+                      >
+                        Contact Information
+                      </ThemedText>
+
+                      {/* Email */}
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          marginBottom: 12,
+                          alignItems: "center",
+                        }}
+                      >
+                        <Ionicons
+                          name="mail-outline"
+                          size={20}
+                          color={colors.primary}
+                          style={{ marginRight: 10 }}
+                        />
+                        <View>
+                          <ThemedText
+                            style={{
+                              fontSize: 12,
+                              color: colors.textSecondary,
+                            }}
+                          >
+                            Email
+                          </ThemedText>
+                          <ThemedText style={{ color: colors.text }}>
+                            {selectedContact.email}
+                          </ThemedText>
+                        </View>
+                      </View>
+
+                      {/* Phone */}
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          marginBottom: 12,
+                          alignItems: "center",
+                        }}
+                      >
+                        <Ionicons
+                          name="call-outline"
+                          size={20}
+                          color={colors.primary}
+                          style={{ marginRight: 10 }}
+                        />
+                        <View>
+                          <ThemedText
+                            style={{
+                              fontSize: 12,
+                              color: colors.textSecondary,
+                            }}
+                          >
+                            Phone
+                          </ThemedText>
+                          <ThemedText style={{ color: colors.text }}>
+                            {selectedContact.phone}
+                          </ThemedText>
+                        </View>
+                      </View>
+
+                      {/* Company */}
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Ionicons
+                          name="business-outline"
+                          size={20}
+                          color={colors.primary}
+                          style={{ marginRight: 10 }}
+                        />
+                        <View>
+                          <ThemedText
+                            style={{
+                              fontSize: 12,
+                              color: colors.textSecondary,
+                            }}
+                          >
+                            Company
+                          </ThemedText>
+                          <ThemedText style={{ color: colors.text }}>
+                            {selectedContact.company}
+                          </ThemedText>
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Additional Details */}
+                    <View style={{ marginBottom: 25 }}>
+                      <ThemedText
+                        type="subtitle"
+                        style={{ marginBottom: 15, color: colors.text }}
+                      >
+                        Additional Details
+                      </ThemedText>
+
+                      {/* Status + Last Contact */}
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          paddingBottom: 15,
+                          borderBottomWidth: 1,
+                          borderBottomColor: colors.border,
+                          marginBottom: 15,
+                        }}
+                      >
+                        <View>
+                          <ThemedText
+                            style={{
+                              fontSize: 12,
+                              color: colors.textSecondary,
+                            }}
+                          >
+                            Status
+                          </ThemedText>
+
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              marginTop: 6,
+                            }}
+                          >
+                            <View
+                              style={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: 4,
+                                backgroundColor:
+                                  selectedContact.status === "active"
+                                    ? colors.success
+                                    : colors.warning,
+                                marginRight: 6,
+                              }}
+                            />
+                            <ThemedText
+                              style={{
+                                fontSize: 12,
+                                fontWeight: "600",
+                                color:
+                                  selectedContact.status === "active"
+                                    ? colors.success
+                                    : colors.warning,
+                              }}
+                            >
+                              {selectedContact.status.toUpperCase()}
+                            </ThemedText>
+                          </View>
+                        </View>
+
+                        <View style={{ alignItems: "flex-end" }}>
+                          <ThemedText
+                            style={{
+                              fontSize: 12,
+                              color: colors.textSecondary,
+                            }}
+                          >
+                            Last Contact
+                          </ThemedText>
+                          <ThemedText style={{ color: colors.text }}>
+                            {new Date(
+                              selectedContact.lastContact
+                            ).toLocaleDateString()}
+                          </ThemedText>
+                        </View>
+                      </View>
+
+                      {/* Tags */}
+                      <View style={{ marginBottom: 15 }}>
+                        <ThemedText
+                          style={{
+                            fontSize: 12,
+                            color: colors.textSecondary,
+                            marginBottom: 8,
+                          }}
+                        >
+                          Tags
+                        </ThemedText>
+
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            flexWrap: "wrap",
+                            gap: 8,
+                          }}
+                        >
+                          {selectedContact.tags.map((tag, index) => (
+                            <View
+                              key={index}
+                              style={{
+                                paddingHorizontal: 12,
+                                paddingVertical: 6,
+                                borderRadius: 12,
+                                backgroundColor: colors.primary + "20",
+                              }}
+                            >
+                              <ThemedText
+                                style={{
+                                  fontSize: 12,
+                                  fontWeight: "500",
+                                  color: colors.primary,
+                                }}
+                              >
+                                {tag}
+                              </ThemedText>
+                            </View>
+                          ))}
+                        </View>
+                      </View>
+
+                      {/* Source */}
+                      <View>
+                        <ThemedText
+                          style={{
+                            fontSize: 12,
+                            color: colors.textSecondary,
+                            marginBottom: 8,
+                          }}
+                        >
+                          Source
+                        </ThemedText>
+
+                        <View
+                          style={{
+                            paddingHorizontal: 12,
+                            paddingVertical: 6,
+                            borderRadius: 12,
+                            backgroundColor: colors.border,
+                            alignSelf: "flex-start",
+                          }}
+                        >
+                          <ThemedText
+                            style={{
+                              fontSize: 12,
+                              fontWeight: "600",
+                              color: colors.text,
+                            }}
+                          >
+                            {selectedContact.source}
+                          </ThemedText>
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Action Buttons */}
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        gap: 12,
+                        marginTop: 10,
+                      }}
+                    >
+                      <TouchableOpacity
+                        style={{
+                          flex: 1,
+                          backgroundColor: colors.primary,
+                          padding: 16,
+                          borderRadius: 12,
+                          alignItems: "center",
+                        }}
+                      >
+                        <ThemedText
+                          style={{
+                            color: "white",
+                            fontSize: 16,
+                            fontWeight: "600",
+                          }}
+                        >
+                          Message
+                        </ThemedText>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={{
+                          flex: 1,
+                          backgroundColor: colors.border,
+                          padding: 16,
+                          borderRadius: 12,
+                          alignItems: "center",
+                        }}
+                      >
+                        <ThemedText
+                          style={{
+                            color: colors.text,
+                            fontSize: 16,
+                            fontWeight: "600",
+                          }}
+                        >
+                          Call
+                        </ThemedText>
+                      </TouchableOpacity>
+                    </View>
+                  </ScrollView>
+                </>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 20,
-  },
-  header: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    gap: 8,
-  },
-  addButtonText: {
-    color: 'white',
-    fontSize: 14,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-    marginBottom: 15,
-  },
-  searchIcon: {
-    marginRight: 10,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-  },
-  filtersContainer: {
-    marginBottom: 10,
-  },
-  filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    marginRight: 8,
-  },
-  filterText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  sortContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  sortLabel: {
-    fontSize: 13,
-    marginRight: 8,
-  },
-  sortButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  sortText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    marginHorizontal: 15,
-    marginTop: 15,
-    marginBottom: 15,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  statLabel: {
-    fontSize: 11,
-    marginTop: 4,
-  },
-  statDivider: {
-    width: 1,
-    height: 30,
-  },
-  contactsListContainer: {
-    paddingHorizontal: 15,
-  },
-  listHeader: {
-    marginBottom: 15,
-  },
-  contactsGrid: {
-    gap: 12,
-  },
-  contactCard: {
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  contactHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  avatarText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  contactMainInfo: {
-    flex: 1,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  vipBadge: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 13,
-  },
-  moreButton: {
-    padding: 4,
-  },
-  contactDetails: {
-    borderTopWidth: 1,
-    paddingTop: 12,
-    marginBottom: 12,
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  detailText: {
-    fontSize: 14,
-    marginLeft: 8,
-  },
-  contactFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  tag: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  tagText: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
-  lastContact: {
-    fontSize: 11,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 50,
-  },
-  bottomSpacer: {
-    height: 100,
-  },
-});
