@@ -7,22 +7,16 @@ import { StatusBar } from 'expo-status-bar';
 import { useColorScheme, View } from 'react-native';
 
 import CustomDrawerContent from '@/components/CustomDrawerContent';
+import SplashScreen from '@/components/SplashScreen';
 import { AppThemeProvider, useAppTheme } from '@/context/ThemeContext';
+import { useAppLoading } from '@/hooks/useAppLoading';
 import { ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
-
-// Move AppContent inside AppThemeProvider
-export default function RootLayout() {
-  return (
-    <AppThemeProvider>
-      <AppContent />
-    </AppThemeProvider>
-  );
-}
 
 // Separate component that uses the theme
 function AppContent() {
   const { colors, isDark } = useAppTheme();
   const systemColorScheme = useColorScheme();
+  const { isLoading, showSplash, handleSplashComplete } = useAppLoading();
   
   // ✅ Determine status bar style
   const statusBarStyle = isDark ? 'light' : 'dark';
@@ -57,6 +51,20 @@ function AppContent() {
       },
     },
   };
+
+  // Show splash screen if loading
+  if (isLoading || showSplash) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <SplashScreen onAnimationComplete={handleSplashComplete} />
+        <StatusBar 
+          style={statusBarStyle} 
+          backgroundColor={colors.background}
+          hidden={showSplash} // Hide status bar during splash
+        />
+      </View>
+    );
+  }
   
   return (
     <NavigationThemeProvider value={navigationTheme}>
@@ -141,5 +149,13 @@ function AppContent() {
         />
       </View>
     </NavigationThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AppThemeProvider>
+      <AppContent />
+    </AppThemeProvider>
   );
 }
