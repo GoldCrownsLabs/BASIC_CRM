@@ -1,5 +1,5 @@
 
-import { useAppTheme } from '@/contaxt/ThemeContext';
+import { useAppTheme } from '@/context/ThemeContext';
 import { Text, TextProps } from 'react-native';
 
 interface ThemedTextProps extends TextProps {

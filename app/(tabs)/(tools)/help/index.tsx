@@ -1,18 +1,18 @@
-import { useAppTheme } from '@/contaxt/ThemeContext';
+import { useAppTheme } from '@/context/ThemeContext';
 import { Feather } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-  Alert,
-  Dimensions,
-  Linking,
-  Modal,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Alert,
+    Dimensions,
+    Linking,
+    Modal,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 const { width } = Dimensions.get('window');

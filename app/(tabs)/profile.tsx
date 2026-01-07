@@ -1,4 +1,4 @@
-import { useAppTheme } from '@/contaxt/ThemeContext';
+import { useAppTheme } from '@/context/ThemeContext';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {

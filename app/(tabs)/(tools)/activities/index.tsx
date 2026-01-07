@@ -1,24 +1,24 @@
 // ActivitiesPage.tsx
-import { useAppTheme } from "@/contaxt/ThemeContext";
+import { useAppTheme } from "@/context/ThemeContext";
 import { activitiesData, Activity, activityTypes } from "@/data/activities";
 import {
-  AntDesign,
-  Feather,
-  FontAwesome,
-  MaterialIcons,
+    AntDesign,
+    Feather,
+    FontAwesome,
+    MaterialIcons,
 } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
-  FlatList,
-  Modal,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    FlatList,
+    Modal,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 type ActivityConfig = {

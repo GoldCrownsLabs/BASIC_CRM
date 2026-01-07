@@ -1,6 +1,6 @@
 // app/index.tsx
 
-import { useAppTheme } from '@/contaxt/ThemeContext';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useAuthStore } from '@/store/auth.store';
 import { router } from 'expo-router';
 import { useEffect } from 'react';

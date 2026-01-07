@@ -1,17 +1,17 @@
-import { useAppTheme } from '@/contaxt/ThemeContext';
+import { useAppTheme } from '@/context/ThemeContext';
 import { analyticsData, metrics, timeRanges } from '@/data/analytics';
 import { Feather } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-  Dimensions,
-  Modal,
-  RefreshControl,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  Text,
-  TouchableOpacity,
-  View
+    Dimensions,
+    Modal,
+    RefreshControl,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 

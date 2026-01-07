@@ -4,63 +4,133 @@ import 'react-native-reanimated';
 
 import { Drawer } from 'expo-router/drawer';
 import { StatusBar } from 'expo-status-bar';
+import { useColorScheme, View } from 'react-native';
 
 import CustomDrawerContent from '@/components/CustomDrawerContent';
-import { AppThemeProvider, useAppTheme } from '@/contaxt/ThemeContext';
+import { AppThemeProvider, useAppTheme } from '@/context/ThemeContext';
+import { ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 
 function AppContent() {
-  const { isDark } = useAppTheme();
-
+  const { colors, isDark } = useAppTheme();
+  const systemColorScheme = useColorScheme();
+  
+  // ✅ Determine status bar style
+  const statusBarStyle = isDark ? 'light' : 'dark';
+  
+  // Create custom navigation theme with required fonts
+  const navigationTheme = {
+    dark: isDark,
+    colors: {
+      primary: colors.primary,
+      background: colors.background,
+      card: colors.card,
+      text: colors.text,
+      border: colors.border,
+      notification: colors.notification || colors.error,
+    },
+    fonts: {
+      regular: {
+        fontFamily: 'System', // या अपना custom font
+        fontWeight: '400' as const,
+      },
+      medium: {
+        fontFamily: 'System',
+        fontWeight: '500' as const,
+      },
+      bold: {
+        fontFamily: 'System',
+        fontWeight: '700' as const,
+      },
+      heavy: {
+        fontFamily: 'System',
+        fontWeight: '900' as const,
+      },
+    },
+  };
+  
   return (
-    <>
-      <Drawer
-        drawerContent={CustomDrawerContent}
-        screenOptions={{
-          headerShown: false,
-          drawerPosition: 'left',
-          swipeEnabled: true,
-          drawerStyle: {
-            backgroundColor: 'transparent',
-          },
-        }}
-      >
-        {/* MAIN APP (Bottom Tabs live here) */}
-        <Drawer.Screen
-          name="(tabs)"
-          options={{
-            title: 'Home',
-            drawerLabel: 'Dashboard',
+    <NavigationThemeProvider value={navigationTheme}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <Drawer
+          drawerContent={(props) => <CustomDrawerContent {...props} />}
+          screenOptions={{
+            headerShown: false,
+            drawerPosition: 'left',
+            swipeEnabled: true,
+            drawerStyle: {
+              backgroundColor: 'transparent',
+            },
+            // For header styling if shown
+            headerStyle: {
+              backgroundColor: colors.card,
+            },
+            headerTintColor: colors.text,
+            headerTitleStyle: {
+              color: colors.text,
+            },
           }}
-        />
+        >
+          {/* MAIN APP (Bottom Tabs) */}
+          <Drawer.Screen
+            name="(tabs)"
+            options={{
+              title: 'Home',
+              drawerLabel: 'Dashboard',
+            }}
+          />
 
-        {/* TOOLS (NO TAB, BUT TABS STILL VISIBLE) */}
-        <Drawer.Screen
-          name="tools"
-          options={{
-            title: 'Tools',
-            drawerLabel: 'Tools',
-          }}
-        />
+          {/* Individual auth screens */}
+          <Drawer.Screen
+            name="(auth)/login"
+            options={{
+              drawerLabel: 'Login',
+              title: 'Login',
+              drawerItemStyle: { display: 'none' },
+            }}
+          />
+          
+          <Drawer.Screen
+            name="(auth)/register"
+            options={{
+              drawerLabel: 'Register',
+              title: 'Register',
+              drawerItemStyle: { display: 'none' },
+            }}
+          />
 
-        {/* AUTH (HIDDEN FROM DRAWER) */}
-        <Drawer.Screen
-          name="(auth)"
-          options={{
-            drawerItemStyle: { display: 'none' },
-          }}
-        />
+          {/* ROOT INDEX (HIDDEN) */}
+          <Drawer.Screen
+            name="index"
+            options={{
+              drawerItemStyle: { display: 'none' },
+            }}
+          />
+          
+          {/* OTHER ROUTES */}
+          <Drawer.Screen
+            name="modal"
+            options={{
+              drawerLabel: 'Modal',
+              title: 'Modal',
+            }}
+          />
+          
+          <Drawer.Screen
+            name="profile/index"
+            options={{
+              drawerLabel: 'Profile',
+              title: 'Profile',
+            }}
+          />
+        </Drawer>
 
-        {/* OPTIONAL */}
-        <Drawer.Screen
-          name="index"
-          options={{
-            drawerItemStyle: { display: 'none' },
-          }}
+        {/* ✅ Dynamic StatusBar - Time/Battery opposite colors */}
+        <StatusBar 
+          style={statusBarStyle} 
+          backgroundColor={colors.background}
         />
-      </Drawer>
-
-      <StatusBar style={isDark ? 'light' : 'dark'} />
-    </>
+      </View>
+    </NavigationThemeProvider>
   );
 }
 

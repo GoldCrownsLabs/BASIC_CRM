@@ -1,19 +1,19 @@
 import { ThemedText } from "@/components/themed-text";
-import { useAppTheme } from "@/contaxt/ThemeContext";
+import { useAppTheme } from "@/context/ThemeContext";
 import { Contact, contactsData, filters, sortOptions } from "@/data/contact";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
-  Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  RefreshControl,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
+    Alert,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    RefreshControl,
+    ScrollView,
+    TextInput,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 

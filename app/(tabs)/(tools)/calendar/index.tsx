@@ -1,29 +1,29 @@
-import { useAppTheme } from '@/contaxt/ThemeContext';
+import { useAppTheme } from '@/context/ThemeContext';
 import {
-  CalendarEvent,
-  calendarEvents,
-  eventConfig,
-  eventTypes,
-  formatDate,
-  generateMonthDays,
-  months,
-  statusConfig,
-  updateEventStatus,
-  weekDays
+    CalendarEvent,
+    calendarEvents,
+    eventConfig,
+    eventTypes,
+    formatDate,
+    generateMonthDays,
+    months,
+    statusConfig,
+    updateEventStatus,
+    weekDays
 } from '@/data/calendar';
 import { Feather, FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
-  Animated,
-  Dimensions,
-  Modal,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Animated,
+    Dimensions,
+    Modal,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 const { width } = Dimensions.get('window');

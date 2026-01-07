@@ -1,5 +1,5 @@
 import { HapticTab } from "@/components/haptic-tab";
-import { useAppTheme } from "@/contaxt/ThemeContext";
+import { useAppTheme } from "@/context/ThemeContext";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { useAuthStore } from "@/store/auth.store";
 import { Ionicons } from "@expo/vector-icons";
@@ -94,7 +94,7 @@ export default function TabLayout() {
         ),
       }}
     >
-      {/* ✅ ONLY THESE WILL SHOW IN BOTTOM TAB */}
+      {/* ✅ VISIBLE TABS */}
 
       <Tabs.Screen
         name="index"
@@ -109,8 +109,6 @@ export default function TabLayout() {
           ),
         }}
       />
-
-     
 
       <Tabs.Screen
         name="leads"
@@ -139,7 +137,8 @@ export default function TabLayout() {
           ),
         }}
       />
-       <Tabs.Screen
+      
+      <Tabs.Screen
         name="contacts"
         options={{
           title: "Contacts",
@@ -167,9 +166,8 @@ export default function TabLayout() {
         }}
       />
 
-      {/* ❌ HIDDEN FROM TAB BAR (BUT NAVIGABLE) */}
-      <Tabs.Screen name="activities" options={{ href: null }} />
-      <Tabs.Screen name="explore" options={{ href: null }} />
+      {/* ✅ HIDE ONLY THE TOOLS GROUP */}
+      {/* This will hide all routes inside (tools) group including activities and explore */}
       <Tabs.Screen name="(tools)" options={{ href: null }} />
     </Tabs>
   );

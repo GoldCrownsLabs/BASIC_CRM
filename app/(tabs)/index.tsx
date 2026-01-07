@@ -1,6 +1,6 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { useAppTheme } from "@/contaxt/ThemeContext";
+import { useAppTheme } from "@/context/ThemeContext";
 
 import { dashboardData } from "@/data/home";
 import { useAuthStore } from "@/store/auth.store";

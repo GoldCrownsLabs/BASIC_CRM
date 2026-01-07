@@ -1,6 +1,6 @@
 
 
-import { useAppTheme } from '@/contaxt/ThemeContext';
+import { useAppTheme } from '@/context/ThemeContext';
 import { View, ViewProps } from 'react-native';
 
 interface ThemedViewProps extends ViewProps {

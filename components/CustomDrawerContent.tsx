@@ -1,4 +1,4 @@
-import { useAppTheme } from "@/contaxt/ThemeContext";
+import { useAppTheme } from "@/context/ThemeContext";
 import { useAuthStore } from "@/store/auth.store";
 import { Ionicons } from "@expo/vector-icons";
 import {
