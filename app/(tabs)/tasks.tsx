@@ -1,410 +1,576 @@
-import { ThemedText } from '@/components/themed-text';
-import { useAppTheme } from '@/context/ThemeContext';
-import { Ionicons } from '@expo/vector-icons';
-import { Link, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import AddTaskModal from "@/components/Modal/AddTaskModal";
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/context/ThemeContext";
+import { priorities, tasksData, taskStatuses, taskTypes } from "@/data/tasks";
+import { Task } from "@/data/types/task";
+
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   RefreshControl,
   ScrollView,
-  StyleSheet,
   TextInput,
   TouchableOpacity,
-  View
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-// Mock data for tasks
-const tasksData = [
-  {
-    id: '1',
-    title: 'Follow up with ABC Corp',
-    description: 'Call to discuss proposal details',
-    dueDate: '2024-01-20',
-    priority: 'High',
-    status: 'pending',
-    type: 'call',
-    assignedTo: 'Self',
-    relatedTo: 'ABC Corporation',
-    createdAt: '2024-01-15',
-    reminder: true,
-    completedAt: null
-  },
-  {
-    id: '2',
-    title: 'Prepare quarterly report',
-    description: 'Sales performance analysis for Q4',
-    dueDate: '2024-01-25',
-    priority: 'Medium',
-    status: 'in_progress',
-    type: 'report',
-    assignedTo: 'Self',
-    relatedTo: 'Management',
-    createdAt: '2024-01-14',
-    reminder: true,
-    completedAt: null
-  },
-  {
-    id: '3',
-    title: 'Send contract to XYZ Enterprises',
-    description: 'Final contract documents',
-    dueDate: '2024-01-18',
-    priority: 'High',
-    status: 'completed',
-    type: 'email',
-    assignedTo: 'Self',
-    relatedTo: 'XYZ Enterprises',
-    createdAt: '2024-01-12',
-    reminder: false,
-    completedAt: '2024-01-16'
-  },
-  {
-    id: '4',
-    title: 'Team meeting preparation',
-    description: 'Prepare agenda and materials',
-    dueDate: '2024-01-22',
-    priority: 'Medium',
-    status: 'pending',
-    type: 'meeting',
-    assignedTo: 'Self',
-    relatedTo: 'Team',
-    createdAt: '2024-01-13',
-    reminder: true,
-    completedAt: null
-  },
-  {
-    id: '5',
-    title: 'Client demo for Tech Solutions',
-    description: 'Product demonstration',
-    dueDate: '2024-01-19',
-    priority: 'High',
-    status: 'in_progress',
-    type: 'demo',
-    assignedTo: 'Self',
-    relatedTo: 'Tech Solutions Inc',
-    createdAt: '2024-01-10',
-    reminder: true,
-    completedAt: null
-  },
-  {
-    id: '6',
-    title: 'Update contact database',
-    description: 'Clean and update contact information',
-    dueDate: '2024-01-30',
-    priority: 'Low',
-    status: 'pending',
-    type: 'admin',
-    assignedTo: 'Self',
-    relatedTo: 'Contacts',
-    createdAt: '2024-01-05',
-    reminder: false,
-    completedAt: null
-  },
-  {
-    id: '7',
-    title: 'Sales training session',
-    description: 'New product training',
-    dueDate: '2024-01-28',
-    priority: 'Medium',
-    status: 'pending',
-    type: 'training',
-    assignedTo: 'Self',
-    relatedTo: 'Sales Team',
-    createdAt: '2024-01-08',
-    reminder: true,
-    completedAt: null
-  },
-  {
-    id: '8',
-    title: 'Review marketing materials',
-    description: 'Check new brochure designs',
-    dueDate: '2024-01-17',
-    priority: 'Low',
-    status: 'completed',
-    type: 'review',
-    assignedTo: 'Self',
-    relatedTo: 'Marketing',
-    createdAt: '2024-01-09',
-    reminder: false,
-    completedAt: '2024-01-15'
-  },
-  // Add more tasks for testing scroll
-  
-  {
-    id: '9',
-    title: 'Budget planning for Q1',
-    description: 'Prepare financial projections',
-    dueDate: '2024-01-31',
-    priority: 'Medium',
-    status: 'pending',
-    type: 'report',
-    assignedTo: 'Self',
-    relatedTo: 'Finance',
-    createdAt: '2024-01-16',
-    reminder: true,
-    completedAt: null
-  },
-  {
-    id: '10',
-    title: 'Follow up with potential client',
-    description: 'Send follow-up email',
-    dueDate: '2024-01-21',
-    priority: 'High',
-    status: 'pending',
-    type: 'email',
-    assignedTo: 'Self',
-    relatedTo: 'New Client',
-    createdAt: '2024-01-17',
-    reminder: true,
-    completedAt: null
-  },
-];
-
-// Task statuses
-const taskStatuses = [
-  { id: 'all', label: 'All Tasks', color: '#666' },
-  { id: 'pending', label: 'Pending', color: '#FF9800' },
-  { id: 'in_progress', label: 'In Progress', color: '#2196F3' },
-  { id: 'completed', label: 'Completed', color: '#4CAF50' },
-  { id: 'overdue', label: 'Overdue', color: '#F44336' },
-];
-
-// Task types with icons
-const taskTypes = {
-  call: { icon: 'call-outline', color: '#4CAF50' },
-  email: { icon: 'mail-outline', color: '#2196F3' },
-  meeting: { icon: 'people-outline', color: '#9C27B0' },
-  report: { icon: 'document-text-outline', color: '#FF9800' },
-  demo: { icon: 'desktop-outline', color: '#00BCD4' },
-  admin: { icon: 'briefcase-outline', color: '#795548' },
-  training: { icon: 'school-outline', color: '#3F51B5' },
-  review: { icon: 'checkmark-circle-outline', color: '#009688' },
-};
-
-const priorities = ['High', 'Medium', 'Low'];
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function TasksScreen() {
   const { colors } = useAppTheme();
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('all');
-  const [selectedPriority, setSelectedPriority] = useState('All');
-  const [selectedType, setSelectedType] = useState('All');
-  const [filteredTasks, setFilteredTasks] = useState(tasksData);
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedPriority, setSelectedPriority] = useState("All");
+  const [selectedType, setSelectedType] = useState("All");
+  const [selectedAssignee, setSelectedAssignee] = useState("All");
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>(tasksData);
+  const [showFilters, setShowFilters] = useState(false);
 
-  const onRefresh = React.useCallback(() => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 1500);
   }, []);
 
-  const handleSearch = (text: string) => {
-    setSearchQuery(text);
-    filterTasks(text, selectedStatus, selectedPriority, selectedType);
+  const handleAddTask = (taskData: any) => {
+    const newTask: Task = {
+      id: Date.now().toString(),
+      title: taskData.title,
+      description: taskData.description,
+      dueDate: taskData.dueDate,
+      priority: taskData.priority,
+      status: "pending",
+      type: taskData.type,
+      assignedTo: taskData.assignedTo,
+      relatedTo: taskData.relatedTo,
+      relatedToType: taskData.relatedToType,
+      createdAt: new Date().toISOString().split("T")[0],
+      reminder: taskData.reminder,
+      reminderTime: taskData.reminderTime,
+      completedAt: null,
+      tags: taskData.tags,
+      notes: taskData.notes,
+      timeEstimate: taskData.timeEstimate,
+      location: taskData.location,
+      recurrence: taskData.recurrence,
+      createdBy: "Current User",
+    };
+
+    setTasks((prev) => [newTask, ...prev]);
   };
 
-  const handleStatusFilter = (status: string) => {
-    setSelectedStatus(status);
-    filterTasks(searchQuery, status, selectedPriority, selectedType);
+  const handleTaskPress = (taskId: string) => {
+    router.push({
+      pathname: "/(tools)/tasks/[id]",
+      params: { id: taskId },
+    } as any); // Type assertion to bypass TypeScript error
   };
 
-  const handlePriorityFilter = (priority: string) => {
-    setSelectedPriority(priority);
-    filterTasks(searchQuery, selectedStatus, priority, selectedType);
+  const handleCompleteTask = (taskId: string) => {
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              status: "completed",
+              completedAt: new Date().toISOString().split("T")[0],
+            }
+          : task
+      )
+    );
   };
 
-  const handleTypeFilter = (type: string) => {
-    setSelectedType(type);
-    filterTasks(searchQuery, selectedStatus, selectedPriority, type);
-  };
+  const filteredTasks = useMemo(() => {
+    let filtered = [...tasks];
 
-  const filterTasks = (search: string, status: string, priority: string, type: string) => {
-    let filtered = [...tasksData];
-    
     // Search filter
-    if (search) {
-      filtered = filtered.filter(task =>
-        task.title.toLowerCase().includes(search.toLowerCase()) ||
-        task.description.toLowerCase().includes(search.toLowerCase()) ||
-        task.relatedTo.toLowerCase().includes(search.toLowerCase())
+    if (searchQuery) {
+      filtered = filtered.filter(
+        (task) =>
+          task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          task.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          task.relatedTo.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          task.tags?.some((tag) =>
+            tag.toLowerCase().includes(searchQuery.toLowerCase())
+          )
       );
     }
-    
+
     // Status filter
-    if (status !== 'all') {
-      if (status === 'overdue') {
-        filtered = filtered.filter(task => {
+    if (selectedStatus !== "all") {
+      if (selectedStatus === "overdue") {
+        filtered = filtered.filter((task) => {
           const dueDate = new Date(task.dueDate);
           const today = new Date();
-          return task.status !== 'completed' && dueDate < today;
+          today.setHours(0, 0, 0, 0);
+          return task.status !== "completed" && dueDate < today;
         });
       } else {
-        filtered = filtered.filter(task => task.status === status);
+        filtered = filtered.filter((task) => task.status === selectedStatus);
       }
     }
-    
+
     // Priority filter
-    if (priority !== 'All') {
-      filtered = filtered.filter(task => task.priority === priority);
+    if (selectedPriority !== "All") {
+      filtered = filtered.filter((task) => task.priority === selectedPriority);
     }
-    
+
     // Type filter
-    if (type !== 'All') {
-      filtered = filtered.filter(task => task.type === type.toLowerCase());
+    if (selectedType !== "All") {
+      filtered = filtered.filter(
+        (task) => task.type === selectedType.toLowerCase()
+      );
     }
-    
-    setFilteredTasks(filtered);
-  };
+
+    // Assignee filter
+    if (selectedAssignee !== "All") {
+      filtered = filtered.filter(
+        (task) => task.assignedTo === selectedAssignee
+      );
+    }
+
+    return filtered;
+  }, [
+    tasks,
+    searchQuery,
+    selectedStatus,
+    selectedPriority,
+    selectedType,
+    selectedAssignee,
+  ]);
 
   const getDaysUntilDue = (dueDate: string) => {
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const due = new Date(dueDate);
+    due.setHours(0, 0, 0, 0);
     const diffTime = due.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
   };
 
-  const getStatusColor = (status: string, dueDate: string) => {
-    const daysUntilDue = getDaysUntilDue(dueDate);
-    
-    if (status === 'completed') return '#4CAF50';
-    if (status === 'in_progress') return '#2196F3';
-    if (status === 'pending') {
-      if (daysUntilDue < 0) return '#F44336'; // Overdue
-      if (daysUntilDue <= 2) return '#FF9800'; // Due soon
-      return '#FF9800'; // Pending
+  const getStatusColor = (task: Task) => {
+    const daysUntilDue = getDaysUntilDue(task.dueDate);
+
+    if (task.status === "completed") return "#4CAF50";
+    if (task.status === "in_progress") return "#2196F3";
+    if (task.status === "pending") {
+      if (daysUntilDue < 0) return "#F44336";
+      if (daysUntilDue <= 2) return "#FF9800";
+      return "#FF9800";
     }
     return colors.textSecondary;
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'High': return '#F44336';
-      case 'Medium': return '#FF9800';
-      case 'Low': return '#4CAF50';
-      default: return colors.textSecondary;
+      case "High":
+        return "#F44336";
+      case "Medium":
+        return "#FF9800";
+      case "Low":
+        return "#4CAF50";
+      default:
+        return colors.textSecondary;
     }
   };
 
   const getTaskTypeIcon = (type: string) => {
-    return taskTypes[type as keyof typeof taskTypes] || { icon: 'help-outline', color: colors.textSecondary };
+    return taskTypes[type as keyof typeof taskTypes] || taskTypes.other;
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric',
-      weekday: 'short'
-    });
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return "Today";
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return "Yesterday";
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return "Tomorrow";
+    } else if (date.getFullYear() === today.getFullYear()) {
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        weekday: "short",
+      });
+    } else {
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    }
   };
 
-  const renderTask = (item: any) => {
-    const daysUntilDue = getDaysUntilDue(item.dueDate);
-    const statusColor = getStatusColor(item.status, item.dueDate);
-    const priorityColor = getPriorityColor(item.priority);
-    const taskType = getTaskTypeIcon(item.type);
-    const isOverdue = daysUntilDue < 0 && item.status !== 'completed';
-    
+  // Calculate statistics
+  const stats = useMemo(() => {
+    const totalTasks = tasks.length;
+    const completedTasks = tasks.filter((t) => t.status === "completed").length;
+    const pendingTasks = tasks.filter((t) => t.status === "pending").length;
+    const inProgressTasks = tasks.filter(
+      (t) => t.status === "in_progress"
+    ).length;
+    const overdueTasks = tasks.filter((t) => {
+      const daysUntilDue = getDaysUntilDue(t.dueDate);
+      return t.status !== "completed" && daysUntilDue < 0;
+    }).length;
+
+    const todayTasks = tasks.filter((t) => {
+      const dueDate = new Date(t.dueDate);
+      const today = new Date();
+      return dueDate.toDateString() === today.toDateString();
+    }).length;
+
+    const highPriorityTasks = tasks.filter((t) => t.priority === "High").length;
+
+    return {
+      totalTasks,
+      completedTasks,
+      pendingTasks,
+      inProgressTasks,
+      overdueTasks,
+      todayTasks,
+      highPriorityTasks,
+    };
+  }, [tasks]);
+
+  const renderTaskItem = (task: Task) => {
+    const daysUntilDue = getDaysUntilDue(task.dueDate);
+    const statusColor = getStatusColor(task);
+    const priorityColor = getPriorityColor(task.priority);
+    const taskType = getTaskTypeIcon(task.type);
+    const isOverdue = daysUntilDue < 0 && task.status !== "completed";
+    const isDueSoon =
+      daysUntilDue >= 0 && daysUntilDue <= 2 && task.status !== "completed";
+
     return (
-      <TouchableOpacity 
-        key={item.id}
-        style={[styles.taskCard, { backgroundColor: colors.card }]}
-        onPress={() => router.push(`/(app)/tasks/${item.id}`)}
+      <TouchableOpacity
+        key={task.id}
+        onPress={() => handleTaskPress(task.id)}
         activeOpacity={0.7}
+        style={{
+          backgroundColor: colors.card,
+          borderRadius: 16,
+          padding: 16,
+          marginBottom: 12,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 3,
+          borderWidth: 1,
+          borderColor: colors.border,
+        }}
       >
-        <View style={styles.taskHeader}>
-          <View style={styles.taskTypeIcon}>
-            <Ionicons name={taskType.icon as any} size={20} color={taskType.color} />
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "flex-start",
+            marginBottom: 12,
+          }}
+        >
+          {/* Task Type Icon */}
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: taskType.color + "20",
+              justifyContent: "center",
+              alignItems: "center",
+              marginRight: 12,
+            }}
+          >
+            <Ionicons
+              name={taskType.icon as any}
+              size={20}
+              color={taskType.color}
+            />
           </View>
-          
-          <View style={styles.taskMainInfo}>
-            <View style={styles.titleRow}>
-              <ThemedText 
-                type="defaultSemiBold" 
-                style={[
-                  styles.taskTitle, 
-                  { 
-                    color: colors.text,
-                    textDecorationLine: item.status === 'completed' ? 'line-through' : 'none',
-                    opacity: item.status === 'completed' ? 0.7 : 1
-                  }
-                ]}
+
+          {/* Task Info */}
+          <View style={{ flex: 1 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginBottom: 6,
+              }}
+            >
+              <ThemedText
+                type="defaultSemiBold"
+                style={{
+                  flex: 1,
+                  fontSize: 16,
+                  color: colors.text,
+                  textDecorationLine:
+                    task.status === "completed" ? "line-through" : "none",
+                  opacity: task.status === "completed" ? 0.7 : 1,
+                }}
                 numberOfLines={1}
-                ellipsizeMode="tail"
               >
-                {item.title}
+                {task.title}
               </ThemedText>
-              
-              <View style={[styles.priorityBadge, { backgroundColor: priorityColor + '20' }]}>
-                <ThemedText style={[styles.priorityText, { color: priorityColor }]}>
-                  {item.priority.charAt(0)}
+
+              {/* Priority Badge */}
+              <View
+                style={{
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  borderRadius: 12,
+                  backgroundColor: priorityColor + "20",
+                  marginLeft: 8,
+                }}
+              >
+                <ThemedText
+                  style={{
+                    fontSize: 11,
+                    fontWeight: "600",
+                    color: priorityColor,
+                  }}
+                >
+                  {task.priority}
                 </ThemedText>
               </View>
             </View>
-            
-            <ThemedText 
-              style={[styles.taskDescription, { color: colors.textSecondary }]}
+
+            {/* Description */}
+            <ThemedText
+              style={{
+                fontSize: 14,
+                color: colors.textSecondary,
+                lineHeight: 18,
+                marginBottom: 8,
+              }}
               numberOfLines={2}
-              ellipsizeMode="tail"
             >
-              {item.description}
+              {task.description}
             </ThemedText>
+
+            {/* Tags */}
+            {task.tags && task.tags.length > 0 && (
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: 6,
+                  marginBottom: 8,
+                }}
+              >
+                {task.tags.slice(0, 3).map((tag, index) => (
+                  <View
+                    key={index}
+                    style={{
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 12,
+                      backgroundColor: colors.primary + "15",
+                    }}
+                  >
+                    <ThemedText style={{ fontSize: 10, color: colors.primary }}>
+                      {tag}
+                    </ThemedText>
+                  </View>
+                ))}
+                {task.tags.length > 3 && (
+                  <View
+                    style={{
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 12,
+                      backgroundColor: colors.border,
+                    }}
+                  >
+                    <ThemedText
+                      style={{ fontSize: 10, color: colors.textSecondary }}
+                    >
+                      +{task.tags.length - 3}
+                    </ThemedText>
+                  </View>
+                )}
+              </View>
+            )}
           </View>
-          
-          {item.reminder && (
-            <Ionicons name="notifications" size={18} color="#FF9800" />
-          )}
         </View>
-        
-        <View style={[styles.taskDetails, { borderTopColor: colors.border }]}>
-          <View style={styles.detailRow}>
-            <View style={styles.detailItem}>
-              <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
-              <ThemedText style={[
-                styles.dueDateText, 
-                { 
-                  color: isOverdue ? '#F44336' : 
-                         daysUntilDue <= 2 ? '#FF9800' : 
-                         colors.textSecondary,
-                  fontWeight: isOverdue ? '600' : '400'
-                }
-              ]}>
-                {formatDate(item.dueDate)} {isOverdue && '(Overdue)'}
-              </ThemedText>
+
+        {/* Task Details */}
+        <View
+          style={{
+            borderTopWidth: 1,
+            borderTopColor: colors.border,
+            paddingTop: 12,
+          }}
+        >
+          {/* First Row: Due Date and Assignee */}
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 8,
+            }}
+          >
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+            >
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+              >
+                <Ionicons
+                  name="calendar-outline"
+                  size={14}
+                  color={colors.textSecondary}
+                />
+                <ThemedText
+                  style={{
+                    fontSize: 12,
+                    color: isOverdue
+                      ? "#F44336"
+                      : isDueSoon
+                      ? "#FF9800"
+                      : colors.textSecondary,
+                    fontWeight: isOverdue || isDueSoon ? "600" : "400",
+                  }}
+                >
+                  {formatDate(task.dueDate)}
+                  {isOverdue && " (Overdue)"}
+                  {isDueSoon && !isOverdue && " (Due Soon)"}
+                </ThemedText>
+              </View>
+
+              {task.timeEstimate && (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 4,
+                    paddingHorizontal: 6,
+                    paddingVertical: 2,
+                    backgroundColor: colors.border,
+                    borderRadius: 8,
+                  }}
+                >
+                  <Ionicons
+                    name="time-outline"
+                    size={10}
+                    color={colors.textSecondary}
+                  />
+                  <ThemedText
+                    style={{ fontSize: 10, color: colors.textSecondary }}
+                  >
+                    {task.timeEstimate}
+                  </ThemedText>
+                </View>
+              )}
             </View>
-            
-            <View style={styles.detailItem}>
-              <Ionicons name="person-outline" size={14} color={colors.textSecondary} />
-              <ThemedText style={[styles.assignedText, { color: colors.textSecondary }]}>
-                {item.assignedTo}
+
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+            >
+              <Ionicons
+                name="person-outline"
+                size={14}
+                color={colors.textSecondary}
+              />
+              <ThemedText style={{ fontSize: 12, color: colors.textSecondary }}>
+                {task.assignedTo}
               </ThemedText>
             </View>
           </View>
-          
-          <View style={styles.detailRow}>
-            <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
-              <ThemedText style={[styles.statusText, { color: statusColor }]}>
-                {item.status === 'in_progress' ? 'In Progress' : 
-                 item.status === 'completed' ? 'Completed' : 'Pending'}
-              </ThemedText>
+
+          {/* Second Row: Status and Related To */}
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              {/* Status Badge */}
+              <View
+                style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                  borderRadius: 12,
+                  backgroundColor: statusColor + "20",
+                }}
+              >
+                <ThemedText
+                  style={{
+                    fontSize: 11,
+                    fontWeight: "600",
+                    color: statusColor,
+                    textTransform: "capitalize",
+                  }}
+                >
+                  {task.status === "in_progress"
+                    ? "In Progress"
+                    : task.status === "completed"
+                    ? "Completed"
+                    : task.status.replace("_", " ")}
+                </ThemedText>
+              </View>
+
+              {/* Reminder Indicator */}
+              {task.reminder && (
+                <Ionicons name="notifications" size={14} color="#FF9800" />
+              )}
             </View>
-            
-            {item.relatedTo && (
-              <View style={styles.relatedToContainer}>
-                <Ionicons name="link-outline" size={12} color={colors.textSecondary} />
-                <ThemedText style={[styles.relatedToText, { color: colors.textSecondary }]}>
-                  {item.relatedTo}
+
+            {/* Related To */}
+            {task.relatedTo && (
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+              >
+                <Ionicons
+                  name="link-outline"
+                  size={12}
+                  color={colors.textSecondary}
+                />
+                <ThemedText
+                  style={{
+                    fontSize: 11,
+                    color: colors.textSecondary,
+                  }}
+                >
+                  {task.relatedTo}
                 </ThemedText>
               </View>
             )}
           </View>
-          
-          {item.completedAt && (
-            <View style={styles.completedContainer}>
+
+          {/* Completion Info */}
+          {task.completedAt && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                marginTop: 8,
+                paddingTop: 8,
+                borderTopWidth: 1,
+                borderTopColor: colors.border,
+              }}
+            >
               <Ionicons name="checkmark-circle" size={12} color="#4CAF50" />
-              <ThemedText style={[styles.completedText, { color: colors.textSecondary }]}>
-                Completed: {formatDate(item.completedAt)}
+              <ThemedText style={{ fontSize: 11, color: colors.textSecondary }}>
+                Completed: {formatDate(task.completedAt)}
               </ThemedText>
             </View>
           )}
@@ -413,19 +579,11 @@ export default function TasksScreen() {
     );
   };
 
-  // Calculate statistics
-  const totalTasks = tasksData.length;
-  const completedTasks = tasksData.filter(t => t.status === 'completed').length;
-  const pendingTasks = tasksData.filter(t => t.status === 'pending').length;
-  const overdueTasks = tasksData.filter(t => {
-    const daysUntilDue = getDaysUntilDue(t.dueDate);
-    return t.status !== 'completed' && daysUntilDue < 0;
-  }).length;
-
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView 
-        style={styles.scrollView}
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      {/* Main Content */}
+      <ScrollView
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -435,567 +593,585 @@ export default function TasksScreen() {
             colors={[colors.primary]}
           />
         }
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={{ paddingBottom: 20 }}
       >
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: colors.card }]}>
-          <View style={styles.headerTop}>
-            <ThemedText type="title" style={{ color: colors.text }}>
-              Tasks & Reminders
-            </ThemedText>
-            <View style={styles.headerActions}>
-              <TouchableOpacity 
-                style={[styles.viewModeButton, { backgroundColor: colors.primary + '15' }]}
-                onPress={() => setViewMode(viewMode === 'list' ? 'calendar' : 'list')}
+        {/* Header Section */}
+        <View
+          style={{
+            backgroundColor: colors.card,
+            padding: 20,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 15,
+            }}
+          >
+            <View>
+              <ThemedText
+                type="title"
+                style={{ color: colors.text, fontSize: 28 }}
               >
-                <Ionicons 
-                  name={viewMode === 'list' ? 'calendar-outline' : 'list-outline'} 
-                  size={20} 
-                  color={colors.primary} 
+                Tasks
+              </ThemedText>
+              <ThemedText style={{ color: colors.textSecondary, marginTop: 4 }}>
+                {filteredTasks.length} tasks found
+              </ThemedText>
+            </View>
+
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+            >
+              {/* View Mode Toggle */}
+              <TouchableOpacity
+                onPress={() =>
+                  setViewMode(viewMode === "list" ? "calendar" : "list")
+                }
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: colors.primary + "15",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <Ionicons
+                  name={
+                    viewMode === "list" ? "calendar-outline" : "list-outline"
+                  }
+                  size={20}
+                  color={colors.primary}
                 />
               </TouchableOpacity>
-              <Link href="/tasks/new" asChild>
-                <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]}>
-                  <Ionicons name="add" size={20} color="white" />
-                  <ThemedText type="defaultSemiBold" style={styles.addButtonText}>
-                    Add Task
-                  </ThemedText>
-                </TouchableOpacity>
-              </Link>
+
+              {/* Add Task Button */}
+              <TouchableOpacity
+                onPress={() => setShowAddModal(true)}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: colors.primary,
+                  paddingHorizontal: 16,
+                  paddingVertical: 10,
+                  borderRadius: 20,
+                  gap: 8,
+                }}
+              >
+                <Ionicons name="add" size={18} color="white" />
+                <ThemedText
+                  type="defaultSemiBold"
+                  style={{ color: "white", fontSize: 14 }}
+                >
+                  Add Task
+                </ThemedText>
+              </TouchableOpacity>
             </View>
           </View>
-          
+
           {/* Search Bar */}
-          <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
-            <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: colors.background,
+              borderRadius: 12,
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              marginBottom: 15,
+            }}
+          >
+            <Ionicons
+              name="search"
+              size={20}
+              color={colors.textSecondary}
+              style={{ marginRight: 10 }}
+            />
             <TextInput
-              style={[styles.searchInput, { color: colors.text }]}
+              style={{
+                flex: 1,
+                fontSize: 16,
+                color: colors.text,
+                padding: 0,
+              }}
               placeholder="Search tasks..."
               placeholderTextColor={colors.textSecondary}
               value={searchQuery}
-              onChangeText={handleSearch}
+              onChangeText={setSearchQuery}
             />
             {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => handleSearch('')}>
-                <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+              <TouchableOpacity onPress={() => setSearchQuery("")}>
+                <Ionicons
+                  name="close-circle"
+                  size={20}
+                  color={colors.textSecondary}
+                />
               </TouchableOpacity>
             )}
           </View>
-          
-          {/* Task Stats */}
-          <View style={[styles.statsContainer, { backgroundColor: colors.background }]}>
-            <TouchableOpacity 
-              style={[
-                styles.statItem, 
-                { 
-                  backgroundColor: selectedStatus === 'all' ? colors.primary + '20' : colors.card,
-                  borderColor: selectedStatus === 'all' ? colors.primary : colors.border
-                }
-              ]}
-              onPress={() => handleStatusFilter('all')}
-            >
-              <ThemedText type="title" style={[styles.statNumber, { color: colors.primary }]}>
-                {totalTasks}
-              </ThemedText>
-              <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
-                All Tasks
-              </ThemedText>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[
-                styles.statItem, 
-                { 
-                  backgroundColor: selectedStatus === 'pending' ? '#FF980020' : colors.card,
-                  borderColor: selectedStatus === 'pending' ? '#FF9800' : colors.border
-                }
-              ]}
-              onPress={() => handleStatusFilter('pending')}
-            >
-              <ThemedText type="title" style={[styles.statNumber, { color: '#FF9800' }]}>
-                {pendingTasks}
-              </ThemedText>
-              <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
-                Pending
-              </ThemedText>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[
-                styles.statItem, 
-                { 
-                  backgroundColor: selectedStatus === 'completed' ? '#4CAF5020' : colors.card,
-                  borderColor: selectedStatus === 'completed' ? '#4CAF50' : colors.border
-                }
-              ]}
-              onPress={() => handleStatusFilter('completed')}
-            >
-              <ThemedText type="title" style={[styles.statNumber, { color: '#4CAF50' }]}>
-                {completedTasks}
-              </ThemedText>
-              <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
-                Completed
-              </ThemedText>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[
-                styles.statItem, 
-                { 
-                  backgroundColor: selectedStatus === 'overdue' ? '#F4433620' : colors.card,
-                  borderColor: selectedStatus === 'overdue' ? '#F44336' : colors.border
-                }
-              ]}
-              onPress={() => handleStatusFilter('overdue')}
-            >
-              <ThemedText type="title" style={[styles.statNumber, { color: '#F44336' }]}>
-                {overdueTasks}
-              </ThemedText>
-              <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
-                Overdue
-              </ThemedText>
-            </TouchableOpacity>
-          </View>
-          
-          {/* Quick Filters */}
-          <View style={styles.filtersRow}>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              style={styles.filterScroll}
-            >
-              {priorities.map((priority) => (
-                <TouchableOpacity
-                  key={priority}
-                  style={[
-                    styles.filterButton,
-                    { 
-                      backgroundColor: selectedPriority === priority ? getPriorityColor(priority) + '20' : colors.background,
-                      borderColor: selectedPriority === priority ? getPriorityColor(priority) : colors.border
-                    }
-                  ]}
-                  onPress={() => handlePriorityFilter(priority)}
-                >
-                  <Ionicons 
-                    name="flag-outline" 
-                    size={14} 
-                    color={selectedPriority === priority ? getPriorityColor(priority) : colors.textSecondary} 
-                  />
-                  <ThemedText style={[
-                    styles.filterText,
-                    { color: selectedPriority === priority ? getPriorityColor(priority) : colors.textSecondary }
-                  ]}>
-                    {priority}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-          
-          {/* Task Type Filters */}
-          <View style={styles.typeFilters}>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              style={styles.typeScroll}
-            >
+
+          {/* Stats Cards */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ marginBottom: 15 }}
+          >
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              {/* All Tasks */}
               <TouchableOpacity
-                style={[
-                  styles.typeButton,
-                  { 
-                    backgroundColor: selectedType === 'All' ? colors.primary + '20' : colors.background,
-                    borderColor: selectedType === 'All' ? colors.primary : colors.border
-                  }
-                ]}
-                onPress={() => handleTypeFilter('All')}
+                onPress={() => setSelectedStatus("all")}
+                style={{
+                  minWidth: 100,
+                  padding: 12,
+                  borderRadius: 12,
+                  backgroundColor:
+                    selectedStatus === "all"
+                      ? colors.primary + "20"
+                      : colors.background,
+                  borderWidth: 1,
+                  borderColor:
+                    selectedStatus === "all" ? colors.primary : colors.border,
+                  alignItems: "center",
+                }}
               >
-                <Ionicons name="apps" size={16} color={selectedType === 'All' ? colors.primary : colors.textSecondary} />
-                <ThemedText style={[
-                  styles.typeText,
-                  { color: selectedType === 'All' ? colors.primary : colors.textSecondary }
-                ]}>
-                  All Types
+                <ThemedText
+                  type="title"
+                  style={{ color: colors.primary, fontSize: 20 }}
+                >
+                  {stats.totalTasks}
+                </ThemedText>
+                <ThemedText
+                  style={{
+                    color: colors.textSecondary,
+                    fontSize: 11,
+                    marginTop: 2,
+                  }}
+                >
+                  All Tasks
                 </ThemedText>
               </TouchableOpacity>
-              
-              {Object.entries(taskTypes).map(([type, info]) => (
-                <TouchableOpacity
-                  key={type}
-                  style={[
-                    styles.typeButton,
-                    { 
-                      backgroundColor: selectedType === type ? info.color + '20' : colors.background,
-                      borderColor: selectedType === type ? info.color : colors.border
-                    }
-                  ]}
-                  onPress={() => handleTypeFilter(type.charAt(0).toUpperCase() + type.slice(1))}
+
+              {/* Today */}
+              <TouchableOpacity
+                style={{
+                  minWidth: 100,
+                  padding: 12,
+                  borderRadius: 12,
+                  backgroundColor: colors.background,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  alignItems: "center",
+                }}
+              >
+                <ThemedText
+                  type="title"
+                  style={{ color: "#2196F3", fontSize: 20 }}
                 >
-                  <Ionicons name={info.icon as any} size={16} color={selectedType === type ? info.color : colors.textSecondary} />
-                  <ThemedText style={[
-                    styles.typeText,
-                    { color: selectedType === type ? info.color : colors.textSecondary }
-                  ]}>
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  {stats.todayTasks}
+                </ThemedText>
+                <ThemedText
+                  style={{
+                    color: colors.textSecondary,
+                    fontSize: 11,
+                    marginTop: 2,
+                  }}
+                >
+                  Today
+                </ThemedText>
+              </TouchableOpacity>
+
+              {/* High Priority */}
+              <TouchableOpacity
+                onPress={() => setSelectedPriority("High")}
+                style={{
+                  minWidth: 100,
+                  padding: 12,
+                  borderRadius: 12,
+                  backgroundColor:
+                    selectedPriority === "High"
+                      ? "#F4433620"
+                      : colors.background,
+                  borderWidth: 1,
+                  borderColor:
+                    selectedPriority === "High" ? "#F44336" : colors.border,
+                  alignItems: "center",
+                }}
+              >
+                <ThemedText
+                  type="title"
+                  style={{ color: "#F44336", fontSize: 20 }}
+                >
+                  {stats.highPriorityTasks}
+                </ThemedText>
+                <ThemedText
+                  style={{
+                    color: colors.textSecondary,
+                    fontSize: 11,
+                    marginTop: 2,
+                  }}
+                >
+                  High Priority
+                </ThemedText>
+              </TouchableOpacity>
+
+              {/* Overdue */}
+              <TouchableOpacity
+                onPress={() => setSelectedStatus("overdue")}
+                style={{
+                  minWidth: 100,
+                  padding: 12,
+                  borderRadius: 12,
+                  backgroundColor:
+                    selectedStatus === "overdue"
+                      ? "#F4433620"
+                      : colors.background,
+                  borderWidth: 1,
+                  borderColor:
+                    selectedStatus === "overdue" ? "#F44336" : colors.border,
+                  alignItems: "center",
+                }}
+              >
+                <ThemedText
+                  type="title"
+                  style={{ color: "#F44336", fontSize: 20 }}
+                >
+                  {stats.overdueTasks}
+                </ThemedText>
+                <ThemedText
+                  style={{
+                    color: colors.textSecondary,
+                    fontSize: 11,
+                    marginTop: 2,
+                  }}
+                >
+                  Overdue
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+
+          {/* Status Filters */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ marginBottom: 12 }}
+          >
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              {taskStatuses.map((status) => (
+                <TouchableOpacity
+                  key={status.id}
+                  onPress={() => setSelectedStatus(status.id)}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    backgroundColor:
+                      selectedStatus === status.id
+                        ? status.color + "20"
+                        : colors.background,
+                    borderWidth: 1,
+                    borderColor:
+                      selectedStatus === status.id
+                        ? status.color
+                        : colors.border,
+                    gap: 6,
+                  }}
+                >
+                  <Ionicons
+                    name={status.icon as any}
+                    size={14}
+                    color={
+                      selectedStatus === status.id
+                        ? status.color
+                        : colors.textSecondary
+                    }
+                  />
+                  <ThemedText
+                    style={{
+                      fontSize: 12,
+                      fontWeight: "500",
+                      color:
+                        selectedStatus === status.id
+                          ? status.color
+                          : colors.textSecondary,
+                    }}
+                  >
+                    {status.label}
                   </ThemedText>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
+            </View>
+          </ScrollView>
+
+          {/* Priority Filters */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ marginBottom: 12 }}
+          >
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              {priorities.map((priority) => (
+                <TouchableOpacity
+                  key={priority.value}
+                  onPress={() => setSelectedPriority(priority.value)}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    backgroundColor:
+                      selectedPriority === priority.value
+                        ? priority.color + "20"
+                        : colors.background,
+                    borderWidth: 1,
+                    borderColor:
+                      selectedPriority === priority.value
+                        ? priority.color
+                        : colors.border,
+                    gap: 6,
+                  }}
+                >
+                  <Ionicons
+                    name="flag"
+                    size={14}
+                    color={
+                      selectedPriority === priority.value
+                        ? priority.color
+                        : colors.textSecondary
+                    }
+                  />
+                  <ThemedText
+                    style={{
+                      fontSize: 12,
+                      fontWeight: "500",
+                      color:
+                        selectedPriority === priority.value
+                          ? priority.color
+                          : colors.textSecondary,
+                    }}
+                  >
+                    {priority.label}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+
+          {/* Quick Filters Row */}
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            {/* Assignee Filter */}
+            <TouchableOpacity
+              onPress={() => setShowFilters(!showFilters)}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: 20,
+                backgroundColor: colors.background,
+                borderWidth: 1,
+                borderColor: colors.border,
+                gap: 6,
+              }}
+            >
+              <Ionicons name="people" size={14} color={colors.textSecondary} />
+              <ThemedText style={{ fontSize: 12, color: colors.textSecondary }}>
+                {selectedAssignee === "All" ? "Everyone" : selectedAssignee}
+              </ThemedText>
+              <Ionicons
+                name="chevron-down"
+                size={12}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+
+            {/* Type Filter */}
+            <TouchableOpacity
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: 20,
+                backgroundColor: colors.background,
+                borderWidth: 1,
+                borderColor: colors.border,
+                gap: 6,
+              }}
+            >
+              <Ionicons name="apps" size={14} color={colors.textSecondary} />
+              <ThemedText style={{ fontSize: 12, color: colors.textSecondary }}>
+                {selectedType === "All" ? "All Types" : selectedType}
+              </ThemedText>
+              <Ionicons
+                name="chevron-down"
+                size={12}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Upcoming Tasks Summary */}
-        {viewMode === 'list' && (
-          <View style={[styles.upcomingContainer, { backgroundColor: colors.card }]}>
-            <View style={styles.upcomingHeader}>
-              <Ionicons name="time-outline" size={20} color={colors.primary} />
-              <ThemedText type="defaultSemiBold" style={{ color: colors.text, marginLeft: 8 }}>
-                Today & Upcoming
-              </ThemedText>
-            </View>
-            
-            <View style={styles.upcomingStats}>
-              <View style={styles.upcomingStat}>
-                <ThemedText style={[styles.upcomingCount, { color: '#F44336' }]}>
-                  {tasksData.filter(t => {
-                    const daysUntilDue = getDaysUntilDue(t.dueDate);
-                    return t.status !== 'completed' && daysUntilDue < 0;
-                  }).length}
-                </ThemedText>
-                <ThemedText style={[styles.upcomingLabel, { color: colors.textSecondary }]}>
-                  Overdue
-                </ThemedText>
-              </View>
-              
-              <View style={[styles.upcomingDivider, { backgroundColor: colors.border }]} />
-              
-              <View style={styles.upcomingStat}>
-                <ThemedText style={[styles.upcomingCount, { color: '#FF9800' }]}>
-                  {tasksData.filter(t => {
-                    const daysUntilDue = getDaysUntilDue(t.dueDate);
-                    return t.status !== 'completed' && daysUntilDue >= 0 && daysUntilDue <= 2;
-                  }).length}
-                </ThemedText>
-                <ThemedText style={[styles.upcomingLabel, { color: colors.textSecondary }]}>
-                  Due Soon
-                </ThemedText>
-              </View>
-              
-              <View style={[styles.upcomingDivider, { backgroundColor: colors.border }]} />
-              
-              <View style={styles.upcomingStat}>
-                <ThemedText style={[styles.upcomingCount, { color: '#4CAF50' }]}>
-                  {tasksData.filter(t => {
-                    const daysUntilDue = getDaysUntilDue(t.dueDate);
-                    return t.status === 'completed';
-                  }).length}
-                </ThemedText>
-                <ThemedText style={[styles.upcomingLabel, { color: colors.textSecondary }]}>
-                  Completed
-                </ThemedText>
-              </View>
-            </View>
-          </View>
-        )}
-
         {/* Tasks List */}
-        <View style={styles.tasksListContainer}>
-          <View style={styles.listHeader}>
-            <ThemedText type="subtitle" style={{ color: colors.text }}>
-              Tasks ({filteredTasks.length})
-            </ThemedText>
-          </View>
+        <View style={{ padding: 20 }}>
+          {viewMode === "list" ? (
+            <>
+              {/* Tasks Counter */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 16,
+                }}
+              >
+                <ThemedText type="subtitle" style={{ color: colors.text }}>
+                  My Tasks ({filteredTasks.length})
+                </ThemedText>
+                <TouchableOpacity>
+                  <ThemedText style={{ color: colors.primary, fontSize: 12 }}>
+                    Sort by: Due Date
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
 
-          {filteredTasks.length > 0 ? (
-            <View style={styles.tasksGrid}>
-              {filteredTasks.map(renderTask)}
-            </View>
+              {/* Tasks List */}
+              {filteredTasks.length > 0 ? (
+                filteredTasks.map(renderTaskItem)
+              ) : (
+                <View
+                  style={{
+                    alignItems: "center",
+                    justifyContent: "center",
+                    paddingVertical: 50,
+                  }}
+                >
+                  <Ionicons
+                    name="checkmark-circle-outline"
+                    size={60}
+                    color={colors.textSecondary}
+                  />
+                  <ThemedText
+                    type="default"
+                    style={{
+                      color: colors.textSecondary,
+                      marginTop: 10,
+                      fontSize: 16,
+                    }}
+                  >
+                    No tasks found
+                  </ThemedText>
+                  <ThemedText
+                    style={{
+                      color: colors.textSecondary,
+                      fontSize: 12,
+                      marginTop: 5,
+                    }}
+                  >
+                    {searchQuery
+                      ? "Try a different search term"
+                      : selectedStatus !== "all"
+                      ? "No tasks with this status"
+                      : "Add a new task to get started"}
+                  </ThemedText>
+                  {!searchQuery && selectedStatus === "all" && (
+                    <TouchableOpacity
+                      onPress={() => setShowAddModal(true)}
+                      style={{
+                        marginTop: 20,
+                        paddingHorizontal: 20,
+                        paddingVertical: 10,
+                        backgroundColor: colors.primary,
+                        borderRadius: 20,
+                      }}
+                    >
+                      <ThemedText style={{ color: "white", fontSize: 14 }}>
+                        Add Your First Task
+                      </ThemedText>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            </>
           ) : (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="checkmark-circle-outline" size={60} color={colors.textSecondary} />
-              <ThemedText type="default" style={{ color: colors.textSecondary, marginTop: 10 }}>
-                No tasks found
+            // Calendar View Placeholder
+            <View
+              style={{
+                alignItems: "center",
+                justifyContent: "center",
+                paddingVertical: 50,
+              }}
+            >
+              <Ionicons
+                name="calendar-outline"
+                size={60}
+                color={colors.textSecondary}
+              />
+              <ThemedText
+                type="default"
+                style={{
+                  color: colors.textSecondary,
+                  marginTop: 10,
+                  fontSize: 16,
+                }}
+              >
+                Calendar View
               </ThemedText>
-              <ThemedText style={{ color: colors.textSecondary, fontSize: 12, marginTop: 5 }}>
-                {selectedStatus === 'completed' ? 'All caught up!' : 'Try changing your filters'}
+              <ThemedText
+                style={{
+                  color: colors.textSecondary,
+                  fontSize: 12,
+                  marginTop: 5,
+                  textAlign: "center",
+                }}
+              >
+                View your tasks on a calendar timeline\nComing soon!
               </ThemedText>
             </View>
           )}
         </View>
 
-        {/* Bottom Spacer */}
-        <View style={styles.bottomSpacer} />
+        {/* Bottom Spacer for floating buttons */}
+        <View style={{ height: 80 }} />
       </ScrollView>
+
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        onPress={() => setShowAddModal(true)}
+        style={{
+          position: "absolute",
+          right: 20,
+          bottom: 20,
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          backgroundColor: colors.primary,
+          justifyContent: "center",
+          alignItems: "center",
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+          elevation: 8,
+        }}
+      >
+        <Ionicons name="add" size={24} color="white" />
+      </TouchableOpacity>
+
+      {/* Add Task Modal */}
+      <AddTaskModal
+        visible={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onAddTask={handleAddTask}
+      />
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 20,
-  },
-  header: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  viewModeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    gap: 8,
-  },
-  addButtonText: {
-    color: 'white',
-    fontSize: 14,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-    marginBottom: 15,
-  },
-  searchIcon: {
-    marginRight: 10,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 15,
-    gap: 8,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  statNumber: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 11,
-  },
-  filtersRow: {
-    marginBottom: 12,
-  },
-  filterScroll: {
-    maxHeight: 40,
-  },
-  filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginRight: 8,
-    gap: 6,
-  },
-  filterText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  typeFilters: {
-    marginBottom: 12,
-  },
-  typeScroll: {
-    maxHeight: 40,
-  },
-  typeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginRight: 8,
-    gap: 6,
-  },
-  typeText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  upcomingContainer: {
-    marginHorizontal: 15,
-    marginTop: 15,
-    marginBottom: 15,
-    padding: 16,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  upcomingHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  upcomingStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  upcomingStat: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  upcomingCount: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  upcomingLabel: {
-    fontSize: 11,
-  },
-  upcomingDivider: {
-    width: 1,
-    height: 30,
-  },
-  tasksListContainer: {
-    paddingHorizontal: 15,
-  },
-  listHeader: {
-    marginBottom: 15,
-  },
-  tasksGrid: {
-    gap: 12,
-  },
-  taskCard: {
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  taskHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  taskTypeIcon: {
-    marginRight: 12,
-  },
-  taskMainInfo: {
-    flex: 1,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-    gap: 8,
-  },
-  taskTitle: {
-    flex: 1,
-    fontSize: 16,
-  },
-  priorityBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  priorityText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  taskDescription: {
-    fontSize: 14,
-    lineHeight: 18,
-  },
-  taskDetails: {
-    borderTopWidth: 1,
-    paddingTop: 12,
-    gap: 8,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  dueDateText: {
-    fontSize: 12,
-  },
-  assignedText: {
-    fontSize: 12,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  relatedToContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  relatedToText: {
-    fontSize: 11,
-  },
-  completedContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-  },
-  completedText: {
-    fontSize: 11,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 50,
-  },
-  bottomSpacer: {
-    height: 100,
-  },
-});

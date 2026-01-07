@@ -169,6 +169,9 @@ export default function TabLayout() {
       {/* ✅ HIDE ONLY THE TOOLS GROUP */}
       {/* This will hide all routes inside (tools) group including activities and explore */}
       <Tabs.Screen name="(tools)" options={{ href: null }} />
+      
+      {/* Task detail screen ko bhi hide karo kyunki yeh tab par nahi aana chahiye */}
+      <Tabs.Screen name="tasks/[id]" options={{ href: null }} />
     </Tabs>
   );
 }
