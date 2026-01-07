@@ -4,12 +4,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -128,6 +128,7 @@ const tasksData = [
     completedAt: '2024-01-15'
   },
   // Add more tasks for testing scroll
+  
   {
     id: '9',
     title: 'Budget planning for Q1',
