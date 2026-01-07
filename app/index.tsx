@@ -8,7 +8,7 @@ import { ActivityIndicator, View } from 'react-native';
 
 export default function Index() {
   const { checkAuth } = useAuthStore();
-  const { colors } = useAppTheme(); // Get theme colors
+  const { colors } = useAppTheme();
 
   useEffect(() => {
     initializeApp();
@@ -30,9 +30,9 @@ export default function Index() {
       flex: 1, 
       justifyContent: 'center', 
       alignItems: 'center',
-      backgroundColor: colors.background // Use theme background
+      backgroundColor: colors.background 
     }}>
-      <ActivityIndicator size="large" color={colors.primary} /> {/* Use theme primary color */}
+      <ActivityIndicator size="large" color={colors.primary} />
     </View>
   );
 }

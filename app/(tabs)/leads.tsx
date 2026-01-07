@@ -1,186 +1,42 @@
 import { ThemedText } from '@/components/themed-text';
 import { useAppTheme } from '@/context/ThemeContext';
+import { leadsData, leadSources, leadStages, priorities } from '@/data/leads';
 import { Ionicons } from '@expo/vector-icons';
-import { Link, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View
+  Linking,
+  Modal,
+  RefreshControl,
+  ScrollView,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// Mock data for leads
-const leadsData = [
-  {
-    id: '1',
-    name: 'ABC Corporation',
-    contact: 'John Smith',
-    email: 'john@abccorp.com',
-    phone: '+1234567890',
-    value: 50000,
-    stage: 'New',
-    source: 'Website',
-    created: '2024-01-15',
-    expectedClose: '2024-02-28',
-    priority: 'High',
-    notes: 'Interested in enterprise solution'
-  },
-  {
-    id: '2',
-    name: 'XYZ Enterprises',
-    contact: 'Sarah Johnson',
-    email: 'sarah@xyz.com',
-    phone: '+0987654321',
-    value: 35000,
-    stage: 'Contacted',
-    source: 'Referral',
-    created: '2024-01-14',
-    expectedClose: '2024-03-15',
-    priority: 'Medium',
-    notes: 'Scheduled demo next week'
-  },
-  {
-    id: '3',
-    name: 'Tech Solutions Inc',
-    contact: 'Mike Brown',
-    email: 'mike@techsolutions.com',
-    phone: '+1122334455',
-    value: 25000,
-    stage: 'Qualified',
-    source: 'Conference',
-    created: '2024-01-10',
-    expectedClose: '2024-02-20',
-    priority: 'High',
-    notes: 'Decision maker identified'
-  },
-  {
-    id: '4',
-    name: 'Global Trading Co',
-    contact: 'Emma Wilson',
-    email: 'emma@globaltrading.com',
-    phone: '+5566778899',
-    value: 75000,
-    stage: 'Proposal',
-    source: 'LinkedIn',
-    created: '2024-01-13',
-    expectedClose: '2024-03-10',
-    priority: 'High',
-    notes: 'Proposal sent, waiting for feedback'
-  },
-  {
-    id: '5',
-    name: 'Innovate Labs',
-    contact: 'David Lee',
-    email: 'david@innovatelabs.com',
-    phone: '+6677889900',
-    value: 42000,
-    stage: 'Negotiation',
-    source: 'Email Campaign',
-    created: '2024-01-12',
-    expectedClose: '2024-02-15',
-    priority: 'Medium',
-    notes: 'Finalizing contract terms'
-  },
-  {
-    id: '6',
-    name: 'Digital Minds',
-    contact: 'Lisa Chen',
-    email: 'lisa@digitalminds.com',
-    phone: '+7788990011',
-    value: 18000,
-    stage: 'Won',
-    source: 'Website',
-    created: '2024-01-05',
-    expectedClose: '2024-01-31',
-    priority: 'Low',
-    notes: 'Deal closed successfully'
-  },
-  {
-    id: '7',
-    name: 'NextGen Systems',
-    contact: 'Robert Taylor',
-    email: 'robert@nextgen.com',
-    phone: '+8899001122',
-    value: 92000,
-    stage: 'Lost',
-    source: 'Referral',
-    created: '2024-01-08',
-    expectedClose: '2024-02-10',
-    priority: 'Medium',
-    notes: 'Went with competitor'
-  },
-  {
-    id: '8',
-    name: 'Future Enterprises',
-    contact: 'Sophia Martinez',
-    email: 'sophia@future.com',
-    phone: '+9900112233',
-    value: 31000,
-    stage: 'Qualified',
-    source: 'Trade Show',
-    created: '2024-01-15',
-    expectedClose: '2024-03-05',
-    priority: 'High',
-    notes: 'Strong interest shown'
-  },
-  // Add more leads for testing scroll
-  {
-    id: '9',
-    name: 'Tech Giants Inc',
-    contact: 'Alex Turner',
-    email: 'alex@techgiants.com',
-    phone: '+1122334466',
-    value: 68000,
-    stage: 'Contacted',
-    source: 'LinkedIn',
-    created: '2024-01-16',
-    expectedClose: '2024-03-20',
-    priority: 'High',
-    notes: 'Initial meeting scheduled'
-  },
-  {
-    id: '10',
-    name: 'Cloud Solutions',
-    contact: 'Maria Garcia',
-    email: 'maria@cloud.com',
-    phone: '+2233445566',
-    value: 45000,
-    stage: 'Proposal',
-    source: 'Website',
-    created: '2024-01-14',
-    expectedClose: '2024-02-25',
-    priority: 'Medium',
-    notes: 'Waiting for budget approval'
-  },
-];
-
-// Lead stages with colors and order
-const leadStages = [
-  { id: 'new', label: 'New', color: '#4CAF50' },
-  { id: 'contacted', label: 'Contacted', color: '#2196F3' },
-  { id: 'qualified', label: 'Qualified', color: '#FF9800' },
-  { id: 'proposal', label: 'Proposal', color: '#9C27B0' },
-  { id: 'negotiation', label: 'Negotiation', color: '#FF5722' },
-  { id: 'won', label: 'Won', color: '#4CAF50' },
-  { id: 'lost', label: 'Lost', color: '#F44336' },
-];
-
-const leadSources = ['Website', 'Referral', 'Conference', 'LinkedIn', 'Email Campaign', 'Trade Show', 'Social Media'];
-const priorities = ['High', 'Medium', 'Low'];
-
 export default function LeadsScreen() {
   const { colors } = useAppTheme();
-  const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStage, setSelectedStage] = useState('All');
   const [selectedSource, setSelectedSource] = useState('All');
   const [selectedPriority, setSelectedPriority] = useState('All');
   const [filteredLeads, setFilteredLeads] = useState(leadsData);
+  const [selectedLead, setSelectedLead] = useState<any>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [addLeadModalVisible, setAddLeadModalVisible] = useState(false);
+  const [newLead, setNewLead] = useState({
+    name: '',
+    contact: '',
+    email: '',
+    phone: '',
+    value: '',
+    stage: 'New',
+    source: 'Website',
+    expectedClose: '',
+    priority: 'Medium',
+    notes: ''
+  });
 
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
@@ -210,7 +66,6 @@ export default function LeadsScreen() {
   const filterLeads = (search: string, stage: string, source: string, priority: string) => {
     let filtered = [...leadsData];
     
-    // Search filter
     if (search) {
       filtered = filtered.filter(lead =>
         lead.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -220,17 +75,14 @@ export default function LeadsScreen() {
       );
     }
     
-    // Stage filter
     if (stage !== 'All') {
       filtered = filtered.filter(lead => lead.stage === stage);
     }
     
-    // Source filter
     if (source !== 'All') {
       filtered = filtered.filter(lead => lead.source === source);
     }
     
-    // Priority filter
     if (priority !== 'All') {
       filtered = filtered.filter(lead => lead.priority === priority);
     }
@@ -277,6 +129,71 @@ export default function LeadsScreen() {
     return diffDays;
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
+  const handleAddLead = () => {
+    // Generate a new ID
+    const newId = (leadsData.length + 1).toString();
+    
+    // Create new lead object
+    const leadToAdd = {
+      id: newId,
+      name: newLead.name,
+      contact: newLead.contact,
+      email: newLead.email,
+      phone: newLead.phone,
+      value: parseInt(newLead.value) || 0,
+      stage: newLead.stage,
+      source: newLead.source,
+      created: new Date().toISOString().split('T')[0],
+      expectedClose: newLead.expectedClose,
+      priority: newLead.priority,
+      notes: newLead.notes
+    };
+    
+    // Add to leadsData
+    leadsData.unshift(leadToAdd);
+    
+    // Update filtered leads
+    filterLeads(searchQuery, selectedStage, selectedSource, selectedPriority);
+    
+    // Reset form and close modal
+    setNewLead({
+      name: '',
+      contact: '',
+      email: '',
+      phone: '',
+      value: '',
+      stage: 'New',
+      source: 'Website',
+      expectedClose: '',
+      priority: 'Medium',
+      notes: ''
+    });
+    
+    setAddLeadModalVisible(false);
+  };
+
+  const openLeadDetails = (lead: any) => {
+    setSelectedLead(lead);
+    setModalVisible(true);
+  };
+
+  const handleCall = (phone: string) => {
+    Linking.openURL(`tel:${phone}`);
+  };
+
+  const handleEmail = (email: string) => {
+    Linking.openURL(`mailto:${email}`);
+  };
+
   const renderLead = (item: any) => {
     const daysToClose = calculateDaysToClose(item.expectedClose);
     const stageColor = getStageColor(item.stage);
@@ -285,63 +202,93 @@ export default function LeadsScreen() {
     return (
       <TouchableOpacity 
         key={item.id}
-        style={[styles.leadCard, { backgroundColor: colors.card }]}
-        onPress={() => router.push(`/(app)/leads/${item.id}`)}
+        style={{
+          backgroundColor: colors.card,
+          borderRadius: 16,
+          padding: 16,
+          marginBottom: 12,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 3,
+        }}
+        onPress={() => openLeadDetails(item)}
         activeOpacity={0.7}
       >
-        <View style={styles.leadHeader}>
-          <View style={styles.leadMainInfo}>
-            <View style={styles.nameRow}>
-              <ThemedText type="defaultSemiBold" style={{ color: colors.text }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <ThemedText type="defaultSemiBold" style={{ color: colors.text, fontSize: 16 }}>
                 {item.name}
               </ThemedText>
-              <View style={[styles.priorityBadge, { backgroundColor: priorityColor + '20' }]}>
+              <View style={{ 
+                width: 24, 
+                height: 24, 
+                borderRadius: 12, 
+                justifyContent: 'center', 
+                alignItems: 'center',
+                backgroundColor: priorityColor + '20' 
+              }}>
                 <Ionicons name={getPriorityIcon(item.priority) as any} size={14} color={priorityColor} />
               </View>
             </View>
-            <ThemedText style={[styles.contactInfo, { color: colors.textSecondary }]}>
+            <ThemedText style={{ color: colors.textSecondary, fontSize: 13 }}>
               {item.contact} • {item.email}
             </ThemedText>
           </View>
           
-          <View style={styles.valueContainer}>
-            <ThemedText type="defaultSemiBold" style={[styles.valueText, { color: colors.primary }]}>
+          <View style={{ alignItems: 'flex-end' }}>
+            <ThemedText type="defaultSemiBold" style={{ color: colors.primary, fontSize: 16, fontWeight: 'bold' }}>
               {formatCurrency(item.value)}
             </ThemedText>
           </View>
         </View>
         
-        <View style={styles.leadDetails}>
-          <View style={[styles.stageContainer, { backgroundColor: stageColor + '15' }]}>
-            <ThemedText style={[styles.stageText, { color: stageColor }]}>
+        <View style={{ gap: 8 }}>
+          <View style={{ 
+            alignSelf: 'flex-start', 
+            paddingHorizontal: 12, 
+            paddingVertical: 4, 
+            borderRadius: 12,
+            backgroundColor: stageColor + '15' 
+          }}>
+            <ThemedText style={{ color: stageColor, fontSize: 12, fontWeight: '600' }}>
               {item.stage}
             </ThemedText>
           </View>
           
-          <View style={styles.detailRow}>
-            <View style={styles.detailItem}>
+          <View style={{ flexDirection: 'row', gap: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Ionicons name="business-outline" size={14} color={colors.textSecondary} />
-              <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>
+              <ThemedText style={{ color: colors.textSecondary, fontSize: 12 }}>
                 Source: {item.source}
               </ThemedText>
             </View>
             
-            <View style={styles.detailItem}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
-              <ThemedText style={[
-                styles.detailLabel, 
-                { color: daysToClose <= 7 ? '#F44336' : daysToClose <= 30 ? '#FF9800' : colors.textSecondary }
-              ]}>
+              <ThemedText style={{ 
+                color: daysToClose <= 7 ? '#F44336' : daysToClose <= 30 ? '#FF9800' : colors.textSecondary,
+                fontSize: 12 
+              }}>
                 {daysToClose > 0 ? `${daysToClose}d to close` : 'Past due'}
               </ThemedText>
             </View>
           </View>
           
           {item.notes && (
-            <View style={styles.notesContainer}>
+            <View style={{ 
+              flexDirection: 'row', 
+              alignItems: 'center', 
+              gap: 6, 
+              paddingTop: 8, 
+              borderTopWidth: 1, 
+              borderTopColor: '#f0f0f0' 
+            }}>
               <Ionicons name="document-text-outline" size={14} color={colors.textSecondary} />
               <ThemedText 
-                style={[styles.notesText, { color: colors.textSecondary }]}
+                style={{ color: colors.textSecondary, fontSize: 12, flex: 1 }}
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
@@ -354,10 +301,588 @@ export default function LeadsScreen() {
     );
   };
 
+  const renderLeadDetailsModal = () => {
+    if (!selectedLead) return null;
+
+    const stageColor = getStageColor(selectedLead.stage);
+    const priorityColor = getPriorityColor(selectedLead.priority);
+    const daysToClose = calculateDaysToClose(selectedLead.expectedClose);
+
+    return (
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{ 
+            backgroundColor: colors.card, 
+            borderTopLeftRadius: 20, 
+            borderTopRightRadius: 20, 
+            maxHeight: '90%' 
+          }}>
+            <ScrollView style={{ padding: 20 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <ThemedText type="title" style={{ color: colors.text, fontSize: 24 }}>
+                  Lead Details
+                </ThemedText>
+                <TouchableOpacity onPress={() => setModalVisible(false)}>
+                  <Ionicons name="close" size={28} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={{ marginBottom: 24 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                  <View style={{ flex: 1 }}>
+                    <ThemedText type="title" style={{ color: colors.text, fontSize: 20, marginBottom: 4 }}>
+                      {selectedLead.name}
+                    </ThemedText>
+                    <ThemedText type="subtitle" style={{ color: colors.primary, fontSize: 16, marginBottom: 8 }}>
+                      {formatCurrency(selectedLead.value)}
+                    </ThemedText>
+                  </View>
+                  <View style={{ 
+                    paddingHorizontal: 12, 
+                    paddingVertical: 6, 
+                    borderRadius: 16,
+                    backgroundColor: priorityColor + '20' 
+                  }}>
+                    <Ionicons name={getPriorityIcon(selectedLead.priority) as any} size={16} color={priorityColor} />
+                  </View>
+                </View>
+
+                <View style={{ 
+                  alignSelf: 'flex-start', 
+                  paddingHorizontal: 16, 
+                  paddingVertical: 8, 
+                  borderRadius: 16,
+                  backgroundColor: stageColor + '15',
+                  marginBottom: 16 
+                }}>
+                  <ThemedText style={{ color: stageColor, fontSize: 14, fontWeight: '600' }}>
+                    {selectedLead.stage}
+                  </ThemedText>
+                </View>
+
+                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
+                  <TouchableOpacity 
+                    style={{ 
+                      flexDirection: 'row', 
+                      alignItems: 'center', 
+                      gap: 8, 
+                      paddingHorizontal: 16, 
+                      paddingVertical: 10, 
+                      borderRadius: 12,
+                      backgroundColor: colors.primary + '15',
+                      flex: 1 
+                    }}
+                    onPress={() => handleCall(selectedLead.phone)}
+                  >
+                    <Ionicons name="call" size={20} color={colors.primary} />
+                    <ThemedText style={{ color: colors.primary, fontWeight: '500' }}>
+                      Call
+                    </ThemedText>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={{ 
+                      flexDirection: 'row', 
+                      alignItems: 'center', 
+                      gap: 8, 
+                      paddingHorizontal: 16, 
+                      paddingVertical: 10, 
+                      borderRadius: 12,
+                      backgroundColor: colors.primary + '15',
+                      flex: 1 
+                    }}
+                    onPress={() => handleEmail(selectedLead.email)}
+                  >
+                    <Ionicons name="mail" size={20} color={colors.primary} />
+                    <ThemedText style={{ color: colors.primary, fontWeight: '500' }}>
+                      Email
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={{ marginBottom: 24 }}>
+                <ThemedText type="subtitle" style={{ color: colors.text, marginBottom: 12, fontSize: 16 }}>
+                  Contact Information
+                </ThemedText>
+                
+                <View style={{ 
+                  backgroundColor: colors.background, 
+                  borderRadius: 12, 
+                  padding: 16,
+                  gap: 12 
+                }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <ThemedText style={{ color: colors.textSecondary, flex: 1 }}>Contact Person</ThemedText>
+                    <ThemedText style={{ color: colors.text, flex: 1, textAlign: 'right' }}>{selectedLead.contact}</ThemedText>
+                  </View>
+                  
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <ThemedText style={{ color: colors.textSecondary, flex: 1 }}>Email</ThemedText>
+                    <ThemedText style={{ color: colors.text, flex: 1, textAlign: 'right' }}>{selectedLead.email}</ThemedText>
+                  </View>
+                  
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <ThemedText style={{ color: colors.textSecondary, flex: 1 }}>Phone</ThemedText>
+                    <ThemedText style={{ color: colors.text, flex: 1, textAlign: 'right' }}>{selectedLead.phone}</ThemedText>
+                  </View>
+                </View>
+              </View>
+
+              <View style={{ marginBottom: 24 }}>
+                <ThemedText type="subtitle" style={{ color: colors.text, marginBottom: 12, fontSize: 16 }}>
+                  Lead Information
+                </ThemedText>
+                
+                <View style={{ 
+                  backgroundColor: colors.background, 
+                  borderRadius: 12, 
+                  padding: 16,
+                  gap: 12 
+                }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <ThemedText style={{ color: colors.textSecondary, flex: 1 }}>Source</ThemedText>
+                    <ThemedText style={{ color: colors.text, flex: 1, textAlign: 'right' }}>{selectedLead.source}</ThemedText>
+                  </View>
+                  
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <ThemedText style={{ color: colors.textSecondary, flex: 1 }}>Created Date</ThemedText>
+                    <ThemedText style={{ color: colors.text, flex: 1, textAlign: 'right' }}>{formatDate(selectedLead.created)}</ThemedText>
+                  </View>
+                  
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <ThemedText style={{ color: colors.textSecondary, flex: 1 }}>Expected Close</ThemedText>
+                    <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                      <ThemedText style={{ 
+                        color: daysToClose <= 7 ? '#F44336' : daysToClose <= 30 ? '#FF9800' : colors.text,
+                        textAlign: 'right' 
+                      }}>
+                        {formatDate(selectedLead.expectedClose)} ({daysToClose > 0 ? `${daysToClose} days` : 'Past due'})
+                      </ThemedText>
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              {selectedLead.notes && (
+                <View style={{ marginBottom: 24 }}>
+                  <ThemedText type="subtitle" style={{ color: colors.text, marginBottom: 12, fontSize: 16 }}>
+                    Notes
+                  </ThemedText>
+                  
+                  <View style={{ 
+                    backgroundColor: colors.background, 
+                    borderRadius: 12, 
+                    padding: 16 
+                  }}>
+                    <ThemedText style={{ color: colors.text, lineHeight: 20 }}>
+                      {selectedLead.notes}
+                    </ThemedText>
+                  </View>
+                </View>
+              )}
+
+              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
+                <TouchableOpacity 
+                  style={{ 
+                    flex: 1, 
+                    paddingVertical: 14, 
+                    borderRadius: 12,
+                    backgroundColor: colors.primary,
+                    alignItems: 'center'
+                  }}
+                  onPress={() => {
+                    setModalVisible(false);
+                    // Here you can navigate to edit page or open edit modal
+                  }}
+                >
+                  <ThemedText style={{ color: 'white', fontWeight: '600' }}>
+                    Edit Lead
+                  </ThemedText>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={{ 
+                    flex: 1, 
+                    paddingVertical: 14, 
+                    borderRadius: 12,
+                    backgroundColor: colors.background,
+                    alignItems: 'center',
+                    borderWidth: 1,
+                    borderColor: colors.border
+                  }}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <ThemedText style={{ color: colors.textSecondary, fontWeight: '600' }}>
+                    Close
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
+  const renderAddLeadModal = () => (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={addLeadModalVisible}
+      onRequestClose={() => setAddLeadModalVisible(false)}
+    >
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+        <View style={{ 
+          backgroundColor: colors.card, 
+          borderTopLeftRadius: 20, 
+          borderTopRightRadius: 20, 
+          maxHeight: '90%' 
+        }}>
+          <ScrollView style={{ padding: 20 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <ThemedText type="title" style={{ color: colors.text, fontSize: 24 }}>
+                Add New Lead
+              </ThemedText>
+              <TouchableOpacity onPress={() => {
+                setAddLeadModalVisible(false);
+                setNewLead({
+                  name: '',
+                  contact: '',
+                  email: '',
+                  phone: '',
+                  value: '',
+                  stage: 'New',
+                  source: 'Website',
+                  expectedClose: '',
+                  priority: 'Medium',
+                  notes: ''
+                });
+              }}>
+                <Ionicons name="close" size={28} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ gap: 16 }}>
+              <View>
+                <ThemedText style={{ color: colors.text, marginBottom: 6, fontSize: 14, fontWeight: '500' }}>
+                  Company Name *
+                </ThemedText>
+                <TextInput
+                  style={{
+                    backgroundColor: colors.background,
+                    borderRadius: 12,
+                    padding: 14,
+                    fontSize: 16,
+                    color: colors.text,
+                    borderWidth: 1,
+                    borderColor: colors.border
+                  }}
+                  placeholder="Enter company name"
+                  placeholderTextColor={colors.textSecondary}
+                  value={newLead.name}
+                  onChangeText={(text) => setNewLead({...newLead, name: text})}
+                />
+              </View>
+
+              <View>
+                <ThemedText style={{ color: colors.text, marginBottom: 6, fontSize: 14, fontWeight: '500' }}>
+                  Contact Person *
+                </ThemedText>
+                <TextInput
+                  style={{
+                    backgroundColor: colors.background,
+                    borderRadius: 12,
+                    padding: 14,
+                    fontSize: 16,
+                    color: colors.text,
+                    borderWidth: 1,
+                    borderColor: colors.border
+                  }}
+                  placeholder="Enter contact person name"
+                  placeholderTextColor={colors.textSecondary}
+                  value={newLead.contact}
+                  onChangeText={(text) => setNewLead({...newLead, contact: text})}
+                />
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <ThemedText style={{ color: colors.text, marginBottom: 6, fontSize: 14, fontWeight: '500' }}>
+                    Email *
+                  </ThemedText>
+                  <TextInput
+                    style={{
+                      backgroundColor: colors.background,
+                      borderRadius: 12,
+                      padding: 14,
+                      fontSize: 16,
+                      color: colors.text,
+                      borderWidth: 1,
+                      borderColor: colors.border
+                    }}
+                    placeholder="email@company.com"
+                    placeholderTextColor={colors.textSecondary}
+                    value={newLead.email}
+                    onChangeText={(text) => setNewLead({...newLead, email: text})}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                </View>
+                
+                <View style={{ flex: 1 }}>
+                  <ThemedText style={{ color: colors.text, marginBottom: 6, fontSize: 14, fontWeight: '500' }}>
+                    Phone *
+                  </ThemedText>
+                  <TextInput
+                    style={{
+                      backgroundColor: colors.background,
+                      borderRadius: 12,
+                      padding: 14,
+                      fontSize: 16,
+                      color: colors.text,
+                      borderWidth: 1,
+                      borderColor: colors.border
+                    }}
+                    placeholder="+1234567890"
+                    placeholderTextColor={colors.textSecondary}
+                    value={newLead.phone}
+                    onChangeText={(text) => setNewLead({...newLead, phone: text})}
+                    keyboardType="phone-pad"
+                  />
+                </View>
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <ThemedText style={{ color: colors.text, marginBottom: 6, fontSize: 14, fontWeight: '500' }}>
+                    Deal Value *
+                  </ThemedText>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <View style={{ position: 'absolute', left: 14, zIndex: 1 }}>
+                      <ThemedText style={{ color: colors.textSecondary, fontSize: 16 }}>$</ThemedText>
+                    </View>
+                    <TextInput
+                      style={{
+                        backgroundColor: colors.background,
+                        borderRadius: 12,
+                        padding: 14,
+                        paddingLeft: 30,
+                        fontSize: 16,
+                        color: colors.text,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        flex: 1
+                      }}
+                      placeholder="50000"
+                      placeholderTextColor={colors.textSecondary}
+                      value={newLead.value}
+                      onChangeText={(text) => setNewLead({...newLead, value: text})}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+                
+                <View style={{ flex: 1 }}>
+                  <ThemedText style={{ color: colors.text, marginBottom: 6, fontSize: 14, fontWeight: '500' }}>
+                    Expected Close Date
+                  </ThemedText>
+                  <TextInput
+                    style={{
+                      backgroundColor: colors.background,
+                      borderRadius: 12,
+                      padding: 14,
+                      fontSize: 16,
+                      color: colors.text,
+                      borderWidth: 1,
+                      borderColor: colors.border
+                    }}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor={colors.textSecondary}
+                    value={newLead.expectedClose}
+                    onChangeText={(text) => setNewLead({...newLead, expectedClose: text})}
+                  />
+                </View>
+              </View>
+
+              <View>
+                <ThemedText style={{ color: colors.text, marginBottom: 6, fontSize: 14, fontWeight: '500' }}>
+                  Stage
+                </ThemedText>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {leadStages.map((stage) => (
+                    <TouchableOpacity
+                      key={stage.id}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 8,
+                        borderRadius: 16,
+                        borderWidth: 1,
+                        backgroundColor: newLead.stage === stage.label ? stage.color + '20' : colors.background,
+                        borderColor: newLead.stage === stage.label ? stage.color : colors.border
+                      }}
+                      onPress={() => setNewLead({...newLead, stage: stage.label})}
+                    >
+                      <ThemedText style={{
+                        color: newLead.stage === stage.label ? stage.color : colors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: '500'
+                      }}>
+                        {stage.label}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View>
+                <ThemedText style={{ color: colors.text, marginBottom: 6, fontSize: 14, fontWeight: '500' }}>
+                  Source
+                </ThemedText>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  style={{ maxHeight: 40 }}
+                >
+                  {leadSources.map((source) => (
+                    <TouchableOpacity
+                      key={source}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 8,
+                        borderRadius: 16,
+                        borderWidth: 1,
+                        marginRight: 8,
+                        backgroundColor: newLead.source === source ? colors.primary + '20' : colors.background,
+                        borderColor: newLead.source === source ? colors.primary : colors.border
+                      }}
+                      onPress={() => setNewLead({...newLead, source})}
+                    >
+                      <ThemedText style={{
+                        color: newLead.source === source ? colors.primary : colors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: '500'
+                      }}>
+                        {source}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              <View>
+                <ThemedText style={{ color: colors.text, marginBottom: 6, fontSize: 14, fontWeight: '500' }}>
+                  Priority
+                </ThemedText>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {priorities.map((priority) => (
+                    <TouchableOpacity
+                      key={priority}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingHorizontal: 16,
+                        paddingVertical: 10,
+                        borderRadius: 16,
+                        borderWidth: 1,
+                        gap: 6,
+                        backgroundColor: newLead.priority === priority ? getPriorityColor(priority) + '20' : colors.background,
+                        borderColor: newLead.priority === priority ? getPriorityColor(priority) : colors.border,
+                        flex: 1
+                      }}
+                      onPress={() => setNewLead({...newLead, priority})}
+                    >
+                      <Ionicons 
+                        name={getPriorityIcon(priority) as any} 
+                        size={16} 
+                        color={newLead.priority === priority ? getPriorityColor(priority) : colors.textSecondary} 
+                      />
+                      <ThemedText style={{
+                        color: newLead.priority === priority ? getPriorityColor(priority) : colors.textSecondary,
+                        fontSize: 14,
+                        fontWeight: '500'
+                      }}>
+                        {priority}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View>
+                <ThemedText style={{ color: colors.text, marginBottom: 6, fontSize: 14, fontWeight: '500' }}>
+                  Notes
+                </ThemedText>
+                <TextInput
+                  style={{
+                    backgroundColor: colors.background,
+                    borderRadius: 12,
+                    padding: 14,
+                    fontSize: 16,
+                    color: colors.text,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    minHeight: 100,
+                    textAlignVertical: 'top'
+                  }}
+                  placeholder="Add any notes about this lead..."
+                  placeholderTextColor={colors.textSecondary}
+                  value={newLead.notes}
+                  onChangeText={(text) => setNewLead({...newLead, notes: text})}
+                  multiline
+                  numberOfLines={4}
+                />
+              </View>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 24, marginBottom: 20 }}>
+              <TouchableOpacity 
+                style={{ 
+                  flex: 1, 
+                  paddingVertical: 14, 
+                  borderRadius: 12,
+                  backgroundColor: colors.primary,
+                  alignItems: 'center'
+                }}
+                onPress={handleAddLead}
+              >
+                <ThemedText style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>
+                  Save Lead
+                </ThemedText>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={{ 
+                  flex: 1, 
+                  paddingVertical: 14, 
+                  borderRadius: 12,
+                  backgroundColor: colors.background,
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: colors.border
+                }}
+                onPress={() => setAddLeadModalVisible(false)}
+              >
+                <ThemedText style={{ color: colors.textSecondary, fontWeight: '600', fontSize: 16 }}>
+                  Cancel
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView 
-        style={styles.scrollView}
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -367,34 +892,61 @@ export default function LeadsScreen() {
             colors={[colors.primary]}
           />
         }
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={{ paddingBottom: 20 }}
       >
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: colors.card }]}>
-          <View style={styles.headerTop}>
-            <ThemedText type="title" style={{ color: colors.text }}>
+        <View style={{ 
+          padding: 20, 
+          backgroundColor: colors.card,
+          borderBottomWidth: 1,
+          borderBottomColor: '#f0f0f0' 
+        }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+            <ThemedText type="title" style={{ color: colors.text, fontSize: 24 }}>
               Leads Pipeline
             </ThemedText>
-            <View style={styles.headerActions}>
-              <TouchableOpacity style={[styles.iconButton, { backgroundColor: colors.primary + '15' }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <TouchableOpacity style={{ 
+                width: 40, 
+                height: 40, 
+                borderRadius: 20, 
+                justifyContent: 'center', 
+                alignItems: 'center',
+                backgroundColor: colors.primary + '15' 
+              }}>
                 <Ionicons name="stats-chart" size={20} color={colors.primary} />
               </TouchableOpacity>
-              <Link href="/leads/new" asChild>
-                <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]}>
-                  <Ionicons name="add" size={20} color="white" />
-                  <ThemedText type="defaultSemiBold" style={styles.addButtonText}>
-                    Add Lead
-                  </ThemedText>
-                </TouchableOpacity>
-              </Link>
+              <TouchableOpacity 
+                style={{ 
+                  flexDirection: 'row', 
+                  alignItems: 'center', 
+                  paddingHorizontal: 16, 
+                  paddingVertical: 10, 
+                  borderRadius: 20,
+                  backgroundColor: colors.primary,
+                  gap: 8 
+                }}
+                onPress={() => setAddLeadModalVisible(true)}
+              >
+                <Ionicons name="add" size={20} color="white" />
+                <ThemedText type="defaultSemiBold" style={{ color: 'white', fontSize: 14 }}>
+                  Add Lead
+                </ThemedText>
+              </TouchableOpacity>
             </View>
           </View>
           
-          {/* Search Bar */}
-          <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
-            <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
+          <View style={{ 
+            flexDirection: 'row', 
+            alignItems: 'center', 
+            paddingHorizontal: 12, 
+            paddingVertical: 10, 
+            borderRadius: 12,
+            backgroundColor: colors.background,
+            marginBottom: 15 
+          }}>
+            <Ionicons name="search" size={20} color={colors.textSecondary} style={{ marginRight: 10 }} />
             <TextInput
-              style={[styles.searchInput, { color: colors.text }]}
+              style={{ flex: 1, fontSize: 16, color: colors.text }}
               placeholder="Search leads..."
               placeholderTextColor={colors.textSecondary}
               value={searchQuery}
@@ -407,8 +959,16 @@ export default function LeadsScreen() {
             )}
           </View>
           
-          {/* Pipeline Stats */}
-          <View style={[styles.pipelineStats, { backgroundColor: colors.background }]}>
+          <View style={{ 
+            flexDirection: 'row', 
+            justifyContent: 'space-between', 
+            marginBottom: 15, 
+            padding: 10, 
+            borderRadius: 12,
+            backgroundColor: colors.background,
+            flexWrap: 'wrap',
+            gap: 8 
+          }}>
             {leadStages.map((stage) => {
               const count = leadsData.filter(lead => lead.stage === stage.label).length;
               const totalValue = leadsData
@@ -418,23 +978,25 @@ export default function LeadsScreen() {
               return (
                 <TouchableOpacity
                   key={stage.id}
-                  style={[
-                    styles.pipelineItem,
-                    { 
-                      backgroundColor: selectedStage === stage.label ? stage.color + '20' : colors.card,
-                      borderColor: stage.color
-                    }
-                  ]}
+                  style={{
+                    alignItems: 'center',
+                    padding: 8,
+                    borderRadius: 10,
+                    borderWidth: 1,
+                    minWidth: 80,
+                    backgroundColor: selectedStage === stage.label ? stage.color + '20' : colors.card,
+                    borderColor: stage.color
+                  }}
                   onPress={() => handleStageFilter(stage.label)}
                 >
-                  <View style={[styles.stageDot, { backgroundColor: stage.color }]} />
-                  <ThemedText style={[styles.stageLabel, { color: colors.text }]}>
+                  <View style={{ width: 8, height: 8, borderRadius: 4, marginBottom: 6, backgroundColor: stage.color }} />
+                  <ThemedText style={{ color: colors.text, fontSize: 10, fontWeight: '500', marginBottom: 4 }}>
                     {stage.label}
                   </ThemedText>
-                  <ThemedText style={[styles.stageCount, { color: stage.color }]}>
+                  <ThemedText style={{ color: stage.color, fontSize: 16, fontWeight: 'bold', marginBottom: 2 }}>
                     {count}
                   </ThemedText>
-                  <ThemedText style={[styles.stageValue, { color: colors.textSecondary }]}>
+                  <ThemedText style={{ color: colors.textSecondary, fontSize: 9 }}>
                     {formatCurrency(totalValue)}
                   </ThemedText>
                 </TouchableOpacity>
@@ -442,27 +1004,29 @@ export default function LeadsScreen() {
             })}
           </View>
           
-          {/* Quick Filters */}
-          <View style={styles.filtersRow}>
+          <View style={{ marginBottom: 12 }}>
             <ScrollView 
               horizontal 
               showsHorizontalScrollIndicator={false}
-              style={styles.filterScroll}
+              style={{ maxHeight: 40 }}
             >
               <TouchableOpacity
-                style={[
-                  styles.filterButton,
-                  { 
-                    backgroundColor: selectedSource === 'All' ? colors.primary + '20' : colors.background,
-                    borderColor: selectedSource === 'All' ? colors.primary : colors.border
-                  }
-                ]}
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 20,
+                  borderWidth: 1,
+                  marginRight: 8,
+                  backgroundColor: selectedSource === 'All' ? colors.primary + '20' : colors.background,
+                  borderColor: selectedSource === 'All' ? colors.primary : colors.border
+                }}
                 onPress={() => handleSourceFilter('All')}
               >
-                <ThemedText style={[
-                  styles.filterText,
-                  { color: selectedSource === 'All' ? colors.primary : colors.textSecondary }
-                ]}>
+                <ThemedText style={{
+                  color: selectedSource === 'All' ? colors.primary : colors.textSecondary,
+                  fontSize: 13,
+                  fontWeight: '500'
+                }}>
                   All Sources
                 </ThemedText>
               </TouchableOpacity>
@@ -470,19 +1034,22 @@ export default function LeadsScreen() {
               {leadSources.map((source) => (
                 <TouchableOpacity
                   key={source}
-                  style={[
-                    styles.filterButton,
-                    { 
-                      backgroundColor: selectedSource === source ? colors.primary + '20' : colors.background,
-                      borderColor: selectedSource === source ? colors.primary : colors.border
-                    }
-                  ]}
+                  style={{
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    borderWidth: 1,
+                    marginRight: 8,
+                    backgroundColor: selectedSource === source ? colors.primary + '20' : colors.background,
+                    borderColor: selectedSource === source ? colors.primary : colors.border
+                  }}
                   onPress={() => handleSourceFilter(source)}
                 >
-                  <ThemedText style={[
-                    styles.filterText,
-                    { color: selectedSource === source ? colors.primary : colors.textSecondary }
-                  ]}>
+                  <ThemedText style={{
+                    color: selectedSource === source ? colors.primary : colors.textSecondary,
+                    fontSize: 13,
+                    fontWeight: '500'
+                  }}>
                     {source}
                   </ThemedText>
                 </TouchableOpacity>
@@ -490,18 +1057,21 @@ export default function LeadsScreen() {
             </ScrollView>
           </View>
           
-          {/* Priority Filters */}
-          <View style={styles.priorityFilters}>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
             {priorities.map((priority) => (
               <TouchableOpacity
                 key={priority}
-                style={[
-                  styles.priorityButton,
-                  { 
-                    backgroundColor: selectedPriority === priority ? getPriorityColor(priority) + '20' : colors.background,
-                    borderColor: selectedPriority === priority ? getPriorityColor(priority) : colors.border
-                  }
-                ]}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  gap: 6,
+                  backgroundColor: selectedPriority === priority ? getPriorityColor(priority) + '20' : colors.background,
+                  borderColor: selectedPriority === priority ? getPriorityColor(priority) : colors.border
+                }}
                 onPress={() => handlePriorityFilter(priority)}
               >
                 <Ionicons 
@@ -509,10 +1079,11 @@ export default function LeadsScreen() {
                   size={16} 
                   color={selectedPriority === priority ? getPriorityColor(priority) : colors.textSecondary} 
                 />
-                <ThemedText style={[
-                  styles.priorityText,
-                  { color: selectedPriority === priority ? getPriorityColor(priority) : colors.textSecondary }
-                ]}>
+                <ThemedText style={{
+                  color: selectedPriority === priority ? getPriorityColor(priority) : colors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: '500'
+                }}>
                   {priority}
                 </ThemedText>
               </TouchableOpacity>
@@ -520,38 +1091,48 @@ export default function LeadsScreen() {
           </View>
         </View>
 
-        {/* Total Pipeline Value */}
-        <View style={[styles.totalValueContainer, { backgroundColor: colors.card }]}>
-          <View style={styles.totalValueContent}>
+        <View style={{ 
+          marginHorizontal: 15, 
+          marginTop: 15, 
+          marginBottom: 15, 
+          padding: 16, 
+          borderRadius: 16,
+          backgroundColor: colors.card,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.05,
+          shadowRadius: 3,
+          elevation: 2 
+        }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
             <Ionicons name="trending-up" size={24} color={colors.primary} />
-            <View style={styles.totalValueText}>
-              <ThemedText style={[styles.totalLabel, { color: colors.textSecondary }]}>
+            <View style={{ marginLeft: 12, flex: 1 }}>
+              <ThemedText style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 2 }}>
                 Total Pipeline Value
               </ThemedText>
-              <ThemedText type="title" style={[styles.totalAmount, { color: colors.primary }]}>
+              <ThemedText type="title" style={{ color: colors.primary, fontSize: 20, fontWeight: 'bold' }}>
                 {formatCurrency(leadsData.reduce((sum, lead) => sum + lead.value, 0))}
               </ThemedText>
             </View>
           </View>
-          <ThemedText style={[styles.leadCount, { color: colors.textSecondary }]}>
+          <ThemedText style={{ color: colors.textSecondary, fontSize: 11 }}>
             {leadsData.length} Leads • {leadsData.filter(l => l.stage === 'Won').length} Won • {leadsData.filter(l => l.stage === 'Lost').length} Lost
           </ThemedText>
         </View>
 
-        {/* Leads List */}
-        <View style={styles.leadsListContainer}>
-          <View style={styles.listHeader}>
-            <ThemedText type="subtitle" style={{ color: colors.text }}>
+        <View style={{ paddingHorizontal: 15 }}>
+          <View style={{ marginBottom: 15 }}>
+            <ThemedText type="subtitle" style={{ color: colors.text, fontSize: 18 }}>
               Leads ({filteredLeads.length})
             </ThemedText>
           </View>
 
           {filteredLeads.length > 0 ? (
-            <View style={styles.leadsGrid}>
+            <View style={{ gap: 12 }}>
               {filteredLeads.map(renderLead)}
             </View>
           ) : (
-            <View style={styles.emptyContainer}>
+            <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 50 }}>
               <Ionicons name="trending-up-outline" size={60} color={colors.textSecondary} />
               <ThemedText type="default" style={{ color: colors.textSecondary, marginTop: 10 }}>
                 No leads found
@@ -563,267 +1144,11 @@ export default function LeadsScreen() {
           )}
         </View>
 
-        {/* Bottom Spacer */}
-        <View style={styles.bottomSpacer} />
+        <View style={{ height: 100 }} />
       </ScrollView>
+
+      {renderLeadDetailsModal()}
+      {renderAddLeadModal()}
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 20,
-  },
-  header: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    gap: 8,
-  },
-  addButtonText: {
-    color: 'white',
-    fontSize: 14,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-    marginBottom: 15,
-  },
-  searchIcon: {
-    marginRight: 10,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-  },
-  pipelineStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 15,
-    padding: 10,
-    borderRadius: 12,
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  pipelineItem: {
-    alignItems: 'center',
-    padding: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    minWidth: 80,
-  },
-  stageDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginBottom: 6,
-  },
-  stageLabel: {
-    fontSize: 10,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  stageCount: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 2,
-  },
-  stageValue: {
-    fontSize: 9,
-  },
-  filtersRow: {
-    marginBottom: 12,
-  },
-  filterScroll: {
-    maxHeight: 40,
-  },
-  filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    marginRight: 8,
-  },
-  filterText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  priorityFilters: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  priorityButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    gap: 6,
-  },
-  priorityText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  totalValueContainer: {
-    marginHorizontal: 15,
-    marginTop: 15,
-    marginBottom: 15,
-    padding: 16,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  totalValueContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  totalValueText: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  totalLabel: {
-    fontSize: 12,
-    marginBottom: 2,
-  },
-  totalAmount: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  leadCount: {
-    fontSize: 11,
-  },
-  leadsListContainer: {
-    paddingHorizontal: 15,
-  },
-  listHeader: {
-    marginBottom: 15,
-  },
-  leadsGrid: {
-    gap: 12,
-  },
-  leadCard: {
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  leadHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  leadMainInfo: {
-    flex: 1,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  priorityBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  contactInfo: {
-    fontSize: 13,
-  },
-  valueContainer: {
-    alignItems: 'flex-end',
-  },
-  valueText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  leadDetails: {
-    gap: 8,
-  },
-  stageContainer: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  stageText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  detailRow: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  detailLabel: {
-    fontSize: 12,
-  },
-  notesContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-  },
-  notesText: {
-    fontSize: 12,
-    flex: 1,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 50,
-  },
-  bottomSpacer: {
-    height: 100,
-  },
-});

@@ -28,6 +28,7 @@ export default function TabLayout() {
           elevation: 0,
           shadowOpacity: 0,
         },
+        headerTitle: () => null,
         headerTitleStyle: {
           fontWeight: "600",
           color: colors.text,
@@ -43,7 +44,7 @@ export default function TabLayout() {
           >
             <Ionicons
               name="menu"
-              size={28}
+              size={32}
               color={colors.primary}
               onPress={() => navigation.openDrawer()}
               style={{ marginRight: 12 }}
@@ -137,7 +138,7 @@ export default function TabLayout() {
           ),
         }}
       />
-      
+
       <Tabs.Screen
         name="contacts"
         options={{
@@ -166,11 +167,8 @@ export default function TabLayout() {
         }}
       />
 
-      {/* ✅ HIDE ONLY THE TOOLS GROUP */}
-      {/* This will hide all routes inside (tools) group including activities and explore */}
       <Tabs.Screen name="(tools)" options={{ href: null }} />
-      
-      {/* Task detail screen ko bhi hide karo kyunki yeh tab par nahi aana chahiye */}
+
       <Tabs.Screen name="tasks/[id]" options={{ href: null }} />
     </Tabs>
   );

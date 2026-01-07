@@ -10,6 +10,16 @@ import CustomDrawerContent from '@/components/CustomDrawerContent';
 import { AppThemeProvider, useAppTheme } from '@/context/ThemeContext';
 import { ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 
+// Move AppContent inside AppThemeProvider
+export default function RootLayout() {
+  return (
+    <AppThemeProvider>
+      <AppContent />
+    </AppThemeProvider>
+  );
+}
+
+// Separate component that uses the theme
 function AppContent() {
   const { colors, isDark } = useAppTheme();
   const systemColorScheme = useColorScheme();
@@ -30,7 +40,7 @@ function AppContent() {
     },
     fonts: {
       regular: {
-        fontFamily: 'System', // या अपना custom font
+        fontFamily: 'System', 
         fontWeight: '400' as const,
       },
       medium: {
@@ -131,13 +141,5 @@ function AppContent() {
         />
       </View>
     </NavigationThemeProvider>
-  );
-}
-
-export default function RootLayout() {
-  return (
-    <AppThemeProvider>
-      <AppContent />
-    </AppThemeProvider>
   );
 }

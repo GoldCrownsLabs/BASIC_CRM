@@ -178,7 +178,7 @@ export default function CustomDrawerContent(
         <TouchableOpacity
           style={styles.profileSection}
           onPress={() => {
-            router.push("/profile");
+            router.push("/(tabs)/profile");
             props.navigation.closeDrawer();
           }}
           activeOpacity={0.7}

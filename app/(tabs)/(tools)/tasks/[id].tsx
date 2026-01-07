@@ -356,9 +356,10 @@ export default function TaskDetailScreen() {
         {/* Hero Section with Gradient Background */}
         <View
           style={{
-            marginHorizontal: 20,
+            marginHorizontal: 5,
             marginBottom: 24,
-            padding: 0,
+            marginTop:24,
+            padding: 5,
             borderColor: taskTypes[task.type]?.color + "20",
             shadowColor: taskTypes[task.type]?.color,
             shadowOffset: { width: 0, height: 8 },
