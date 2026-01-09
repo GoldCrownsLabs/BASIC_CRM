@@ -3,9 +3,9 @@ import { useAppTheme } from "@/context/ThemeContext";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { useAuthStore } from "@/store/auth.store";
 import { Ionicons } from "@expo/vector-icons";
-import { Tabs } from "expo-router";
+import { router, Tabs } from "expo-router";
 import React from "react";
-import { Image, Text, View } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
 
 export default function TabLayout() {
   const { colors } = useAppTheme();
@@ -63,7 +63,12 @@ export default function TabLayout() {
         ),
 
         headerRight: () => (
-          <View style={{ marginRight: 15 }}>
+          <Pressable 
+           onPress={() => router.push("/profile")}
+          >
+          <View style={{ marginRight: 15 }}
+          
+          >
             {user?.avatar ? (
               <Image
                 source={{ uri: user.avatar }}
@@ -92,6 +97,7 @@ export default function TabLayout() {
               </View>
             )}
           </View>
+          </Pressable>
         ),
       }}
     >

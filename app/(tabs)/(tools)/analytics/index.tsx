@@ -3,15 +3,15 @@ import { analyticsData, metrics, timeRanges } from '@/data/analytics';
 import { Feather } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-    Dimensions,
-    Modal,
-    RefreshControl,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    Text,
-    TouchableOpacity,
-    View
+  Dimensions,
+  Modal,
+  RefreshControl,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 
@@ -396,7 +396,7 @@ const AnalyticsPage = () => {
             Filter Analytics
           </Text>
           
-          <View style={{gap: 16}}>
+          <View style={{gap: 16,}}>
             <View>
               <Text style={{fontSize: 14, fontWeight: '600', color: colors.text, marginBottom: 8}}>
                 Date Range
@@ -589,7 +589,7 @@ const AnalyticsPage = () => {
         horizontal 
         showsHorizontalScrollIndicator={false}
         style={{backgroundColor: colors.card, paddingVertical: 12}}
-        contentContainerStyle={{paddingHorizontal: 16, gap: 8}}
+        contentContainerStyle={{paddingHorizontal: 16, gap: 8, marginBottom: 100}}
       >
         {timeRanges.map((range) => (
           <TouchableOpacity
@@ -615,6 +615,7 @@ const AnalyticsPage = () => {
       {/* Main Content */}
       <ScrollView
         showsVerticalScrollIndicator={false}
+      
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -627,7 +628,7 @@ const AnalyticsPage = () => {
         {/* Metrics Grid */}
         <View style={{
           flexDirection: 'row', flexWrap: 'wrap',
-          paddingHorizontal: 16, paddingTop: 16, gap: 12
+          paddingHorizontal: 16, paddingTop: 16, gap: 12,
         }}>
           {metrics.map((metric) => (
             <MetricCard key={metric.key} metric={metric} />
