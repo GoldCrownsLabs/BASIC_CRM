@@ -1,17 +1,17 @@
 // components/SplashScreen.tsx
-import { useAppTheme } from '@/context/ThemeContext';
-import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useRef } from 'react';
+import { useAppTheme } from "@/context/ThemeContext";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useRef } from "react";
 import {
   Animated,
   Dimensions,
   Easing,
   StyleSheet,
   Text,
-  View
-} from 'react-native';
+  View,
+} from "react-native";
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 
 interface SplashScreenProps {
   onAnimationComplete: () => void;
@@ -19,7 +19,7 @@ interface SplashScreenProps {
 
 const SplashScreen: React.FC<SplashScreenProps> = ({ onAnimationComplete }) => {
   const { colors, isDark } = useAppTheme();
-  
+
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
@@ -31,13 +31,15 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onAnimationComplete }) => {
   const goldParticlesAnim = useRef(new Animated.Value(0)).current;
 
   // Gold particles
-  const goldParticles = Array.from({ length: 12 }, (_, i) => ({
-    id: i,
-    scale: useRef(new Animated.Value(0)).current,
-    translateY: useRef(new Animated.Value(0)).current,
-    translateX: useRef(new Animated.Value(0)).current,
-    opacity: useRef(new Animated.Value(0)).current,
-  }));
+  const goldParticles = useRef(
+    Array.from({ length: 12 }, (_, i) => ({
+      id: i,
+      scale: new Animated.Value(0),
+      translateY: new Animated.Value(0),
+      translateX: new Animated.Value(0),
+      opacity: new Animated.Value(0),
+    })),
+  ).current;
 
   useEffect(() => {
     // Main animation sequence
@@ -48,7 +50,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onAnimationComplete }) => {
         duration: 300,
         useNativeDriver: true,
       }),
-      
+
       // Crown appears with shine
       Animated.parallel([
         Animated.spring(crownScale, {
@@ -70,21 +72,21 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onAnimationComplete }) => {
           useNativeDriver: true,
         }),
       ]),
-      
+
       // Glow effect around crown
       Animated.timing(glowAnim, {
         toValue: 1,
         duration: 600,
         useNativeDriver: true,
       }),
-      
+
       // Gold particles explosion
       Animated.timing(goldParticlesAnim, {
         toValue: 1,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: false, // ✅
       }),
-      
+
       // Text animation
       Animated.timing(textAnim, {
         toValue: 1,
@@ -92,10 +94,10 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onAnimationComplete }) => {
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
-      
+
       // Hold for a moment
       Animated.delay(800),
-      
+
       // Final fade out with scale
       Animated.parallel([
         Animated.timing(fadeAnim, {
@@ -115,11 +117,11 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onAnimationComplete }) => {
 
     // Animate gold particles
     goldParticles.forEach((particle, index) => {
-      const angle = (index * (360 / goldParticles.length)) * (Math.PI / 180);
+      const angle = index * (360 / goldParticles.length) * (Math.PI / 180);
       const radius = 120;
-      
+
       Animated.sequence([
-        Animated.delay(800 + (index * 30)),
+        Animated.delay(800 + index * 30),
         Animated.parallel([
           Animated.timing(particle.scale, {
             toValue: 1,
@@ -174,7 +176,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onAnimationComplete }) => {
   // Interpolations
   const crownRotation = crownRotateY.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
+    outputRange: ["0deg", "360deg"],
   });
 
   const shineOpacity = crownShine.interpolate({
@@ -193,98 +195,117 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onAnimationComplete }) => {
   });
 
   return (
-    <Animated.View 
+    <Animated.View
       style={[
         styles.container,
-        { 
+        {
           opacity: fadeAnim,
           transform: [{ scale: scaleAnim }],
-          backgroundColor: isDark ? '#000000' : '#F8F8F8'
-        }
+          backgroundColor: isDark ? "#000000" : "#F8F8F8",
+        },
       ]}
     >
       {/* Background Gradient */}
       <LinearGradient
-        colors={isDark 
-          ? ['#0C0C0C', '#1A1A1A', '#0C0C0C'] 
-          : ['#FFFFFF', '#F5F5F5', '#FFFFFF']
+        colors={
+          isDark
+            ? ["#0C0C0C", "#1A1A1A", "#0C0C0C"]
+            : ["#FFFFFF", "#F5F5F5", "#FFFFFF"]
         }
         style={StyleSheet.absoluteFill}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       />
-      
+
       {/* Glow Effect Around Crown */}
-      <Animated.View 
+      <Animated.View
         style={[
           styles.glowEffect,
           {
             opacity: glowOpacity,
             transform: [{ scale: glowScale }],
-            backgroundColor: '#FFD700',
-          }
+            backgroundColor: "#FFD700",
+          },
         ]}
       />
-      
+
       {/* Crown Container */}
       <View style={styles.crownContainer}>
         {/* Crown Shadow */}
-        <View style={[
-          styles.crownShadow,
-          { backgroundColor: isDark ? 'rgba(255,215,0,0.1)' : 'rgba(0,0,0,0.1)' }
-        ]} />
-        
+        <View
+          style={[
+            styles.crownShadow,
+            {
+              backgroundColor: isDark
+                ? "rgba(255,215,0,0.1)"
+                : "rgba(0,0,0,0.1)",
+            },
+          ]}
+        />
+
         {/* Animated Crown */}
-        <Animated.View 
+        <Animated.View
           style={[
             styles.crownWrapper,
-            { 
-              transform: [
-                { scale: crownScale },
-                { rotateY: crownRotation }
-              ] 
-            }
+            {
+              transform: [{ scale: crownScale }, { rotateY: crownRotation }],
+            },
           ]}
         >
           {/* Crown Main */}
           <View style={styles.crownMain}>
             {/* Crown Base */}
-            <View style={[styles.crownBase, { backgroundColor: '#FFD700' }]} />
-            
+            <View style={[styles.crownBase, { backgroundColor: "#FFD700" }]} />
+
             {/* Crown Jewels */}
             <View style={styles.crownJewels}>
-              <View style={[styles.jewel, styles.jewelCenter, { backgroundColor: '#FF6B6B' }]} />
-              <View style={[styles.jewel, styles.jewelLeft, { backgroundColor: '#4ECDC4' }]} />
-              <View style={[styles.jewel, styles.jewelRight, { backgroundColor: '#45B7D1' }]} />
+              <View
+                style={[
+                  styles.jewel,
+                  styles.jewelCenter,
+                  { backgroundColor: "#FF6B6B" },
+                ]}
+              />
+              <View
+                style={[
+                  styles.jewel,
+                  styles.jewelLeft,
+                  { backgroundColor: "#4ECDC4" },
+                ]}
+              />
+              <View
+                style={[
+                  styles.jewel,
+                  styles.jewelRight,
+                  { backgroundColor: "#45B7D1" },
+                ]}
+              />
             </View>
-            
+
             {/* Crown Points */}
             <View style={styles.crownPoints}>
               {[1, 2, 3, 4, 5].map((point) => (
-                <View 
-                  key={point} 
-                  style={[
-                    styles.crownPoint, 
-                    { backgroundColor: '#FFD700' }
-                  ]}
+                <View
+                  key={point}
+                  style={[styles.crownPoint, { backgroundColor: "#FFD700" }]}
                 />
               ))}
             </View>
-            
+
             {/* Crown Shine Effect */}
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.crownShine,
                 {
                   opacity: shineOpacity,
-                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                  transform: [{ rotate: '45deg' }]
-                }
+                  backgroundColor: "rgba(255, 255, 255, 0.8)",
+                  transform: [{ rotate: "45deg" }],
+                },
               ]}
             />
           </View>
         </Animated.View>
-        
+
         {/* Gold Particles */}
         <View style={styles.particlesContainer}>
           {goldParticles.map((particle) => (
@@ -293,7 +314,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onAnimationComplete }) => {
               style={[
                 styles.goldParticle,
                 {
-                  backgroundColor: '#FFD700',
+                  backgroundColor: "#FFD700",
                   transform: [
                     { scale: particle.scale },
                     { translateY: particle.translateY },
@@ -306,57 +327,52 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onAnimationComplete }) => {
           ))}
         </View>
       </View>
-      
+
       {/* Company Name */}
-      <Animated.View 
-        style={[
-          styles.textContainer,
-          { opacity: textAnim }
-        ]}
-      >
+      <Animated.View style={[styles.textContainer, { opacity: textAnim }]}>
         <View style={styles.nameContainer}>
-          <Text style={[
-            styles.goldText,
-            { color: '#FFD700' }
-          ]}>
-            Gold
-          </Text>
-          <Text style={[
-            styles.crownText,
-            { color: isDark ? '#FFFFFF' : '#333333' }
-          ]}>
+          <Text style={[styles.goldText, { color: "#FFD700" }]}>Gold</Text>
+          <Text
+            style={[
+              styles.crownText,
+              { color: isDark ? "#FFFFFF" : "#333333" },
+            ]}
+          >
             Crown
           </Text>
-          <Text style={[
-            styles.labText,
-            { color: isDark ? '#CCCCCC' : '#666666' }
-          ]}>
+          <Text
+            style={[styles.labText, { color: isDark ? "#CCCCCC" : "#666666" }]}
+          >
             Lab
           </Text>
         </View>
-        
-        <Text style={[
-          styles.tagline,
-          { color: isDark ? '#AAAAAA' : '#777777' }
-        ]}>
+
+        <Text
+          style={[styles.tagline, { color: isDark ? "#AAAAAA" : "#777777" }]}
+        >
           Excellence in Innovation
         </Text>
       </Animated.View>
-      
+
       {/* Loading Indicator */}
       <View style={styles.loadingContainer}>
-        <View style={[styles.loadingBar, { backgroundColor: isDark ? '#333333' : '#E0E0E0' }]}>
-          <Animated.View 
+        <View
+          style={[
+            styles.loadingBar,
+            { backgroundColor: isDark ? "#333333" : "#E0E0E0" },
+          ]}
+        >
+          <Animated.View
             style={[
               styles.loadingFill,
-              { 
-                backgroundColor: '#FFD700',
+              {
+                backgroundColor: "#FFD700",
                 width: goldParticlesAnim.interpolate({
                   inputRange: [0, 1],
-                  outputRange: ['0%', '100%']
-                })
-              }
-            ]} 
+                  outputRange: ["0%", "100%"],
+                }),
+              },
+            ]}
           />
         </View>
       </View>
@@ -367,68 +383,68 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onAnimationComplete }) => {
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     zIndex: 9999,
   },
   glowEffect: {
-    position: 'absolute',
+    position: "absolute",
     width: 200,
     height: 200,
     borderRadius: 100,
   },
   crownContainer: {
-    position: 'relative',
+    position: "relative",
     marginBottom: 40,
   },
   crownShadow: {
-    position: 'absolute',
+    position: "absolute",
     width: 140,
     height: 140,
     borderRadius: 70,
     top: 10,
-    alignSelf: 'center',
+    alignSelf: "center",
     zIndex: -1,
   },
   crownWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     width: 120,
     height: 120,
     borderRadius: 60,
-    overflow: 'visible',
+    overflow: "visible",
   },
   crownMain: {
     width: 100,
     height: 80,
-    position: 'relative',
+    position: "relative",
   },
   crownBase: {
     width: 100,
     height: 30,
     borderTopLeftRadius: 50,
     borderTopRightRadius: 50,
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
   },
   crownJewels: {
-    position: 'absolute',
+    position: "absolute",
     top: 10,
-    width: '100%',
+    width: "100%",
     height: 20,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
   },
   jewel: {
     width: 16,
     height: 16,
     borderRadius: 8,
-    position: 'absolute',
+    position: "absolute",
   },
   jewelCenter: {
     top: 0,
-    alignSelf: 'center',
+    alignSelf: "center",
   },
   jewelLeft: {
     left: 15,
@@ -439,11 +455,11 @@ const styles = StyleSheet.create({
     top: 5,
   },
   crownPoints: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    position: 'absolute',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    position: "absolute",
     top: -25,
-    width: '100%',
+    width: "100%",
     paddingHorizontal: 8,
   },
   crownPoint: {
@@ -453,73 +469,73 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 8,
   },
   crownShine: {
-    position: 'absolute',
+    position: "absolute",
     width: 30,
     height: 120,
     top: -20,
     left: 35,
   },
   particlesContainer: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
   },
   goldParticle: {
-    position: 'absolute',
+    position: "absolute",
     width: 8,
     height: 8,
     borderRadius: 4,
   },
   textContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 20,
   },
   nameContainer: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
+    flexDirection: "row",
+    alignItems: "baseline",
     marginBottom: 8,
   },
   goldText: {
     fontSize: 42,
-    fontWeight: '900',
-    textShadowColor: 'rgba(255, 215, 0, 0.5)',
+    fontWeight: "900",
+    textShadowColor: "rgba(255, 215, 0, 0.5)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 10,
     letterSpacing: 1,
   },
   crownText: {
     fontSize: 38,
-    fontWeight: '800',
+    fontWeight: "800",
     marginHorizontal: 4,
     letterSpacing: 1,
   },
   labText: {
     fontSize: 32,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 1,
   },
   tagline: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
     letterSpacing: 2,
     marginTop: 4,
   },
   loadingContainer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 100,
-    width: '70%',
-    alignItems: 'center',
+    width: "70%",
+    alignItems: "center",
   },
   loadingBar: {
-    width: '100%',
+    width: "100%",
     height: 3,
     borderRadius: 1.5,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   loadingFill: {
-    height: '100%',
+    height: "100%",
     borderRadius: 1.5,
   },
 });
