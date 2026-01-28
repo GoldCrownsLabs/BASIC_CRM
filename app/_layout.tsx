@@ -11,6 +11,7 @@ import SplashScreen from '@/components/SplashScreen';
 import { AppThemeProvider, useAppTheme } from '@/context/ThemeContext';
 import { useAppLoading } from '@/hooks/useAppLoading';
 import { ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
+import { LeadsProvider } from '@/context/LeadsContext';
 
 // Separate component that uses the theme
 function AppContent() {
@@ -141,7 +142,6 @@ function AppContent() {
             }}
           />
         </Drawer>
-
         {/* ✅ Dynamic StatusBar - Time/Battery opposite colors */}
         <StatusBar 
           style={statusBarStyle} 
@@ -155,7 +155,9 @@ function AppContent() {
 export default function RootLayout() {
   return (
     <AppThemeProvider>
-      <AppContent />
+      <LeadsProvider>
+        <AppContent />
+      </LeadsProvider>
     </AppThemeProvider>
   );
 }
