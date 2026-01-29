@@ -1,79 +1,6 @@
+import { APIPriority, APIStatus, BulkStatusUpdatePayload, QueryParams, StatsResponse, TaskPayload, TaskResponse, TasksResponse, TaskUpdatePayload, TaskFormData } from "@/data/types/task";
 import api from "./index";
 
-// Task interfaces
-export interface Task {
-  _id: string;
-  userId: string;
-  title: string;
-  description: string;
-  priority: "low" | "medium" | "high" | "urgent";
-  status: "pending" | "in_progress" | "completed" | "cancelled";
-  dueDate: string;
-  reminderDate?: string;
-  completedAt?: string;
-  contactId?: string;
-  leadId?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface TaskPayload {
-  title: string;
-  description?: string;
-  priority?: "low" | "medium" | "high" | "urgent";
-  dueDate: string;
-  reminderDate?: string;
-  contactId?: string;
-  leadId?: string;
-}
-
-export interface TaskUpdatePayload {
-  title?: string;
-  description?: string;
-  priority?: "low" | "medium" | "high" | "urgent";
-  status?: "pending" | "in_progress" | "completed" | "cancelled";
-  dueDate?: string;
-  reminderDate?: string;
-  contactId?: string;
-  leadId?: string;
-}
-
-export interface BulkStatusUpdatePayload {
-  taskIds: string[];
-  status: "pending" | "in_progress" | "completed" | "cancelled";
-}
-
-export interface TasksResponse {
-  success: boolean;
-  count: number;
-  data: Task[];
-}
-
-export interface TaskResponse {
-  success: boolean;
-  data: Task;
-}
-
-export interface StatsResponse {
-  success: boolean;
-  data: {
-    statusStats: Record<string, number>;
-    priorityStats: Record<string, number>;
-    todayTasks: number;
-    overdueTasks: number;
-    totalTasks: number;
-  };
-}
-
-export interface QueryParams {
-  page?: number;
-  limit?: number;
-  status?: string;
-  priority?: string;
-  search?: string;
-  sortBy?: string;
-  sortOrder?: "asc" | "desc";
-}
 
 /**
  * Get all tasks with optional filters
@@ -288,7 +215,7 @@ export const searchTasks = async (
  * Get tasks by status
  */
 export const getTasksByStatus = async (
-  status: Task["status"],
+  status: APIStatus,
 ): Promise<TasksResponse> => {
   try {
     const response = await api.get("/tasks", { params: { status } });
@@ -303,7 +230,7 @@ export const getTasksByStatus = async (
  * Get tasks by priority
  */
 export const getTasksByPriority = async (
-  priority: Task["priority"],
+  priority: APIPriority,
 ): Promise<TasksResponse> => {
   try {
     const response = await api.get("/tasks", { params: { priority } });
@@ -312,16 +239,4 @@ export const getTasksByPriority = async (
     console.error(`Get tasks by priority ${priority} error:`, error);
     throw error;
   }
-};
-
-// You mentioned LeadPayload and createLead - I'll keep them as they seem to be used elsewhere
-export interface LeadPayload {
-  name: string;
-  phone: string;
-  status: string;
-}
-
-export const createLead = async (payload: LeadPayload) => {
-  const response = await api.post("/tasks", payload);
-  return response.data;
 };
