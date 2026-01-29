@@ -1,13 +1,32 @@
 import AddTaskModal from "@/components/Modal/AddTaskModal";
 import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/context/ThemeContext";
-import { priorities, tasksData, taskStatuses, taskTypes } from "@/data/tasks";
-import { Task } from "@/data/types/task";
-
+import { priorities, taskStatuses, taskTypes } from "@/data/tasks";
+import { Task, TaskType } from "@/data/types/task";
+import {
+  BulkStatusUpdatePayload,
+  bulkUpdateTaskStatus,
+  createTask,
+  deleteTask,
+  getOverdueTasks,
+  getTasks,
+  getTasksByPriority,
+  getTasksByStatus,
+  getTaskStats,
+  getTodayTasks,
+  getUpcomingTasks,
+  markTaskAsCompleted,
+  QueryParams,
+  searchTasks,
+  TaskPayload,
+  Task as APITask,
+  updateTask,
+} from "@/lib/api/tasks.api";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   RefreshControl,
   ScrollView,
   TextInput,
@@ -16,131 +35,536 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+// Helper function to map API task to local task format
+const mapApiTaskToLocal = (apiTask: APITask): Task => {
+  // Determine priority mapping
+  let priority: "High" | "Medium" | "Low";
+  switch (apiTask.priority) {
+    case "high":
+    case "urgent":
+      priority = "High";
+      break;
+    case "medium":
+      priority = "Medium";
+      break;
+    case "low":
+    default:
+      priority = "Low";
+      break;
+  }
+
+  // Determine status mapping
+  let status: "pending" | "in_progress" | "completed" | "overdue";
+  switch (apiTask.status) {
+    case "pending":
+      status = "pending";
+      break;
+    case "in_progress":
+      status = "in_progress";
+      break;
+    case "completed":
+      status = "completed";
+      break;
+    case "cancelled":
+    default:
+      status = "pending"; // Default to pending for cancelled
+      break;
+  }
+
+  let relatedToType: "contact" | "company" | "deal" | "project" | undefined;
+  let type: TaskType = "other";
+
+  if (apiTask.leadId) {
+    type = "call";
+    relatedToType = "contact"; // If "lead" is not in your Task type, keep as "contact"
+  } else if (apiTask.contactId) {
+    type = "call";
+    relatedToType = "contact";
+  }
+  // For other cases, type remains "other" as default
+
+  // Determine if task is overdue
+  const dueDate = new Date(apiTask.dueDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  dueDate.setHours(0, 0, 0, 0);
+
+  if (status === "pending" && dueDate < today) {
+    status = "overdue";
+  }
+
+  return {
+    id: apiTask._id,
+    title: apiTask.title,
+    description: apiTask.description || "",
+    dueDate: apiTask.dueDate.split("T")[0], // Keep only date part
+    priority,
+    status,
+    type,
+    assignedTo: "Me", // Default since API doesn't have this
+    relatedTo: apiTask.leadId || apiTask.contactId || "",
+    relatedToType,
+    createdAt: apiTask.createdAt.split("T")[0],
+    reminder: !!apiTask.reminderDate,
+    reminderTime: apiTask.reminderDate || "",
+    completedAt: apiTask.completedAt ? apiTask.completedAt.split("T")[0] : null,
+    tags: [],
+    notes: "",
+    timeEstimate: "",
+    location: "",
+    recurrence: "none" as const, // Change from "" to "none"
+    createdBy: "API User",
+  };
+};
+
+// Helper function to map local task to API payload
+const mapLocalTaskToApi = (localTask: Partial<Task>): TaskPayload => {
+  // Determine priority mapping
+  let priority: "low" | "medium" | "high" | "urgent";
+  switch (localTask.priority) {
+    case "High":
+      priority = "high";
+      break;
+    case "Medium":
+      priority = "medium";
+      break;
+    case "Low":
+    default:
+      priority = "low";
+      break;
+  }
+
+  // Handle reminder date properly
+  let reminderDate;
+  if (localTask.reminder && localTask.reminderTime) {
+    try {
+      // Check if reminderTime is a valid date string
+      const reminder = new Date(localTask.reminderTime);
+      if (!isNaN(reminder.getTime())) {
+        reminderDate = reminder.toISOString();
+      }
+    } catch (error) {
+      console.error("Invalid reminder date:", error);
+    }
+  }
+
+ return {
+   title: localTask.title!,
+   description: localTask.description,
+   priority,
+   dueDate: new Date(localTask.dueDate!).toISOString(),
+   reminderDate,
+   // Only check for types that exist in relatedToType
+   contactId:
+     localTask.relatedToType === "contact" ? localTask.relatedTo : undefined,
+   // Remove leadId since "lead" is not a valid relatedToType
+   leadId: undefined,
+ };
+};
+
+// Priority mapping helper functions
+const mapPriorityToLocal = (apiPriority: string): "High" | "Medium" | "Low" => {
+  switch (apiPriority) {
+    case "high":
+    case "urgent":
+      return "High";
+    case "medium":
+      return "Medium";
+    case "low":
+    default:
+      return "Low";
+  }
+};
+
+const mapPriorityToApi = (
+  localPriority: "High" | "Medium" | "Low",
+): "low" | "medium" | "high" | "urgent" => {
+  switch (localPriority) {
+    case "High":
+      return "high";
+    case "Medium":
+      return "medium";
+    case "Low":
+    default:
+      return "low";
+  }
+};
+
+// Status mapping helper functions
+const mapStatusToLocal = (
+  apiStatus: string,
+): "pending" | "in_progress" | "completed" | "overdue" => {
+  switch (apiStatus) {
+    case "pending":
+      return "pending";
+    case "in_progress":
+      return "in_progress";
+    case "completed":
+      return "completed";
+    case "cancelled":
+    default:
+      return "pending";
+  }
+};
+
+const mapStatusToApi = (
+  localStatus: "pending" | "in_progress" | "completed" | "overdue",
+): "pending" | "in_progress" | "completed" | "cancelled" => {
+  switch (localStatus) {
+    case "pending":
+    case "overdue":
+      return "pending";
+    case "in_progress":
+      return "in_progress";
+    case "completed":
+      return "completed";
+    default:
+      return "pending";
+  }
+};
+
 export default function TasksScreen() {
   const { colors } = useAppTheme();
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("all");
-  const [selectedPriority, setSelectedPriority] = useState("All");
-  const [selectedType, setSelectedType] = useState("All");
-  const [selectedAssignee, setSelectedAssignee] = useState("All");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [selectedPriority, setSelectedPriority] = useState<string>("All");
+  const [selectedType, setSelectedType] = useState<string>("All");
+  const [selectedAssignee, setSelectedAssignee] = useState<string>("All");
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const [showAddModal, setShowAddModal] = useState(false);
-  const [tasks, setTasks] = useState<Task[]>(tasksData);
-  const [showFilters, setShowFilters] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalTasks: 0,
+    completedTasks: 0,
+    pendingTasks: 0,
+    inProgressTasks: 0,
+    overdueTasks: 0,
+    todayTasks: 0,
+    highPriorityTasks: 0,
+  });
 
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1500);
+  // Fetch tasks on mount
+  useEffect(() => {
+    fetchTasks();
+    fetchStats();
   }, []);
 
-  const handleAddTask = (taskData: any) => {
-    const newTask: Task = {
-      id: Date.now().toString(),
-      title: taskData.title,
-      description: taskData.description,
-      dueDate: taskData.dueDate,
-      priority: taskData.priority,
-      status: "pending",
-      type: taskData.type,
-      assignedTo: taskData.assignedTo,
-      relatedTo: taskData.relatedTo,
-      relatedToType: taskData.relatedToType,
-      createdAt: new Date().toISOString().split("T")[0],
-      reminder: taskData.reminder,
-      reminderTime: taskData.reminderTime,
-      completedAt: null,
-      tags: taskData.tags,
-      notes: taskData.notes,
-      timeEstimate: taskData.timeEstimate,
-      location: taskData.location,
-      recurrence: taskData.recurrence,
-      createdBy: "Current User",
-    };
-
-    setTasks((prev) => [newTask, ...prev]);
+  const fetchTasks = async (filters?: QueryParams) => {
+    try {
+      setLoading(true);
+      const response = await getTasks(filters);
+      if (response.success) {
+        const mappedTasks = response.data.map(mapApiTaskToLocal);
+        setTasks(mappedTasks);
+      }
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+      Alert.alert("Error", "Failed to fetch tasks");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleTaskPress = (taskId: string) => {
-    router.push({
-      pathname: "/(tools)/tasks/[id]",
-      params: { id: taskId },
-    } as any); // Type assertion to bypass TypeScript error
+  const fetchStats = async () => {
+    try {
+      const response = await getTaskStats();
+      if (response.success) {
+        setStats({
+          totalTasks: response.data.totalTasks,
+          completedTasks: response.data.statusStats.completed || 0,
+          pendingTasks: response.data.statusStats.pending || 0,
+          inProgressTasks: response.data.statusStats.in_progress || 0,
+          overdueTasks: response.data.overdueTasks,
+          todayTasks: response.data.todayTasks,
+          highPriorityTasks: response.data.priorityStats.high || 0,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
   };
 
-  const handleCompleteTask = (taskId: string) => {
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === taskId
-          ? {
-              ...task,
-              status: "completed",
-              completedAt: new Date().toISOString().split("T")[0],
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([fetchTasks(), fetchStats()]);
+    } catch (error) {
+      console.error("Refresh error:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
+
+  const handleAddTask = async (taskData: any) => {
+    try {
+      // Create proper date objects
+      const dueDate = new Date(taskData.dueDate);
+
+      // Handle reminder date properly
+      let reminderDate;
+      if (taskData.reminder && taskData.reminderTime) {
+        // If reminderTime is just a time string (e.g., "10:00"), combine it with dueDate
+        if (
+          typeof taskData.reminderTime === "string" &&
+          taskData.reminderTime.includes(":")
+        ) {
+          const [hours, minutes] = taskData.reminderTime.split(":");
+          const reminder = new Date(taskData.dueDate);
+          reminder.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+          reminderDate = reminder.toISOString();
+        } else {
+          // If it's already a full date string
+          reminderDate = new Date(taskData.reminderTime).toISOString();
+        }
+      }
+
+      const apiPayload: TaskPayload = {
+        title: taskData.title,
+        description: taskData.description,
+        priority: mapPriorityToApi(taskData.priority),
+        dueDate: new Date(taskData.dueDate).toISOString(),
+        // Temporarily disable reminderDate
+        reminderDate: undefined,
+        contactId:
+          taskData.relatedToType === "contact" ? taskData.relatedTo : undefined,
+        leadId:
+          taskData.relatedToType === "lead" ? taskData.relatedTo : undefined,
+      };
+
+      const response = await createTask(apiPayload);
+      if (response.success) {
+        const newTask = mapApiTaskToLocal(response.data);
+        setTasks((prev) => [newTask, ...prev]);
+        await fetchStats();
+        Alert.alert("Success", "Task created successfully");
+      }
+    } catch (error) {
+      console.error("Error creating task:", error);
+      Alert.alert("Error", "Failed to create task");
+    }
+  };
+  const handleTaskPress = async (taskId: string) => {
+    try {
+      // Navigate to task detail screen with task ID
+      router.push({
+        pathname: "/(tools)/tasks/[id]",
+        params: { id: taskId },
+      } as any);
+    } catch (error) {
+      console.error("Error navigating to task:", error);
+    }
+  };
+
+  const handleCompleteTask = async (taskId: string) => {
+    try {
+      const response = await markTaskAsCompleted(taskId);
+      if (response.success) {
+        setTasks((prev) =>
+          prev.map((task) =>
+            task.id === taskId
+              ? {
+                  ...task,
+                  status: "completed" as const,
+                  completedAt: new Date().toISOString().split("T")[0],
+                }
+              : task,
+          ),
+        );
+        await fetchStats(); // Refresh stats
+      }
+    } catch (error) {
+      console.error("Error completing task:", error);
+      Alert.alert("Error", "Failed to complete task");
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    Alert.alert("Delete Task", "Are you sure you want to delete this task?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const response = await deleteTask(taskId);
+            if (response.success) {
+              setTasks((prev) => prev.filter((task) => task.id !== taskId));
+              await fetchStats(); // Refresh stats
+              Alert.alert("Success", "Task deleted successfully");
             }
-          : task
-      )
-    );
+          } catch (error) {
+            console.error("Error deleting task:", error);
+            Alert.alert("Error", "Failed to delete task");
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleUpdateTaskStatus = async (
+    taskId: string,
+    newStatus: "pending" | "in_progress" | "completed" | "overdue",
+  ) => {
+    try {
+      const apiStatus = mapStatusToApi(newStatus);
+      const response = await updateTask(taskId, { status: apiStatus });
+      if (response.success) {
+        setTasks((prev) =>
+          prev.map((task) =>
+            task.id === taskId
+              ? {
+                  ...task,
+                  status: newStatus,
+                  completedAt:
+                    newStatus === "completed"
+                      ? new Date().toISOString().split("T")[0]
+                      : task.completedAt,
+                }
+              : task,
+          ),
+        );
+        await fetchStats(); // Refresh stats
+      }
+    } catch (error) {
+      console.error("Error updating task status:", error);
+      Alert.alert("Error", "Failed to update task status");
+    }
+  };
+
+  const handleBulkUpdate = async (
+    taskIds: string[],
+    status: "pending" | "in_progress" | "completed" | "overdue",
+  ) => {
+    try {
+      const apiStatus = mapStatusToApi(status);
+      const payload: BulkStatusUpdatePayload = { taskIds, status: apiStatus };
+      const response = await bulkUpdateTaskStatus(payload);
+      if (response.success) {
+        // Refresh tasks after bulk update
+        await fetchTasks();
+        await fetchStats();
+        Alert.alert("Success", response.message);
+      }
+    } catch (error) {
+      console.error("Error in bulk update:", error);
+      Alert.alert("Error", "Failed to update tasks");
+    }
+  };
+
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    if (query.trim()) {
+      try {
+        const response = await searchTasks(query);
+        if (response.success) {
+          const mappedTasks = response.data.map(mapApiTaskToLocal);
+          setTasks(mappedTasks);
+        }
+      } catch (error) {
+        console.error("Error searching tasks:", error);
+      }
+    } else {
+      await fetchTasks(); // Reset to all tasks
+    }
+  };
+
+  const handleStatusFilter = async (status: string) => {
+    setSelectedStatus(status);
+    if (status === "all") {
+      await fetchTasks();
+    } else if (status === "overdue") {
+      try {
+        const response = await getOverdueTasks();
+        if (response.success) {
+          const mappedTasks = response.data.map(mapApiTaskToLocal);
+          setTasks(mappedTasks);
+        }
+      } catch (error) {
+        console.error("Error fetching overdue tasks:", error);
+      }
+    } else {
+      try {
+        const apiStatus = mapStatusToApi(status as any);
+        const response = await getTasksByStatus(apiStatus);
+        if (response.success) {
+          const mappedTasks = response.data.map(mapApiTaskToLocal);
+          setTasks(mappedTasks);
+        }
+      } catch (error) {
+        console.error(`Error fetching ${status} tasks:`, error);
+      }
+    }
+  };
+
+  const handlePriorityFilter = async (priority: string) => {
+    setSelectedPriority(priority);
+    if (priority === "All") {
+      await fetchTasks();
+    } else {
+      try {
+        const apiPriority = mapPriorityToApi(
+          priority as "High" | "Medium" | "Low",
+        );
+        const response = await getTasksByPriority(apiPriority);
+        if (response.success) {
+          const mappedTasks = response.data.map(mapApiTaskToLocal);
+          setTasks(mappedTasks);
+        }
+      } catch (error) {
+        console.error(`Error fetching ${priority} priority tasks:`, error);
+      }
+    }
+  };
+
+  const handleTodayTasks = async () => {
+    try {
+      const response = await getTodayTasks();
+      if (response.success) {
+        const mappedTasks = response.data.map(mapApiTaskToLocal);
+        setTasks(mappedTasks);
+        setSelectedStatus("all");
+        setSelectedPriority("All");
+      }
+    } catch (error) {
+      console.error("Error fetching today's tasks:", error);
+    }
+  };
+
+  const handleUpcomingTasks = async () => {
+    try {
+      const response = await getUpcomingTasks();
+      if (response.success) {
+        const mappedTasks = response.data.map(mapApiTaskToLocal);
+        setTasks(mappedTasks);
+        setSelectedStatus("all");
+        setSelectedPriority("All");
+      }
+    } catch (error) {
+      console.error("Error fetching upcoming tasks:", error);
+    }
   };
 
   const filteredTasks = useMemo(() => {
     let filtered = [...tasks];
 
-    // Search filter
-    if (searchQuery) {
-      filtered = filtered.filter(
-        (task) =>
-          task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          task.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          task.relatedTo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          task.tags?.some((tag) =>
-            tag.toLowerCase().includes(searchQuery.toLowerCase())
-          )
-      );
-    }
-
-    // Status filter
-    if (selectedStatus !== "all") {
-      if (selectedStatus === "overdue") {
-        filtered = filtered.filter((task) => {
-          const dueDate = new Date(task.dueDate);
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          return task.status !== "completed" && dueDate < today;
-        });
-      } else {
-        filtered = filtered.filter((task) => task.status === selectedStatus);
-      }
-    }
-
-    // Priority filter
-    if (selectedPriority !== "All") {
-      filtered = filtered.filter((task) => task.priority === selectedPriority);
-    }
-
-    // Type filter
+    // Local filters (for additional filtering after API fetch)
     if (selectedType !== "All") {
       filtered = filtered.filter(
-        (task) => task.type === selectedType.toLowerCase()
+        (task) => task.type === selectedType.toLowerCase(),
       );
     }
 
-    // Assignee filter
     if (selectedAssignee !== "All") {
       filtered = filtered.filter(
-        (task) => task.assignedTo === selectedAssignee
+        (task) => task.assignedTo === selectedAssignee,
       );
     }
 
     return filtered;
-  }, [
-    tasks,
-    searchQuery,
-    selectedStatus,
-    selectedPriority,
-    selectedType,
-    selectedAssignee,
-  ]);
+  }, [tasks, selectedType, selectedAssignee]);
 
   const getDaysUntilDue = (dueDate: string) => {
     const today = new Date();
@@ -157,7 +581,7 @@ export default function TasksScreen() {
 
     if (task.status === "completed") return "#4CAF50";
     if (task.status === "in_progress") return "#2196F3";
-    if (task.status === "pending") {
+    if (task.status === "pending" || task.status === "overdue") {
       if (daysUntilDue < 0) return "#F44336";
       if (daysUntilDue <= 2) return "#FF9800";
       return "#FF9800";
@@ -165,7 +589,7 @@ export default function TasksScreen() {
     return colors.textSecondary;
   };
 
-  const getPriorityColor = (priority: string) => {
+  const getPriorityColor = (priority: "High" | "Medium" | "Low") => {
     switch (priority) {
       case "High":
         return "#F44336";
@@ -178,8 +602,8 @@ export default function TasksScreen() {
     }
   };
 
-  const getTaskTypeIcon = (type: string) => {
-    return taskTypes[type as keyof typeof taskTypes] || taskTypes.other;
+  const getTaskTypeIcon = (type: TaskType) => {
+    return taskTypes[type] || taskTypes.other;
   };
 
   const formatDate = (dateString: string) => {
@@ -211,38 +635,6 @@ export default function TasksScreen() {
     }
   };
 
-  // Calculate statistics
-  const stats = useMemo(() => {
-    const totalTasks = tasks.length;
-    const completedTasks = tasks.filter((t) => t.status === "completed").length;
-    const pendingTasks = tasks.filter((t) => t.status === "pending").length;
-    const inProgressTasks = tasks.filter(
-      (t) => t.status === "in_progress"
-    ).length;
-    const overdueTasks = tasks.filter((t) => {
-      const daysUntilDue = getDaysUntilDue(t.dueDate);
-      return t.status !== "completed" && daysUntilDue < 0;
-    }).length;
-
-    const todayTasks = tasks.filter((t) => {
-      const dueDate = new Date(t.dueDate);
-      const today = new Date();
-      return dueDate.toDateString() === today.toDateString();
-    }).length;
-
-    const highPriorityTasks = tasks.filter((t) => t.priority === "High").length;
-
-    return {
-      totalTasks,
-      completedTasks,
-      pendingTasks,
-      inProgressTasks,
-      overdueTasks,
-      todayTasks,
-      highPriorityTasks,
-    };
-  }, [tasks]);
-
   const renderTaskItem = (task: Task) => {
     const daysUntilDue = getDaysUntilDue(task.dueDate);
     const statusColor = getStatusColor(task);
@@ -256,6 +648,28 @@ export default function TasksScreen() {
       <TouchableOpacity
         key={task.id}
         onPress={() => handleTaskPress(task.id)}
+        onLongPress={() => {
+          Alert.alert("Task Actions", "What would you like to do?", [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Mark as Complete",
+              onPress: () => handleCompleteTask(task.id),
+              style: "default",
+            },
+            {
+              text: "Delete Task",
+              onPress: () => handleDeleteTask(task.id),
+              style: "destructive",
+            },
+            {
+              text: "Edit",
+              onPress: () => {
+                // Navigate to edit screen or open edit modal
+                console.log("Edit task:", task.id);
+              },
+            },
+          ]);
+        }}
         activeOpacity={0.7}
         style={{
           backgroundColor: colors.card,
@@ -436,8 +850,8 @@ export default function TasksScreen() {
                     color: isOverdue
                       ? "#F44336"
                       : isDueSoon
-                      ? "#FF9800"
-                      : colors.textSecondary,
+                        ? "#FF9800"
+                        : colors.textSecondary,
                     fontWeight: isOverdue || isDueSoon ? "600" : "400",
                   }}
                 >
@@ -522,8 +936,8 @@ export default function TasksScreen() {
                   {task.status === "in_progress"
                     ? "In Progress"
                     : task.status === "completed"
-                    ? "Completed"
-                    : task.status.replace("_", " ")}
+                      ? "Completed"
+                      : task.status.replace("_", " ")}
                 </ThemedText>
               </View>
 
@@ -621,6 +1035,7 @@ export default function TasksScreen() {
               </ThemedText>
               <ThemedText style={{ color: colors.textSecondary, marginTop: 4 }}>
                 {filteredTasks.length} tasks found
+                {loading && " (Loading...)"}
               </ThemedText>
             </View>
 
@@ -702,10 +1117,10 @@ export default function TasksScreen() {
               placeholder="Search tasks..."
               placeholderTextColor={colors.textSecondary}
               value={searchQuery}
-              onChangeText={setSearchQuery}
+              onChangeText={handleSearch}
             />
             {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery("")}>
+              <TouchableOpacity onPress={() => handleSearch("")}>
                 <Ionicons
                   name="close-circle"
                   size={20}
@@ -724,7 +1139,11 @@ export default function TasksScreen() {
             <View style={{ flexDirection: "row", gap: 10 }}>
               {/* All Tasks */}
               <TouchableOpacity
-                onPress={() => setSelectedStatus("all")}
+                onPress={() => {
+                  setSelectedStatus("all");
+                  setSelectedPriority("All");
+                  fetchTasks();
+                }}
                 style={{
                   minWidth: 100,
                   padding: 12,
@@ -758,6 +1177,7 @@ export default function TasksScreen() {
 
               {/* Today */}
               <TouchableOpacity
+                onPress={handleTodayTasks}
                 style={{
                   minWidth: 100,
                   padding: 12,
@@ -787,7 +1207,7 @@ export default function TasksScreen() {
 
               {/* High Priority */}
               <TouchableOpacity
-                onPress={() => setSelectedPriority("High")}
+                onPress={() => handlePriorityFilter("High")}
                 style={{
                   minWidth: 100,
                   padding: 12,
@@ -821,7 +1241,7 @@ export default function TasksScreen() {
 
               {/* Overdue */}
               <TouchableOpacity
-                onPress={() => setSelectedStatus("overdue")}
+                onPress={() => handleStatusFilter("overdue")}
                 style={{
                   minWidth: 100,
                   padding: 12,
@@ -852,6 +1272,36 @@ export default function TasksScreen() {
                   Overdue
                 </ThemedText>
               </TouchableOpacity>
+
+              {/* Upcoming */}
+              <TouchableOpacity
+                onPress={handleUpcomingTasks}
+                style={{
+                  minWidth: 100,
+                  padding: 12,
+                  borderRadius: 12,
+                  backgroundColor: colors.background,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  alignItems: "center",
+                }}
+              >
+                <ThemedText
+                  type="title"
+                  style={{ color: "#FF9800", fontSize: 20 }}
+                >
+                  {stats.todayTasks + stats.pendingTasks}
+                </ThemedText>
+                <ThemedText
+                  style={{
+                    color: colors.textSecondary,
+                    fontSize: 11,
+                    marginTop: 2,
+                  }}
+                >
+                  Upcoming
+                </ThemedText>
+              </TouchableOpacity>
             </View>
           </ScrollView>
 
@@ -865,7 +1315,7 @@ export default function TasksScreen() {
               {taskStatuses.map((status) => (
                 <TouchableOpacity
                   key={status.id}
-                  onPress={() => setSelectedStatus(status.id)}
+                  onPress={() => handleStatusFilter(status.id)}
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
@@ -920,7 +1370,7 @@ export default function TasksScreen() {
               {priorities.map((priority) => (
                 <TouchableOpacity
                   key={priority.value}
-                  onPress={() => setSelectedPriority(priority.value)}
+                  onPress={() => handlePriorityFilter(priority.value)}
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
@@ -967,34 +1417,68 @@ export default function TasksScreen() {
 
           {/* Quick Filters Row */}
           <View style={{ flexDirection: "row", gap: 8 }}>
-            {/* Assignee Filter */}
+            {/* Bulk Actions */}
             <TouchableOpacity
-              onPress={() => setShowFilters(!showFilters)}
+              onPress={() => {
+                if (filteredTasks.length > 0) {
+                  Alert.alert(
+                    "Bulk Actions",
+                    "Select action for selected tasks",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Mark as Completed",
+                        onPress: () => {
+                          const taskIds = filteredTasks.map((t) => t.id);
+                          handleBulkUpdate(taskIds, "completed");
+                        },
+                      },
+                      {
+                        text: "Delete All",
+                        style: "destructive",
+                        onPress: () => {
+                          Alert.alert(
+                            "Confirm Delete",
+                            `Delete ${filteredTasks.length} tasks?`,
+                            [
+                              { text: "Cancel", style: "cancel" },
+                              {
+                                text: "Delete",
+                                style: "destructive",
+                                onPress: async () => {
+                                  // You might want to implement bulk delete
+                                  console.log("Bulk delete not implemented");
+                                },
+                              },
+                            ],
+                          );
+                        },
+                      },
+                    ],
+                  );
+                }
+              }}
               style={{
                 flexDirection: "row",
                 alignItems: "center",
                 paddingHorizontal: 12,
                 paddingVertical: 8,
                 borderRadius: 20,
-                backgroundColor: colors.background,
+                backgroundColor: colors.primary + "15",
                 borderWidth: 1,
-                borderColor: colors.border,
+                borderColor: colors.primary,
                 gap: 6,
               }}
             >
-              <Ionicons name="people" size={14} color={colors.textSecondary} />
-              <ThemedText style={{ fontSize: 12, color: colors.textSecondary }}>
-                {selectedAssignee === "All" ? "Everyone" : selectedAssignee}
+              <Ionicons name="layers" size={14} color={colors.primary} />
+              <ThemedText style={{ fontSize: 12, color: colors.primary }}>
+                Bulk Actions
               </ThemedText>
-              <Ionicons
-                name="chevron-down"
-                size={12}
-                color={colors.textSecondary}
-              />
             </TouchableOpacity>
 
-            {/* Type Filter */}
+            {/* Refresh Button */}
             <TouchableOpacity
+              onPress={onRefresh}
               style={{
                 flexDirection: "row",
                 alignItems: "center",
@@ -1007,22 +1491,40 @@ export default function TasksScreen() {
                 gap: 6,
               }}
             >
-              <Ionicons name="apps" size={14} color={colors.textSecondary} />
+              <Ionicons name="refresh" size={14} color={colors.textSecondary} />
               <ThemedText style={{ fontSize: 12, color: colors.textSecondary }}>
-                {selectedType === "All" ? "All Types" : selectedType}
+                Refresh
               </ThemedText>
-              <Ionicons
-                name="chevron-down"
-                size={12}
-                color={colors.textSecondary}
-              />
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Tasks List */}
         <View style={{ padding: 20 }}>
-          {viewMode === "list" ? (
+          {loading ? (
+            <View
+              style={{
+                alignItems: "center",
+                justifyContent: "center",
+                paddingVertical: 50,
+              }}
+            >
+              <Ionicons
+                name="hourglass-outline"
+                size={40}
+                color={colors.primary}
+              />
+              <ThemedText
+                style={{
+                  color: colors.textSecondary,
+                  marginTop: 10,
+                  fontSize: 14,
+                }}
+              >
+                Loading tasks...
+              </ThemedText>
+            </View>
+          ) : viewMode === "list" ? (
             <>
               {/* Tasks Counter */}
               <View
@@ -1036,9 +1538,9 @@ export default function TasksScreen() {
                 <ThemedText type="subtitle" style={{ color: colors.text }}>
                   My Tasks ({filteredTasks.length})
                 </ThemedText>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={onRefresh}>
                   <ThemedText style={{ color: colors.primary, fontSize: 12 }}>
-                    Sort by: Due Date
+                    Last updated: Now
                   </ThemedText>
                 </TouchableOpacity>
               </View>
@@ -1079,8 +1581,8 @@ export default function TasksScreen() {
                     {searchQuery
                       ? "Try a different search term"
                       : selectedStatus !== "all"
-                      ? "No tasks with this status"
-                      : "Add a new task to get started"}
+                        ? "No tasks with this status"
+                        : "Add a new task to get started"}
                   </ThemedText>
                   {!searchQuery && selectedStatus === "all" && (
                     <TouchableOpacity
