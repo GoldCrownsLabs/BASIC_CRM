@@ -27,12 +27,12 @@ export const LeadsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       // ✅ यहाँ statsResponse आ रहा है
       const statsResponse = await leadsApi.getLeadStats();
-      console.log("Context - Stats Response:", statsResponse); // ✅ Debug के लिए
+      // console.log("Context - Stats Response:", statsResponse); 
 
       if (statsResponse.success && statsResponse.data) {
-        console.log("Context - totalLeads:", statsResponse.data.totalLeads); // ✅ यहाँ देखें
+        // console.log("Context - totalLeads:", statsResponse.data.totalLeads); 
         setLeadStats(statsResponse.data);
-        setTotalLeads(statsResponse.data.totalLeads || 0); // ✅ यहाँ set होना चाहिए
+        setTotalLeads(statsResponse.data.totalLeads || 0);
       }
 
       // ✅ Recent leads fetch

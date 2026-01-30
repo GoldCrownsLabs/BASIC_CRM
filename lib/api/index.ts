@@ -86,7 +86,7 @@ const getAuthToken = async (): Promise<string | null> => {
       // Ignore parsing errors
     }
 
-    console.warn("⚠️ No authentication token found");
+    // console.warn("⚠️ No authentication token found");
     return null;
   } catch (error) {
     console.error("❌ Error getting auth token:", error);
@@ -192,7 +192,7 @@ api.interceptors.request.use(
         }
 
         // Debug: Log the header being sent
-        console.log(`✅ Authorization header set for ${config.url}`);
+        // console.log(`✅ Authorization header set for ${config.url}`);
       } else {
         console.warn(`⚠️ No token available for: ${config.url}`);
 
@@ -266,7 +266,7 @@ api.interceptors.response.use(
       const apiError: ApiResponse = {
         success: false,
         status: 401,
-        message: "Session expired. Please login again.",
+        message: "UNAUTHORIZED LOGIN",
         error: "UNAUTHORIZED",
         data: error.response?.data,
       };

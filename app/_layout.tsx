@@ -134,13 +134,13 @@ function AppContent() {
             }}
           />
           
-          <Drawer.Screen
+          {/* <Drawer.Screen
             name="profile/index"
             options={{
               drawerLabel: 'Profile',
               title: 'Profile',
             }}
-          />
+          /> */}
         </Drawer>
         {/* ✅ Dynamic StatusBar - Time/Battery opposite colors */}
         <StatusBar 
