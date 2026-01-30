@@ -1,6 +1,5 @@
 import { ApiResponse, apiService } from ".";
 
-
 // Lead interface based on your schema
 export interface Lead {
   _id: string;
@@ -155,6 +154,45 @@ export interface LeadsResponse extends ApiResponse {
   };
 }
 
+// ✅ Helper function to check authentication
+const checkAuth = async (): Promise<boolean> => {
+  try {
+    const token = await apiService.getAuthToken();
+    return !!token;
+  } catch (error) {
+    console.error("Auth check failed:", error);
+    return false;
+  }
+};
+
+// ✅ Helper function to handle auth errors
+const handleAuthError = () => {
+  return {
+    success: false,
+    status: 401,
+    message: "Authentication required. Please login.",
+    error: "UNAUTHORIZED",
+  };
+};
+
+// ✅ Helper function to handle API errors
+const handleApiError = (error: any, context: string) => {
+  console.error(`Error in ${context}:`, error);
+
+  // If it's already an ApiResponse format, return it
+  if (error.success !== undefined) {
+    return error;
+  }
+
+  // Handle auth errors specifically
+  if (error.status === 401 || error.error === "UNAUTHORIZED") {
+    return handleAuthError();
+  }
+
+  // Return the error as is
+  throw error;
+};
+
 // Leads API Service
 export const leadsApi = {
   /**
@@ -164,11 +202,16 @@ export const leadsApi = {
     payload: CreateLeadPayload,
   ): Promise<ApiResponse<Lead>> => {
     try {
+      // Check authentication
+      const isAuthenticated = await checkAuth();
+      if (!isAuthenticated) {
+        return handleAuthError();
+      }
+
       const response = await apiService.post<Lead>("/leads", payload);
       return response;
-    } catch (error) {
-      console.error("Error creating lead:", error);
-      throw error;
+    } catch (error: any) {
+      return handleApiError(error, "createLead");
     }
   },
 
@@ -179,6 +222,12 @@ export const leadsApi = {
     filters?: LeadFilters,
   ): Promise<ApiResponse<LeadsResponse>> => {
     try {
+      // Check authentication
+      const isAuthenticated = await checkAuth();
+      if (!isAuthenticated) {
+        return handleAuthError();
+      }
+
       const params: any = { ...filters };
 
       // Remove undefined values
@@ -190,9 +239,8 @@ export const leadsApi = {
 
       const response = await apiService.get<LeadsResponse>("/leads", params);
       return response;
-    } catch (error) {
-      console.error("Error fetching leads:", error);
-      throw error;
+    } catch (error: any) {
+      return handleApiError(error, "getLeads");
     }
   },
 
@@ -201,11 +249,16 @@ export const leadsApi = {
    */
   getLeadById: async (id: string): Promise<ApiResponse<Lead>> => {
     try {
+      // Check authentication
+      const isAuthenticated = await checkAuth();
+      if (!isAuthenticated) {
+        return handleAuthError();
+      }
+
       const response = await apiService.get<Lead>(`/leads/${id}`);
       return response;
-    } catch (error) {
-      console.error(`Error fetching lead ${id}:`, error);
-      throw error;
+    } catch (error: any) {
+      return handleApiError(error, `getLeadById(${id})`);
     }
   },
 
@@ -217,11 +270,16 @@ export const leadsApi = {
     payload: UpdateLeadPayload,
   ): Promise<ApiResponse<Lead>> => {
     try {
+      // Check authentication
+      const isAuthenticated = await checkAuth();
+      if (!isAuthenticated) {
+        return handleAuthError();
+      }
+
       const response = await apiService.put<Lead>(`/leads/${id}`, payload);
       return response;
-    } catch (error) {
-      console.error(`Error updating lead ${id}:`, error);
-      throw error;
+    } catch (error: any) {
+      return handleApiError(error, `updateLead(${id})`);
     }
   },
 
@@ -230,13 +288,18 @@ export const leadsApi = {
    */
   deleteLead: async (id: string): Promise<ApiResponse<{ message: string }>> => {
     try {
+      // Check authentication
+      const isAuthenticated = await checkAuth();
+      if (!isAuthenticated) {
+        return handleAuthError();
+      }
+
       const response = await apiService.delete<{ message: string }>(
         `/leads/${id}`,
       );
       return response;
-    } catch (error) {
-      console.error(`Error deleting lead ${id}:`, error);
-      throw error;
+    } catch (error: any) {
+      return handleApiError(error, `deleteLead(${id})`);
     }
   },
 
@@ -248,14 +311,19 @@ export const leadsApi = {
     payload: AddNotePayload,
   ): Promise<ApiResponse<Lead["notes"]>> => {
     try {
+      // Check authentication
+      const isAuthenticated = await checkAuth();
+      if (!isAuthenticated) {
+        return handleAuthError();
+      }
+
       const response = await apiService.post<Lead["notes"]>(
         `/leads/${id}/notes`,
         payload,
       );
       return response;
-    } catch (error) {
-      console.error(`Error adding note to lead ${id}:`, error);
-      throw error;
+    } catch (error: any) {
+      return handleApiError(error, `addNote(${id})`);
     }
   },
 
@@ -267,14 +335,19 @@ export const leadsApi = {
     payload: UpdateStatusPayload,
   ): Promise<ApiResponse<Lead>> => {
     try {
+      // Check authentication
+      const isAuthenticated = await checkAuth();
+      if (!isAuthenticated) {
+        return handleAuthError();
+      }
+
       const response = await apiService.patch<Lead>(
         `/leads/${id}/status`,
         payload,
       );
       return response;
-    } catch (error) {
-      console.error(`Error updating lead status ${id}:`, error);
-      throw error;
+    } catch (error: any) {
+      return handleApiError(error, `updateLeadStatus(${id})`);
     }
   },
 
@@ -283,11 +356,16 @@ export const leadsApi = {
    */
   getMyLeads: async (): Promise<ApiResponse<Lead[]>> => {
     try {
+      // Check authentication
+      const isAuthenticated = await checkAuth();
+      if (!isAuthenticated) {
+        return handleAuthError();
+      }
+
       const response = await apiService.get<Lead[]>("/leads/assigned/me");
       return response;
-    } catch (error) {
-      console.error("Error fetching my leads:", error);
-      throw error;
+    } catch (error: any) {
+      return handleApiError(error, "getMyLeads");
     }
   },
 
@@ -296,11 +374,16 @@ export const leadsApi = {
    */
   getLeadStats: async (): Promise<ApiResponse<LeadStats>> => {
     try {
+      // Check authentication
+      const isAuthenticated = await checkAuth();
+      if (!isAuthenticated) {
+        return handleAuthError();
+      }
+
       const response = await apiService.get<LeadStats>("/leads/summary/stats");
       return response;
-    } catch (error) {
-      console.error("Error fetching lead stats:", error);
-      throw error;
+    } catch (error: any) {
+      return handleApiError(error, "getLeadStats");
     }
   },
 
@@ -316,15 +399,27 @@ export const leadsApi = {
     }>
   > => {
     try {
+      // Check authentication
+      const isAuthenticated = await checkAuth();
+      if (!isAuthenticated) {
+        return handleAuthError();
+      }
+
       const response = await apiService.put<{
         matched: number;
         modified: number;
       }>("/leads/bulk-update", payload);
       return response;
-    } catch (error) {
-      console.error("Error bulk updating leads:", error);
-      throw error;
+    } catch (error: any) {
+      return handleApiError(error, "bulkUpdateLeads");
     }
+  },
+
+  /**
+   * Check if user can access leads (authentication check)
+   */
+  checkAccess: async (): Promise<boolean> => {
+    return await checkAuth();
   },
 };
 

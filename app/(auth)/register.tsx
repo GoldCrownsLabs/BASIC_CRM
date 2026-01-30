@@ -1,3 +1,6 @@
+import PrivacyPolicyModal from "@/components/Terms&Conditions/PrivacyPolicyModal";
+import TermsAndConditionsModal from "@/components/Terms&Conditions/TermsAndConditionsModal";
+import TermsPrivacyFooter from "@/components/Terms&Conditions/TermsPrivacyFooter";
 import { useAuthStore } from "@/store/auth.store";
 import { router } from "expo-router";
 import { useState, useEffect } from "react";
@@ -22,7 +25,8 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
   const { register, isLoading, error, clearError } = useAuthStore();
-
+  const [showTermsModal, setShowTermsModal] = useState(false);
+    const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   // Clear error when component mounts
   useEffect(() => {
     clearError();
@@ -307,17 +311,28 @@ export default function RegisterScreen() {
                 <Text
                   style={{
                     color: "#2196F3",
-                    fontSize: 16,
+                    fontSize: 18,
                     fontWeight: "500",
                   }}
                 >
-                  Already have an account? Sign In
+                  Already have an account?{" "}
+                  <Text
+                    style={{
+                      color: "#2196F3",
+                      fontSize: 22,
+                      fontWeight: "600",
+                      textDecorationLine: "underline",
+                    }}
+                  >
+                    {" "}
+                    Sign In
+                  </Text>
                 </Text>
               </TouchableOpacity>
             </View>
 
             {/* Info Box */}
-            <View
+            {/* <View
               style={{
                 padding: 15,
                 backgroundColor: "#E8F5E9",
@@ -354,7 +369,21 @@ export default function RegisterScreen() {
               >
                 • Use a combination of letters and numbers for better security
               </Text>
-            </View>
+            </View> */}
+
+            <TermsPrivacyFooter
+              onTermsPress={() => setShowTermsModal(true)}
+              onPrivacyPress={() => setShowPrivacyModal(true)}
+              style={{
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                backgroundColor: "#f5f5f5",
+                borderTopWidth: 1,
+                borderTopColor: "#ddd",
+              }}
+            />
           </ScrollView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
@@ -403,6 +432,16 @@ export default function RegisterScreen() {
           </View>
         </View>
       )}
+      {/* ✅ Separate Modals for Terms & Privacy */}
+      <TermsAndConditionsModal
+        visible={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+      />
+
+      <PrivacyPolicyModal
+        visible={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+      />
     </View>
   );
 }

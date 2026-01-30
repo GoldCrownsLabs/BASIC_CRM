@@ -1,8 +1,18 @@
-import React, { useState } from "react";
-import { ScrollView, RefreshControl, View, Modal, Alert } from "react-native";
+import React, { useState, useEffect } from "react";
+import {
+  ScrollView,
+  RefreshControl,
+  View,
+  Modal,
+  Alert,
+  ActivityIndicator,
+  Text,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useLeads } from "@/hooks/useLeads";
+import { useAuthStore } from "@/store/auth.store";
+import { Redirect } from "expo-router";
 import {
   getStageColor,
   getStageLabel,
@@ -22,11 +32,17 @@ import { LeadsList } from "@/models/Leads/LeadsList";
 import { LeadDetailModal } from "@/models/Leads/LeadDetailModal";
 import { AddLeadModal } from "@/models/Leads/AddLeadModal";
 
-// Components
-
-
 export default function LeadsScreen() {
   const { colors } = useAppTheme();
+  const { isAuthenticated, isLoading: authLoading } = useAuthStore();
+  const [authChecked, setAuthChecked] = useState(false);
+
+  // Check authentication
+  useEffect(() => {
+    if (!authLoading) {
+      setAuthChecked(true);
+    }
+  }, [authLoading]);
 
   const {
     refreshing,
@@ -53,9 +69,30 @@ export default function LeadsScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [addLeadModalVisible, setAddLeadModalVisible] = useState(false);
 
+  // Redirect if not authenticated
+  if (authChecked && !isAuthenticated) {
+    // console.log("LeadsScreen: Not authenticated, redirecting to login...");
+    return <Redirect href="/(auth)/login" />;
+  }
+
+  // Show loading while checking auth
+  if (authLoading || !authChecked) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={{ marginTop: 10, color: colors.text }}>
+            Checking authentication...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   const handleLeadPress = async (lead: any) => {
     try {
-      // You can fetch lead details here or use the existing lead
       setSelectedLead(lead);
       setModalVisible(true);
     } catch (error) {

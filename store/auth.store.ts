@@ -4,11 +4,10 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { apiService } from "@/lib/api";
 
-// Updated User interface with all properties
 interface User {
   id: string;
-
   email: string;
+  name?: string;
   avatar?: string;
   profileImage?: string;
   lastLogin?: string;
@@ -30,9 +29,6 @@ interface User {
   _id?: string;
   status?: string;
   joinDate?: string;
-  name?: string;
-  // Add other properties that might come from API
-  [key: string]: any; // Optional: for any additional properties
 }
 
 interface AuthState {
@@ -47,6 +43,10 @@ interface AuthState {
   checkAuth: () => Promise<boolean>;
   clearError: () => void;
   setLoading: (loading: boolean) => void;
+  refreshToken: () => Promise<boolean>;
+  // ✅ ADDED: Missing functions
+  setToken: (token: string) => void;
+  setUser: (user: User | null) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -61,21 +61,17 @@ export const useAuthStore = create<AuthState>()(
       login: async (email: string, password: string) => {
         try {
           set({ isLoading: true, error: null });
-          console.log("Attempting login with:", { email });
+          console.log("🔐 AuthStore: Attempting login...");
 
-          // API call to your backend
-          const response = await apiService.post<{
-            user: User;
-            token: string;
-            message?: string;
-          }>("/auth/login", { email, password });
+          // Use apiService.login() for login
+          const response = await apiService.login(email, password);
 
-          console.log("Login response:", response);
+          console.log("AuthStore Login response:", response);
 
           if (response.success && response.data) {
             const { user, token } = response.data;
 
-            // Store in state
+            // Update state
             set({
               user,
               token,
@@ -84,76 +80,49 @@ export const useAuthStore = create<AuthState>()(
               error: null,
             });
 
-            console.log("Login successful for:", user.email);
+            // Ensure token is saved in apiService too
+            await apiService.setAuthToken(token);
+
+            console.log("✅ AuthStore: Login successful");
             return true;
           } else {
-            // Handle API error
-            const errorMessage = response.message || "Login failed";
             set({
               isLoading: false,
-              error: errorMessage,
+              error: response.message || "Login failed",
             });
-
-            console.error("Login failed:", errorMessage);
             return false;
           }
         } catch (error: any) {
-          console.error("Login error:", error);
-
-          // Fallback to mock login if API fails (for development)
-          console.log("Falling back to mock login...");
-
-          const mockUser: User = {
-            id: "1",
-            name: email.split("@")[0] || "Demo User",
-            email: email,
-            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(email.split("@")[0] || "User")}&background=2196F3&color=fff`,
-            profileImage: "",
-            lastLogin: new Date().toISOString(),
-            isActive: true,
-            role: "user",
-            createdAt: new Date().toISOString(),
-            emailVerified: false,
-            newsletterSubscription: false,
-            theme: "light",
-            addresses: [],
-            lastSync: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-
-          const mockToken = "demo-token-" + Date.now();
+          console.error("❌ AuthStore: Login error:", error);
 
           set({
-            user: mockUser,
-            token: mockToken,
-            isAuthenticated: true,
             isLoading: false,
-            error: null,
+            error: error.message || "Login failed",
           });
 
-          console.log("Mock login successful");
-          return true;
+          return false;
         }
       },
 
       register: async (name: string, email: string, password: string) => {
         try {
           set({ isLoading: true, error: null });
-          console.log("Attempting registration:", { name, email });
 
-          // API call to register endpoint
-          const response = await apiService.post<{
-            user: User;
-            token: string;
-            message?: string;
-          }>("/auth/register", { name, email, password });
+          // Use apiService.post() with _skipAuth config
+          const response = await apiService.post(
+            "/auth/register",
+            { name, email, password },
+            { _skipAuth: true },
+          );
 
           console.log("Register response:", response);
 
           if (response.success && response.data) {
             const { user, token } = response.data;
 
-            // Store in state
+            // Store token using apiService
+            await apiService.setAuthToken(token);
+
             set({
               user,
               token,
@@ -162,55 +131,24 @@ export const useAuthStore = create<AuthState>()(
               error: null,
             });
 
-            console.log("Registration successful for:", user.email);
+            console.log("Registration successful");
             return true;
           } else {
-            // Handle API error
-            const errorMessage = response.message || "Registration failed";
             set({
               isLoading: false,
-              error: errorMessage,
+              error: response.message || "Registration failed",
             });
-
-            console.error("Registration failed:", errorMessage);
             return false;
           }
         } catch (error: any) {
           console.error("Registration error:", error);
 
-          // Fallback to mock registration if API fails (for development)
-          console.log("Falling back to mock registration...");
-
-          const mockUser: User = {
-            id: Date.now().toString(),
-            name: name,
-            email: email,
-            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=4CAF50&color=fff`,
-            profileImage: "",
-            lastLogin: new Date().toISOString(),
-            isActive: true,
-            role: "user",
-            createdAt: new Date().toISOString(),
-            emailVerified: false,
-            newsletterSubscription: false,
-            theme: "light",
-            addresses: [],
-            lastSync: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-
-          const mockToken = "demo-token-" + Date.now();
-
           set({
-            user: mockUser,
-            token: mockToken,
-            isAuthenticated: true,
             isLoading: false,
-            error: null,
+            error: error.message || "Registration failed. Please try again.",
           });
 
-          console.log("Mock registration successful");
-          return true;
+          return false;
         }
       },
 
@@ -218,7 +156,10 @@ export const useAuthStore = create<AuthState>()(
         try {
           set({ isLoading: true });
 
-          // Clear state first
+          // Clear auth tokens
+          await apiService.clearAuthToken();
+
+          // Clear state
           set({
             user: null,
             token: null,
@@ -227,11 +168,10 @@ export const useAuthStore = create<AuthState>()(
             error: null,
           });
 
-          // Clear persisted storage
-          await AsyncStorage.removeItem("auth-storage");
-
           // Navigate to login
           router.replace("/(auth)/login");
+
+          console.log("Logout successful");
         } catch (error) {
           console.error("Logout error:", error);
           set({ isLoading: false });
@@ -240,14 +180,14 @@ export const useAuthStore = create<AuthState>()(
 
       checkAuth: async () => {
         try {
-          const state = get();
-          const isAuthenticated = !!(state.user && state.token);
+          const { user, token } = get();
+          const isAuthenticated = !!(
+            user &&
+            token &&
+            (await apiService.isAuthenticated())
+          );
 
-          // Sync isAuthenticated with user/token state
-          if (isAuthenticated !== state.isAuthenticated) {
-            set({ isAuthenticated });
-          }
-
+          set({ isAuthenticated });
           return isAuthenticated;
         } catch (error) {
           console.error("Auth check error:", error);
@@ -255,23 +195,57 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      clearError: () => {
-        set({ error: null });
+      refreshToken: async () => {
+        try {
+          const { token } = get();
+          if (!token) return false;
+
+          const response = await apiService.post(
+            "/auth/refresh",
+            {},
+            { headers: { Authorization: `Bearer ${token}` } },
+          );
+
+          if (response.success && response.data?.token) {
+            const newToken = response.data.token;
+            await apiService.setAuthToken(newToken);
+
+            set({
+              token: newToken,
+              user: response.data.user || get().user,
+            });
+
+            return true;
+          }
+          return false;
+        } catch (error) {
+          console.error("Token refresh failed:", error);
+          return false;
+        }
       },
 
-      setLoading: (loading: boolean) => {
-        set({ isLoading: loading });
+      // ✅ ADDED: setToken function
+      setToken: (token: string) => {
+        set({ token });
+        // Also update the apiService token
+        apiService.setAuthToken(token);
       },
+
+      // ✅ ADDED: setUser function
+      setUser: (user: User | null) => {
+        set({ user });
+      },
+
+      clearError: () => set({ error: null }),
+      setLoading: (loading: boolean) => set({ isLoading: loading }),
     }),
     {
       name: "auth-storage",
       storage: createJSONStorage(() => AsyncStorage),
-      // Only persist these fields
       partialize: (state) => ({
         user: state.user,
         token: state.token,
       }),
-      // On rehydrate, set isAuthenticated based on user/token
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.isAuthenticated = !!(state.user && state.token);
@@ -280,8 +254,7 @@ export const useAuthStore = create<AuthState>()(
     },
   ),
 );
-
-// Check auth on app start
+// Initialize auth
 export const initializeAuth = async () => {
   const { checkAuth } = useAuthStore.getState();
   return await checkAuth();

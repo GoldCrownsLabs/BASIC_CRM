@@ -1,3 +1,7 @@
+import PrivacyPolicyModal from "@/components/Terms&Conditions/PrivacyPolicyModal";
+import TermsAndConditionsModal from "@/components/Terms&Conditions/TermsAndConditionsModal";
+import TermsPrivacyFooter from "@/components/Terms&Conditions/TermsPrivacyFooter";
+
 import { useAuthStore } from "@/store/auth.store";
 import { router } from "expo-router";
 import { useState, useEffect } from "react";
@@ -19,6 +23,8 @@ export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const { login, isLoading, error, clearError } = useAuthStore();
 
   useEffect(() => {
@@ -64,186 +70,197 @@ export default function LoginScreen() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
       >
         <TouchableWithoutFeedback onPress={dismissKeyboard}>
-          <ScrollView
-            contentContainerStyle={{
-              flexGrow: 1,
-              justifyContent: "center",
-              paddingHorizontal: 20,
-              paddingVertical: 20,
-            }}
-            keyboardShouldPersistTaps="handled"
-            bounces={false}
-          >
-            {/* Header */}
-            <View style={{ alignItems: "center", marginBottom: 40 }}>
-              <Text
-                style={{
-                  fontSize: 32,
-                  fontWeight: "bold",
-                  color: "#2196F3",
-                  marginBottom: 8,
-                }}
-              >
-                Welcome Back
-              </Text>
-              <Text
-                style={{
-                  fontSize: 16,
-                  color: "#666",
-                  textAlign: "center",
-                }}
-              >
-                Sign in to continue to your CRM
-              </Text>
-            </View>
-
-            {/* Error Message */}
-            {localError && (
-              <View
-                style={{
-                  backgroundColor: "#FFEBEE",
-                  padding: 12,
-                  borderRadius: 8,
-                  marginBottom: 20,
-                  borderWidth: 1,
-                  borderColor: "#EF9A9A",
-                }}
-              >
+          <View style={{ flex: 1 }}>
+            <ScrollView
+              contentContainerStyle={{
+                flexGrow: 1,
+                justifyContent: "center",
+                paddingHorizontal: 20,
+                paddingVertical: 20,
+              }}
+              keyboardShouldPersistTaps="handled"
+              bounces={false}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Header */}
+              <View style={{ alignItems: "center", marginBottom: 40 }}>
                 <Text
                   style={{
-                    color: "#D32F2F",
-                    fontSize: 14,
+                    fontSize: 32,
+                    fontWeight: "bold",
+                    color: "#2196F3",
+                    marginBottom: 8,
+                  }}
+                >
+                  Welcome Back
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    color: "#666",
                     textAlign: "center",
                   }}
                 >
-                  {localError}
+                  Sign in to continue to your account
                 </Text>
               </View>
-            )}
 
-            {/* Form */}
-            <View style={{ marginBottom: 20 }}>
-              <TextInput
-                style={{
-                  backgroundColor: "white",
-                  padding: 15,
-                  borderRadius: 10,
-                  marginBottom: 15,
-                  borderWidth: 1,
-                  borderColor: "#ddd",
-                  fontSize: 16,
-                  opacity: isLoading ? 0.7 : 1,
-                }}
-                placeholder="Email Address"
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                placeholderTextColor="#999"
-                editable={!isLoading}
-                returnKeyType="next"
-              />
-
-              <TextInput
-                style={{
-                  backgroundColor: "white",
-                  padding: 15,
-                  borderRadius: 10,
-                  marginBottom: 25,
-                  borderWidth: 1,
-                  borderColor: "#ddd",
-                  fontSize: 16,
-                  opacity: isLoading ? 0.7 : 1,
-                }}
-                placeholder="Password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                placeholderTextColor="#999"
-                editable={!isLoading}
-                returnKeyType="done"
-                onSubmitEditing={handleLogin}
-              />
-
-              <TouchableOpacity
-                style={{
-                  backgroundColor: "#2196F3",
-                  padding: 16,
-                  borderRadius: 10,
-                  alignItems: "center",
-                  flexDirection: "row",
-                  justifyContent: "center",
-                  opacity: isLoading ? 0.7 : 1,
-                  elevation: 2,
-                }}
-                onPress={handleLogin}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="white" size="small" />
-                ) : (
-                  <Text
-                    style={{
-                      color: "white",
-                      fontSize: 16,
-                      fontWeight: "600",
-                    }}
-                  >
-                    Sign In
-                  </Text>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={{
-                  padding: 16,
-                  alignItems: "center",
-                  marginTop: 12,
-                  opacity: isLoading ? 0.5 : 1,
-                }}
-                onPress={() => !isLoading && router.push("/(auth)/register")}
-                disabled={isLoading}
-              >
-                <Text
+              {/* Error Message */}
+              {localError && (
+                <View
                   style={{
-                    color: "#2196F3",
-                    fontSize: 16,
-                    fontWeight: "500",
+                    backgroundColor: "#FFEBEE",
+                    padding: 12,
+                    borderRadius: 8,
+                    marginBottom: 20,
+                    borderWidth: 1,
+                    borderColor: "#EF9A9A",
                   }}
                 >
-                  Don&lsquo;t have an account? Sign Up
-                </Text>
-              </TouchableOpacity>
-            </View>
+                  <Text
+                    style={{
+                      color: "#D32F2F",
+                      fontSize: 14,
+                      textAlign: "center",
+                    }}
+                  >
+                    {localError}
+                  </Text>
+                </View>
+              )}
 
-            {/* Demo Credentials */}
-            <View
+              {/* Form */}
+              <View style={{ marginBottom: 20 }}>
+                <TextInput
+                  style={{
+                    backgroundColor: "white",
+                    padding: 15,
+                    borderRadius: 10,
+                    marginBottom: 15,
+                    borderWidth: 1,
+                    borderColor: "#ddd",
+                    fontSize: 16,
+                    opacity: isLoading ? 0.7 : 1,
+                  }}
+                  placeholder="Email Address"
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  placeholderTextColor="#999"
+                  editable={!isLoading}
+                  returnKeyType="next"
+                  // ✅ Password suggestion remove
+                  textContentType="username"
+                  autoComplete="email"
+                />
+
+                <TextInput
+                  style={{
+                    backgroundColor: "white",
+                    padding: 15,
+                    borderRadius: 10,
+                    marginBottom: 25,
+                    borderWidth: 1,
+                    borderColor: "#ddd",
+                    fontSize: 16,
+                    opacity: isLoading ? 0.7 : 1,
+                  }}
+                  placeholder="Password"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                  placeholderTextColor="#999"
+                  editable={!isLoading}
+                  returnKeyType="done"
+                  onSubmitEditing={handleLogin}
+                  // ✅ Password suggestion remove
+                  textContentType="password"
+                  autoComplete="password"
+                />
+
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: "#2196F3",
+                    padding: 16,
+                    borderRadius: 10,
+                    alignItems: "center",
+                    flexDirection: "row",
+                    justifyContent: "center",
+                    opacity: isLoading ? 0.7 : 1,
+                    elevation: 2,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 3,
+                  }}
+                  onPress={handleLogin}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color="white" size="small" />
+                  ) : (
+                    <Text
+                      style={{
+                        color: "white",
+                        fontSize: 16,
+                        fontWeight: "600",
+                      }}
+                    >
+                      Sign In
+                    </Text>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{
+                    padding: 16,
+                    alignItems: "center",
+                    marginTop: 12,
+                    opacity: isLoading ? 0.5 : 1,
+                  }}
+                  onPress={() => !isLoading && router.push("/(auth)/register")}
+                  disabled={isLoading}
+                >
+                  <Text
+                    style={{
+                      color: "#2196F3",
+                      fontSize: 16,
+                      fontWeight: "500",
+                    }}
+                  >
+                    Don&lsquo;t have an account?{" "}
+                    <Text
+                      style={{
+                        color: "#2196F3",
+                        fontSize: 22,
+                        fontWeight: "600",
+                        textDecorationLine: "underline",
+                      }}
+                    >
+                      {" "}
+                      Sign Up
+                    </Text>
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+
+            {/* ✅ Footer at the bottom */}
+            <TermsPrivacyFooter
+              onTermsPress={() => setShowTermsModal(true)}
+              onPrivacyPress={() => setShowPrivacyModal(true)}
               style={{
-                padding: 15,
-                backgroundColor: "#E3F2FD",
-                borderRadius: 10,
-                borderWidth: 1,
-                borderColor: "#BBDEFB",
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                backgroundColor: "#f5f5f5",
+                borderTopWidth: 1,
+                borderTopColor: "#ddd",
               }}
-            >
-              <Text
-                style={{
-                  color: "#1976D2",
-                  fontSize: 14,
-                  fontWeight: "600",
-                  marginBottom: 8,
-                }}
-              >
-                Demo Credentials:
-              </Text>
-              <Text style={{ color: "#1976D2", fontSize: 13, marginBottom: 4 }}>
-                • Email: demo@example.com
-              </Text>
-              <Text style={{ color: "#1976D2", fontSize: 13 }}>
-                • Password: any password works
-              </Text>
-            </View>
-          </ScrollView>
+            />
+          </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
 
@@ -268,6 +285,11 @@ export default function LoginScreen() {
               borderRadius: 15,
               alignItems: "center",
               justifyContent: "center",
+              elevation: 5,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
             }}
           >
             <ActivityIndicator size="large" color="#2196F3" />
@@ -277,6 +299,17 @@ export default function LoginScreen() {
           </View>
         </View>
       )}
+
+      {/* ✅ Separate Modals for Terms & Privacy */}
+      <TermsAndConditionsModal
+        visible={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+      />
+
+      <PrivacyPolicyModal
+        visible={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+      />
     </View>
   );
 }

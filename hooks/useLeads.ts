@@ -7,8 +7,10 @@ import leadsApi, {
   LeadsResponse,
   CreateLeadPayload,
 } from "@/lib/api/leads.api";
+import { useAuthStore } from "@/store/auth.store";
 
 export const useLeads = () => {
+  const { isAuthenticated } = useAuthStore();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -25,11 +27,22 @@ export const useLeads = () => {
   });
 
   useEffect(() => {
-    fetchLeads();
-    fetchLeadStats();
-  }, []);
+    if (isAuthenticated) {
+      fetchLeads();
+      fetchLeadStats();
+    } else {
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
 
   const fetchLeads = async (filters?: LeadFilters) => {
+    // ✅ CHECK: Don't fetch if not authenticated
+    if (!isAuthenticated) {
+      // console.log("useLeads: Skipping fetch - not authenticated");
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -60,13 +73,25 @@ export const useLeads = () => {
       }
     } catch (error: any) {
       console.error("Error fetching leads:", error);
-      Alert.alert("Error", error.message || "Failed to fetch leads");
+      // Only show alert for actual API errors, not auth errors
+      if (
+        !error.message?.includes("Session expired") &&
+        !error.message?.includes("Not authorized")
+      ) {
+        Alert.alert("Error", error.message || "Failed to fetch leads");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const fetchLeadStats = async () => {
+    // ✅ CHECK: Don't fetch if not authenticated
+    if (!isAuthenticated) {
+      // console.log("useLeads: Skipping stats fetch - not authenticated");
+      return;
+    }
+
     try {
       const response = await leadsApi.getLeadStats();
 
@@ -79,42 +104,62 @@ export const useLeads = () => {
   };
 
   const onRefresh = useCallback(async () => {
+    // ✅ CHECK: Don't refresh if not authenticated
+    if (!isAuthenticated) {
+      // console.log("useLeads: Skipping refresh - not authenticated");
+      return;
+    }
+
     setRefreshing(true);
     await Promise.all([fetchLeads(), fetchLeadStats()]);
     setRefreshing(false);
-  }, [searchQuery, selectedStage, selectedSource, selectedPriority]);
+  }, [
+    isAuthenticated,
+    searchQuery,
+    selectedStage,
+    selectedSource,
+    selectedPriority,
+  ]);
 
   const handleSearch = (text: string) => {
     setSearchQuery(text);
-    fetchLeads({ search: text, page: 1 });
+    if (isAuthenticated) {
+      fetchLeads({ search: text, page: 1 });
+    }
   };
 
   const handleStageFilter = (stage: string) => {
     setSelectedStage(stage);
-    fetchLeads({
-      status: stage !== "All" ? stage : undefined,
-      page: 1,
-    });
+    if (isAuthenticated) {
+      fetchLeads({
+        status: stage !== "All" ? stage : undefined,
+        page: 1,
+      });
+    }
   };
 
   const handleSourceFilter = (source: string) => {
     setSelectedSource(source);
-    fetchLeads({
-      source: source !== "All" ? source : undefined,
-      page: 1,
-    });
+    if (isAuthenticated) {
+      fetchLeads({
+        source: source !== "All" ? source : undefined,
+        page: 1,
+      });
+    }
   };
 
   const handlePriorityFilter = (priority: string) => {
     setSelectedPriority(priority);
-    fetchLeads({
-      priority: priority !== "All" ? priority : undefined,
-      page: 1,
-    });
+    if (isAuthenticated) {
+      fetchLeads({
+        priority: priority !== "All" ? priority : undefined,
+        page: 1,
+      });
+    }
   };
 
   const handlePageChange = (newPage: number) => {
-    if (newPage >= 1 && newPage <= pagination.pages) {
+    if (isAuthenticated && newPage >= 1 && newPage <= pagination.pages) {
       fetchLeads({ page: newPage });
     }
   };

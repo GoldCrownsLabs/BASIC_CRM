@@ -8,7 +8,9 @@ import axios, {
 } from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// ✅ FIXED: Properly defined ApiResponse interface
+// ✅ REMOVED: import { useAuthStore } from "@/store/auth.store";
+
+// ✅ Properly defined ApiResponse interface
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
@@ -33,15 +35,21 @@ export interface ApiError {
   timestamp?: string;
 }
 
-// ✅ FIXED: Properly extend AxiosRequestConfig with type assertion
-interface CustomAxiosRequestConfig extends AxiosRequestConfig {
-  _retry?: boolean;
-  _skipAuth?: boolean;
-  metadata?: {
-    startTime: Date;
-  };
+// ✅ FIXED: Declare module augmentation for axios
+declare module "axios" {
+  export interface AxiosRequestConfig {
+    _retry?: boolean;
+    _skipAuth?: boolean;
+    metadata?: {
+      startTime: Date;
+    };
+  }
 }
 
+// ✅ Now we can use AxiosRequestConfig directly without custom interface
+type CustomAxiosRequestConfig = AxiosRequestConfig;
+
+// Create axios instance
 const api = axios.create({
   baseURL: "https://basic-crm-backend-p5tb.onrender.com/api/",
   timeout: 30000,
@@ -51,149 +59,222 @@ const api = axios.create({
   },
 });
 
-// Token management functions
+// =================== TOKEN MANAGEMENT ===================
+
+/**
+ * ✅ FIXED: Get token from AsyncStorage only to avoid circular dependency
+ */
 const getAuthToken = async (): Promise<string | null> => {
   try {
+    // Only check AsyncStorage, don't use Zustand
     const token = await AsyncStorage.getItem("auth_token");
-    return token;
+    if (token) {
+      return token;
+    }
+
+    // Also check Zustand persistence storage as fallback
+    try {
+      const authStorage = await AsyncStorage.getItem("auth-storage");
+      if (authStorage) {
+        const parsed = JSON.parse(authStorage);
+        if (parsed.state?.token) {
+          console.log("💾 Token from Zustand persistence");
+          return parsed.state.token;
+        }
+      }
+    } catch (e) {
+      // Ignore parsing errors
+    }
+
+    console.warn("⚠️ No authentication token found");
+    return null;
   } catch (error) {
-    console.error("Error getting auth token:", error);
+    console.error("❌ Error getting auth token:", error);
     return null;
   }
 };
 
+/**
+ * ✅ FIXED: Save token to AsyncStorage only
+ */
 const setAuthToken = async (token: string | null): Promise<void> => {
   try {
     if (token) {
+      console.log("💾 Saving token to AsyncStorage...");
+
+      // 1. Save to AsyncStorage (primary storage)
       await AsyncStorage.setItem("auth_token", token);
+
+      // 2. Set axios default header
       api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
+      // 3. Also update Zustand persistence storage
+      try {
+        const authStorage = await AsyncStorage.getItem("auth-storage");
+        if (authStorage) {
+          const parsed = JSON.parse(authStorage);
+          parsed.state.token = token;
+          await AsyncStorage.setItem("auth-storage", JSON.stringify(parsed));
+        }
+      } catch (e) {
+        // Ignore if fails
+      }
+
+      console.log("✅ Token saved successfully");
     } else {
+      console.log("🗑️ Clearing tokens...");
       await AsyncStorage.removeItem("auth_token");
       delete api.defaults.headers.common["Authorization"];
     }
   } catch (error) {
-    console.error("Error setting auth token:", error);
+    console.error("❌ Error setting auth token:", error);
   }
 };
 
+/**
+ * ✅ FIXED: Clear all tokens without Zustand dependency
+ */
 const clearAuthToken = async (): Promise<void> => {
   try {
+    console.log("🧹 Clearing all auth tokens...");
+
+    // Clear from AsyncStorage
     await AsyncStorage.removeItem("auth_token");
-    await AsyncStorage.removeItem("refresh_token");
+    await AsyncStorage.removeItem("token_expiry");
+
+    // Clear axios headers
     delete api.defaults.headers.common["Authorization"];
+
+    console.log("✅ All tokens cleared from API service");
   } catch (error) {
-    console.error("Error clearing auth token:", error);
+    console.error("❌ Error clearing auth token:", error);
   }
 };
 
-// ✅ FIXED: Request interceptor with proper headers handling
+// =================== REQUEST INTERCEPTOR ===================
+
 api.interceptors.request.use(
   async (
     config: InternalAxiosRequestConfig,
   ): Promise<InternalAxiosRequestConfig> => {
-    const modifiedConfig = { ...config };
-
     // Add timing metadata
-    const customConfig = modifiedConfig as CustomAxiosRequestConfig;
-    customConfig.metadata = { startTime: new Date() };
+    config.metadata = { startTime: new Date() };
 
-    // Skip auth check if flag is set
-    if (customConfig._skipAuth) {
-      return modifiedConfig;
+    // Skip auth for login/register endpoints
+    const skipAuthPaths = ["/auth/login", "/auth/register", "/health"];
+    const shouldSkipAuth =
+      config._skipAuth ||
+      skipAuthPaths.some((path) => config.url?.includes(path));
+
+    if (shouldSkipAuth) {
+      console.log(`🔓 Skipping auth for: ${config.url}`);
+      return config;
     }
 
-    // Validate token before adding to headers
+    // Add Authorization header for protected endpoints
     try {
       const token = await getAuthToken();
 
       if (token) {
-        // Check token expiry locally
-        const tokenExpiry = await AsyncStorage.getItem("token_expiry");
-        if (tokenExpiry && new Date(tokenExpiry) < new Date()) {
-          console.log("Token expired locally, clearing...");
-          await clearAuthToken();
-        } else {
-          // ✅ FIXED: Proper headers assignment
-          modifiedConfig.headers = modifiedConfig.headers || {};
+        console.log(
+          `🔑 Adding token to: ${config.method?.toUpperCase()} ${config.url}`,
+        );
 
-          // Handle both AxiosHeaders and plain object
-          if (modifiedConfig.headers instanceof AxiosHeaders) {
-            modifiedConfig.headers.set(
-              "Authorization",
-              `Bearer ${token}`,
-              true,
-            );
-          } else {
-            // For plain object headers
-            (modifiedConfig.headers as RawAxiosRequestHeaders)[
-              "Authorization"
-            ] = `Bearer ${token}`;
-          }
+        // Ensure headers exist
+        config.headers = config.headers || {};
+
+        // Set Authorization header
+        if (config.headers instanceof AxiosHeaders) {
+          config.headers.set("Authorization", `Bearer ${token}`, true);
+        } else {
+          (config.headers as RawAxiosRequestHeaders)["Authorization"] =
+            `Bearer ${token}`;
         }
+
+        // Debug: Log the header being sent
+        console.log(`✅ Authorization header set for ${config.url}`);
+      } else {
+        console.warn(`⚠️ No token available for: ${config.url}`);
+
+        // ✅ FIXED: Don't throw error, just let the request continue
+        // The server will return 401 if authentication is required
+        // We'll handle it in response interceptor
       }
     } catch (error) {
-      console.error("Error in request interceptor:", error);
+      console.error("❌ Request interceptor error:", error);
+      // Don't reject, let the request continue
     }
 
-    return modifiedConfig;
+    return config;
   },
   (error: AxiosError): Promise<AxiosError> => {
-    console.error("Request interceptor error:", error.message);
+    console.error("❌ Request interceptor setup error:", error.message);
     return Promise.reject(error);
   },
 );
 
-// ✅ FIXED: Response interceptor
+// =================== RESPONSE INTERCEPTOR ===================
+
 api.interceptors.response.use(
   (response: AxiosResponse): AxiosResponse => {
-    const config = response.config as CustomAxiosRequestConfig;
+    const config = response.config;
     const endTime = new Date();
 
     if (config?.metadata?.startTime) {
       const duration = endTime.getTime() - config.metadata.startTime.getTime();
-      console.log(`API call to ${response.config.url} took ${duration}ms`);
+      console.log(
+        `⏱️ ${response.config.url} - ${duration}ms - ${response.status}`,
+      );
     }
 
-    // Save token if present in response
+    // Save token from response if present (for refresh token scenarios)
     const responseData = response.data;
-    if (responseData && responseData.token) {
-      setAuthToken(responseData.token).catch((error) => {
-        console.error("Error saving token from response:", error);
-      });
+    if (responseData?.token) {
+      console.log("🔄 New token received in response, saving...");
+      setAuthToken(responseData.token).catch((err) =>
+        console.error("Error saving new token:", err),
+      );
     }
 
     return response;
   },
   async (error: AxiosError<ApiError>): Promise<never> => {
-    const originalConfig = error.config as CustomAxiosRequestConfig;
-    const endTime = new Date();
+    const originalConfig = error.config;
 
-    if (originalConfig?.metadata?.startTime) {
-      const duration =
-        endTime.getTime() - originalConfig.metadata.startTime.getTime();
-      console.error(`API call failed after ${duration}ms`);
-    }
+    // Log error details
+    console.error("❌ API Error:", {
+      url: error.config?.url,
+      method: error.config?.method?.toUpperCase(),
+      status: error.response?.status,
+      message: error.response?.data?.message || error.message,
+    });
 
-    // Handle 401 unauthorized
+    // Handle 401 Unauthorized
     if (error.response?.status === 401) {
-      console.log("401 Error - Clearing auth token");
+      console.log("🔐 401 Unauthorized - Token invalid or expired");
+
+      // Clear tokens
       await clearAuthToken();
 
-      // Create clean error object
+      // Don't redirect if we're already on login page
+      if (!error.config?.url?.includes("/auth/login")) {
+        // You can add navigation logic here if needed
+        console.log("Redirecting to login...");
+      }
+
+      // Return standardized error
       const apiError: ApiResponse = {
         success: false,
         status: 401,
-        message:
-          error.response?.data?.message ||
-          "Session expired. Please login again.",
-        error: "ERR_BAD_REQUEST",
+        message: "Session expired. Please login again.",
+        error: "UNAUTHORIZED",
         data: error.response?.data,
       };
 
       return Promise.reject(apiError);
     }
 
-    // Transform other errors
+    // Handle other errors
     const errorResponse: ApiResponse = {
       success: false,
       status: error.response?.status || 500,
@@ -205,145 +286,136 @@ api.interceptors.response.use(
       data: error.response?.data,
     };
 
+    // Categorize errors
     if (error.response) {
       switch (error.response.status) {
         case 400:
           errorResponse.message = error.response.data?.message || "Bad request";
-          errorResponse.error = "ERR_BAD_REQUEST";
+          errorResponse.error = "BAD_REQUEST";
           break;
         case 403:
-          errorResponse.message =
-            "You don't have permission to access this resource.";
-          errorResponse.error = "ERR_FORBIDDEN";
+          errorResponse.message = "Access forbidden";
+          errorResponse.error = "FORBIDDEN";
           break;
         case 404:
-          errorResponse.message = "The requested resource was not found.";
-          errorResponse.error = "ERR_NOT_FOUND";
+          errorResponse.message = "Resource not found";
+          errorResponse.error = "NOT_FOUND";
           break;
         case 422:
-          errorResponse.message = "Validation error occurred.";
-          errorResponse.data = error.response.data?.errors;
-          errorResponse.error = "ERR_VALIDATION";
+          errorResponse.message = "Validation error";
+          errorResponse.error = "VALIDATION_ERROR";
           break;
         case 500:
-          errorResponse.message =
-            "Internal server error. Please try again later.";
-          errorResponse.error = "ERR_SERVER";
+          errorResponse.message = "Internal server error";
+          errorResponse.error = "SERVER_ERROR";
           break;
         case 503:
-          errorResponse.message =
-            "Service temporarily unavailable. Please try again later.";
-          errorResponse.error = "ERR_SERVICE_UNAVAILABLE";
+          errorResponse.message = "Service unavailable";
+          errorResponse.error = "SERVICE_UNAVAILABLE";
           break;
       }
     } else if (error.request) {
       if (error.code === "ECONNABORTED") {
-        errorResponse.message =
-          "Request timeout. Please check your internet connection.";
-        errorResponse.error = "ERR_TIMEOUT";
+        errorResponse.message = "Request timeout";
+        errorResponse.error = "TIMEOUT";
       } else {
-        errorResponse.message =
-          "No response received from server. Please check your network.";
-        errorResponse.error = "ERR_NETWORK";
+        errorResponse.message = "No network response";
+        errorResponse.error = "NETWORK_ERROR";
       }
     }
-
-    console.error("API Error:", {
-      url: error.config?.url,
-      method: error.config?.method?.toUpperCase(),
-      status: error.response?.status,
-      message: errorResponse.message,
-      error: errorResponse.error,
-    });
 
     return Promise.reject(errorResponse);
   },
 );
 
-// ✅ FIXED: API service functions
+// =================== API SERVICE METHODS ===================
+
 export const apiService = {
-  // Generic GET method
+  // ✅ FIXED: Generic GET method
   get: async <T = any>(
     url: string,
     params?: object,
     config?: CustomAxiosRequestConfig,
   ): Promise<ApiResponse<T>> => {
     try {
+      console.log(`📞 GET ${url}`, params || "");
+
       const response = await api.get<T>(url, { params, ...config });
 
-      const responseData = response.data as any;
       const result: ApiResponse<T> = {
         success: response.status >= 200 && response.status < 300,
         data: response.data,
         status: response.status,
-        message: responseData?.message || "Request successful",
+        message: (response.data as any)?.message || "Request successful",
       };
 
       return result;
     } catch (error: any) {
+      console.error(`❌ GET ${url} failed:`, error.message);
+
+      // If error is already in ApiResponse format, re-throw it
       if (error.success !== undefined) {
         throw error;
       }
 
-      const apiError: ApiResponse<T> = {
+      // Convert to ApiResponse format
+      throw {
         success: false,
         status: error.response?.status,
         message: error.message || "Request failed",
         error: error.code || "UNKNOWN_ERROR",
         data: error.response?.data,
       };
-
-      throw apiError;
     }
   },
 
-  // Generic POST method
+  // ✅ FIXED: Generic POST method
   post: async <T = any>(
     url: string,
     data?: object,
     config?: CustomAxiosRequestConfig,
   ): Promise<ApiResponse<T>> => {
     try {
+      console.log(`📞 POST ${url}`);
+
       const response = await api.post<T>(url, data, config);
 
-      const responseData = response.data as any;
       const result: ApiResponse<T> = {
         success: response.status >= 200 && response.status < 300,
         data: response.data,
         status: response.status,
-        message: responseData?.message || "Request successful",
+        message: (response.data as any)?.message || "Request successful",
       };
 
       return result;
     } catch (error: any) {
+      console.error(`❌ POST ${url} failed:`, error.message);
+
       if (error.success !== undefined) {
         throw error;
       }
 
-      const apiError: ApiResponse<T> = {
+      throw {
         success: false,
         status: error.response?.status,
         message: error.message || "Request failed",
         error: error.code || "UNKNOWN_ERROR",
         data: error.response?.data,
       };
-
-      throw apiError;
     }
   },
 
-  // ✅ FIXED: Login specific method with proper config
+  // ✅ FIXED: Login method with detailed logging
   login: async (email: string, password: string): Promise<ApiResponse> => {
     try {
-      // Clear any existing token before login
+      console.log("🔐 Attempting login...", { email });
+
+      // Clear old tokens
       await clearAuthToken();
 
-      // ✅ FIXED: Proper config object
       const config: CustomAxiosRequestConfig = {
         _skipAuth: true,
-        headers: {
-          "Content-Type": "application/json",
-        },
+        timeout: 15000,
       };
 
       const response = await api.post(
@@ -352,40 +424,61 @@ export const apiService = {
         config,
       );
 
+      console.log(
+        "✅ Login raw response:",
+        JSON.stringify(response.data, null, 2),
+      );
+
       const responseData = response.data;
 
-      // Save token if received
-      if (responseData.token) {
-        await setAuthToken(responseData.token);
+      // Extract token from various possible locations
+      let token =
+        responseData.token ||
+        responseData.accessToken ||
+        responseData.data?.token ||
+        responseData.access_token;
 
-        if (responseData.expiresIn) {
-          const expiryDate = new Date();
-          expiryDate.setSeconds(
-            expiryDate.getSeconds() + responseData.expiresIn,
-          );
-          await AsyncStorage.setItem("token_expiry", expiryDate.toISOString());
-        }
+      let user = responseData.user ||
+        responseData.data?.user || {
+          email,
+          id: responseData.userId || Date.now().toString(),
+        };
+
+      if (!token) {
+        console.error("❌ No token found in login response");
+        throw new Error("Authentication failed: No token received");
       }
+
+      // Save token
+      await setAuthToken(token);
+      console.log("✅ Token saved successfully, length:", token.length);
 
       const result: ApiResponse = {
         success: true,
-        data: responseData,
+        data: { user, token },
         status: response.status,
         message: responseData.message || "Login successful",
       };
 
+      console.log("🎉 Login successful!");
       return result;
     } catch (error: any) {
-      // Transform axios error to our ApiResponse format
-      const apiError: ApiResponse = {
+      console.error("❌ Login failed:", {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+
+      throw {
         success: false,
         status: error.response?.status,
-        message: error.response?.data?.message || "Login failed",
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Login failed. Please check your credentials.",
         error: error.code || "LOGIN_ERROR",
         data: error.response?.data,
       };
-
-      throw apiError;
     }
   },
 
@@ -396,31 +489,18 @@ export const apiService = {
     config?: CustomAxiosRequestConfig,
   ): Promise<ApiResponse<T>> => {
     try {
+      console.log(`📞 PUT ${url}`);
       const response = await api.put<T>(url, data, config);
 
-      const responseData = response.data as any;
-      const result: ApiResponse<T> = {
+      return {
         success: response.status >= 200 && response.status < 300,
         data: response.data,
         status: response.status,
-        message: responseData?.message || "Request successful",
+        message: (response.data as any)?.message || "Request successful",
       };
-
-      return result;
     } catch (error: any) {
-      if (error.success !== undefined) {
-        throw error;
-      }
-
-      const apiError: ApiResponse<T> = {
-        success: false,
-        status: error.response?.status,
-        message: error.message || "Request failed",
-        error: error.code || "UNKNOWN_ERROR",
-        data: error.response?.data,
-      };
-
-      throw apiError;
+      console.error(`❌ PUT ${url} failed:`, error.message);
+      throw error;
     }
   },
 
@@ -431,31 +511,18 @@ export const apiService = {
     config?: CustomAxiosRequestConfig,
   ): Promise<ApiResponse<T>> => {
     try {
+      console.log(`📞 PATCH ${url}`);
       const response = await api.patch<T>(url, data, config);
 
-      const responseData = response.data as any;
-      const result: ApiResponse<T> = {
+      return {
         success: response.status >= 200 && response.status < 300,
         data: response.data,
         status: response.status,
-        message: responseData?.message || "Request successful",
+        message: (response.data as any)?.message || "Request successful",
       };
-
-      return result;
     } catch (error: any) {
-      if (error.success !== undefined) {
-        throw error;
-      }
-
-      const apiError: ApiResponse<T> = {
-        success: false,
-        status: error.response?.status,
-        message: error.message || "Request failed",
-        error: error.code || "UNKNOWN_ERROR",
-        data: error.response?.data,
-      };
-
-      throw apiError;
+      console.error(`❌ PATCH ${url} failed:`, error.message);
+      throw error;
     }
   },
 
@@ -465,31 +532,18 @@ export const apiService = {
     config?: CustomAxiosRequestConfig,
   ): Promise<ApiResponse<T>> => {
     try {
+      console.log(`📞 DELETE ${url}`);
       const response = await api.delete<T>(url, config);
 
-      const responseData = response.data as any;
-      const result: ApiResponse<T> = {
+      return {
         success: response.status >= 200 && response.status < 300,
         data: response.data,
         status: response.status,
-        message: responseData?.message || "Request successful",
+        message: (response.data as any)?.message || "Request successful",
       };
-
-      return result;
     } catch (error: any) {
-      if (error.success !== undefined) {
-        throw error;
-      }
-
-      const apiError: ApiResponse<T> = {
-        success: false,
-        status: error.response?.status,
-        message: error.message || "Request failed",
-        error: error.code || "UNKNOWN_ERROR",
-        data: error.response?.data,
-      };
-
-      throw apiError;
+      console.error(`❌ DELETE ${url} failed:`, error.message);
+      throw error;
     }
   },
 
@@ -508,17 +562,30 @@ export const apiService = {
   isAuthenticated: async (): Promise<boolean> => {
     try {
       const token = await getAuthToken();
-      if (!token) return false;
-
-      const tokenExpiry = await AsyncStorage.getItem("token_expiry");
-      if (tokenExpiry && new Date(tokenExpiry) < new Date()) {
-        await clearAuthToken();
-        return false;
-      }
-
-      return true;
+      return !!token;
     } catch {
       return false;
+    }
+  },
+
+  // Health check
+  healthCheck: async (): Promise<ApiResponse> => {
+    try {
+      const response = await api.get("/health", { _skipAuth: true });
+
+      return {
+        success: true,
+        data: response.data,
+        status: response.status,
+        message: "Service is healthy",
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        status: error.response?.status,
+        message: "Service unavailable",
+        error: "HEALTH_CHECK_FAILED",
+      };
     }
   },
 };
@@ -535,12 +602,9 @@ export const setBaseURL = (url: string): void => {
 // Network check utility
 export const checkNetworkConnection = async (): Promise<boolean> => {
   try {
-    const response = await fetch("https://www.google.com", {
-      method: "HEAD",
-      mode: "no-cors",
-    });
+    await fetch("https://www.google.com", { method: "HEAD", mode: "no-cors" });
     return true;
-  } catch (error) {
+  } catch {
     return false;
   }
 };

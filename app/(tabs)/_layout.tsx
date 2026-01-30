@@ -3,7 +3,7 @@ import { useAppTheme } from "@/context/ThemeContext";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { useAuthStore } from "@/store/auth.store";
 import { Ionicons } from "@expo/vector-icons";
-import { router, Tabs } from "expo-router";
+import { router, Tabs, Redirect } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Image, Pressable, Text, View, ActivityIndicator } from "react-native";
 
@@ -20,14 +20,7 @@ export default function TabLayout() {
       setAuthChecked(true);
     };
     verifyAuth();
-  }, [checkAuth]);
-
-  // Listen for auth state changes
-  useEffect(() => {
-    if (authChecked && !isAuthenticated && !isLoading) {
-      router.replace("/(auth)/login");
-    }
-  }, [isAuthenticated, authChecked, isLoading]);
+  }, []);
 
   // Show loading while checking auth
   if (isLoading || !authChecked) {
@@ -46,9 +39,10 @@ export default function TabLayout() {
     );
   }
 
-  // If not authenticated, show nothing (will redirect via useEffect)
+  // ✅ FIXED: Direct redirect if not authenticated
   if (!isAuthenticated) {
-    return null;
+    // console.log("❌ Not authenticated, redirecting to login...");
+    return <Redirect href="/(auth)/login" />;
   }
 
   return (
