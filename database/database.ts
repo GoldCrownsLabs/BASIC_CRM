@@ -12,6 +12,7 @@ export const initDB = () => {
         status TEXT,
         updated_at TEXT,
         is_synced INTEGER
+        
       );
 
       CREATE TABLE IF NOT EXISTS sync_queue (
