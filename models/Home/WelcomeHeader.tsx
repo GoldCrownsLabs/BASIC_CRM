@@ -33,7 +33,7 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
         style={{
           padding: 20,
           marginHorizontal: 15,
-          marginTop: 15,
+          // marginTop: 15,
           borderRadius: 20,
           backgroundColor: colors.card,
           opacity: fadeAnim,

@@ -14,7 +14,7 @@ import { SyncStatus } from "@/models/Home/SyncStatus";
 
 export default function DashboardScreen() {
   const { user } = useAuthStore();
-  const { colors, isDark } = useAppTheme(); // ✅ एक ही जगह से सभी values ले लो
+  const { colors, isDark } = useAppTheme();
 
   const {
     greeting,
@@ -29,7 +29,6 @@ export default function DashboardScreen() {
     formatCurrency,
   } = useDashboard();
 
-  // ✅ अब function के inside में hook नहीं है
   const getMutedBackground = () => {
     return isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)";
   };

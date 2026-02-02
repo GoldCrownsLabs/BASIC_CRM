@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  SafeAreaView,
   ScrollView,
   RefreshControl,
   StatusBar,
@@ -10,8 +9,6 @@ import {
 import { useAppTheme } from "@/context/ThemeContext";
 import { useProfile } from "@/hooks/useProfile";
 import { useProfileActions } from "@/hooks/useProfileActions";
-
-
 
 // Modals
 import EditProfileModal from "@/components/Modal/EditProfileModal";
@@ -32,6 +29,7 @@ import { ActivityTimelineCard } from "@/models/Profile/ActivityTimelineCard";
 import { AddressHeaderCard } from "@/models/Profile/AddressHeaderCard";
 import { AddressCard } from "@/models/Profile/AddressCard";
 import { EmptyAddressCard } from "@/models/Profile/EmptyAddressCard";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const ProfilePage = () => {
   const { colors, isDark } = useAppTheme();

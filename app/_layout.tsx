@@ -12,6 +12,7 @@ import { AppThemeProvider, useAppTheme } from '@/context/ThemeContext';
 import { useAppLoading } from '@/hooks/useAppLoading';
 import { ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { LeadsProvider } from '@/context/LeadsContext';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 // Separate component that uses the theme
 function AppContent() {
@@ -155,9 +156,11 @@ function AppContent() {
 export default function RootLayout() {
   return (
     <AppThemeProvider>
+      <SafeAreaProvider>
       <LeadsProvider>
         <AppContent />
       </LeadsProvider>
+      </SafeAreaProvider>
     </AppThemeProvider>
   );
 }
