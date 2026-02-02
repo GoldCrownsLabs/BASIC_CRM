@@ -246,7 +246,6 @@ export default function LoginScreen() {
               </View>
             </ScrollView>
 
-            {/* ✅ Footer at the bottom */}
             <TermsPrivacyFooter
               onTermsPress={() => setShowTermsModal(true)}
               onPrivacyPress={() => setShowPrivacyModal(true)}

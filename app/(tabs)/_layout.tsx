@@ -39,9 +39,7 @@ export default function TabLayout() {
     );
   }
 
-  // ✅ FIXED: Direct redirect if not authenticated
   if (!isAuthenticated) {
-    // console.log("❌ Not authenticated, redirecting to login...");
     return <Redirect href="/(auth)/login" />;
   }
 

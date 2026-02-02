@@ -60,7 +60,6 @@ const darkColors: ThemeColors = {
 
 const AppThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-// Custom Navigation Themes बनाएं
 export const CustomLightTheme = {
   ...DefaultTheme,
   colors: {
