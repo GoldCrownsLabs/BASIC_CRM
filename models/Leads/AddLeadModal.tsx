@@ -1,19 +1,19 @@
-import React, { useState } from "react";
-import {
-  Modal,
-  View,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
 import { ThemedText } from "@/components/themed-text";
-import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 import { leadSources } from "@/data/leads";
 import leadsApi, { CreateLeadPayload, Lead } from "@/lib/api/leads.api";
+import { Ionicons } from "@expo/vector-icons";
+import React, { useState } from "react";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 interface AddLeadModalProps {
   visible: boolean;
@@ -440,7 +440,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                         fontWeight: "500",
                       }}
                     >
-                      Budget ($)
+                      Budget (₹)
                     </ThemedText>
                     <TextInput
                       style={{
@@ -523,7 +523,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                       "qualified",
                       "proposal",
                       "negotiation",
-                    ].map((status) => (
+                    ]?.map((status) => (
                       <TouchableOpacity
                         key={status}
                         style={{
@@ -617,7 +617,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                             fontWeight: "500",
                           }}
                         >
-                          {source.charAt(0).toUpperCase() + source.slice(1)}
+                          {source}
                         </ThemedText>
                       </TouchableOpacity>
                     ))}
@@ -637,7 +637,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                     Priority
                   </ThemedText>
                   <View style={{ flexDirection: "row", gap: 8 }}>
-                    {["high", "medium", "low"].map((priority) => (
+                    {["high", "medium", "low"]?.map((priority) => (
                       <TouchableOpacity
                         key={priority}
                         style={{

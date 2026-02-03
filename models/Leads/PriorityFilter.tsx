@@ -3,7 +3,6 @@ import { View, TouchableOpacity } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
-import { priorities } from "@/data/leads";
 
 interface PriorityFilterProps {
   selectedPriority: string;
@@ -12,6 +11,9 @@ interface PriorityFilterProps {
   getPriorityColor: (priority: string) => string;
   getPriorityDisplayLabel: (priority: string) => string;
 }
+
+// ✅ LOCAL PRIORITIES ARRAY
+const LOCAL_PRIORITIES = ["high", "medium", "low"];
 
 export const PriorityFilter: React.FC<PriorityFilterProps> = ({
   selectedPriority,
@@ -24,46 +26,10 @@ export const PriorityFilter: React.FC<PriorityFilterProps> = ({
 
   return (
     <View style={{ flexDirection: "row", gap: 8 }}>
-      <TouchableOpacity
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: 12,
-          paddingVertical: 6,
-          borderRadius: 16,
-          borderWidth: 1,
-          gap: 6,
-          backgroundColor:
-            selectedPriority === "All"
-              ? colors.primary + "20"
-              : colors.background,
-          borderColor:
-            selectedPriority === "All" ? colors.primary : colors.border,
-        }}
-        onPress={() => onSelectPriority("All")}
-      >
-        <Ionicons
-          name="flag"
-          size={16}
-          color={
-            selectedPriority === "All" ? colors.primary : colors.textSecondary
-          }
-        />
-        <ThemedText
-          style={{
-            color:
-              selectedPriority === "All"
-                ? colors.primary
-                : colors.textSecondary,
-            fontSize: 12,
-            fontWeight: "500",
-          }}
-        >
-          All
-        </ThemedText>
-      </TouchableOpacity>
+      {/* All button... */}
 
-      {priorities.map((priority) => (
+      {/* ✅ USE LOCAL ARRAY INSTEAD */}
+      {LOCAL_PRIORITIES.map((priority) => (
         <TouchableOpacity
           key={priority}
           style={{

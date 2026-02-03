@@ -100,6 +100,7 @@ export const getStageStats = (stats: any, leadsData: any[], colors: any) => {
   const allStages = [
     { id: "0", label: "All", status: "all", color: colors.primary },
     ...leadStages.map((stage) => ({
+      // ❌ LINE 96 - ERROR HERE
       ...stage,
       status: (stage as any).status || stage.label.toLowerCase(),
     })),
