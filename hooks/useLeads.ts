@@ -5,9 +5,59 @@ import leadsApi, {
   LeadFilters,
   LeadStats,
   LeadsResponse,
-  CreateLeadPayload,
 } from "@/lib/api/leads.api";
 import { useAuthStore } from "@/store/auth.store";
+
+// Create a type that extends Lead with UI-specific properties
+// Use Omit to exclude email and add it back with optional type
+interface UILead extends Omit<Lead, "email"> {
+  name?: string; // For full name display
+  stage?: string; // Alternative to status
+  estimatedValue?: number; // Alternative to budget
+  phone?: string;
+  company?: string;
+  email?: string; // Make optional to match original Lead
+}
+
+// Helper function to get full name from Lead
+const getLeadFullName = (lead: Lead): string => {
+  return `${lead.firstName} ${lead.lastName || ""}`.trim();
+};
+
+// Helper function to calculate stats from leads data
+const calculateStatsFromLeads = (leads: UILead[]): LeadStats => {
+  const statsByStage: Record<string, { count: number; totalValue: number }> =
+    {};
+
+  leads.forEach((lead) => {
+    const stage = lead.status || lead.stage || "unknown";
+    if (!statsByStage[stage]) {
+      statsByStage[stage] = { count: 0, totalValue: 0 };
+    }
+    statsByStage[stage].count += 1;
+    statsByStage[stage].totalValue += lead.budget || lead.estimatedValue || 0;
+  });
+
+  // Calculate conversion rate
+  const wonLeads = leads.filter((lead) => lead.status === "closed_won").length;
+  const conversionRatePercentage =
+    leads.length > 0 ? ((wonLeads / leads.length) * 100).toFixed(1) : "0.0";
+
+  // Create a complete LeadStats object
+  return {
+    totalLeads: leads.length,
+    leadsByStatus: Object.entries(statsByStage).map(([stage, data]) => ({
+      _id: stage,
+      count: data.count,
+      totalValue: data.totalValue,
+    })),
+    leadsBySource: [], // Empty for now
+    leadsByPriority: [], // Empty for now
+    leadsByMonth: [], // Empty for now
+    hotLeads: 0,
+    conversionRate: `${conversionRatePercentage}%`, // ✅ String format में
+  };
+};
 
 export const useLeads = () => {
   const { isAuthenticated } = useAuthStore();
@@ -17,8 +67,10 @@ export const useLeads = () => {
   const [selectedStage, setSelectedStage] = useState("All");
   const [selectedSource, setSelectedSource] = useState("All");
   const [selectedPriority, setSelectedPriority] = useState("All");
-  const [leadsData, setLeadsData] = useState<Lead[]>([]);
+  const [leadsData, setLeadsData] = useState<UILead[]>([]);
   const [stats, setStats] = useState<LeadStats | null>(null);
+  const [allLeadsData, setAllLeadsData] = useState<UILead[]>([]);
+  const [allStats, setAllStats] = useState<LeadStats | null>(null);
   const [pagination, setPagination] = useState({
     page: 1,
     pages: 1,
@@ -26,141 +78,195 @@ export const useLeads = () => {
     limit: 10,
   });
 
+  // Initial fetch - ALL data fetch करें
   useEffect(() => {
     if (isAuthenticated) {
-      fetchLeads();
-      fetchLeadStats();
+      fetchAllData();
     } else {
       setLoading(false);
     }
   }, [isAuthenticated]);
 
-  const fetchLeads = async (filters?: LeadFilters) => {
-    // ✅ CHECK: Don't fetch if not authenticated
-    if (!isAuthenticated) {
-      // console.log("useLeads: Skipping fetch - not authenticated");
-      setLoading(false);
-      return;
-    }
+  // Function to transform API Lead to UILead
+  const transformToUILead = (lead: Lead): UILead => {
+    return {
+      ...lead,
+      name: getLeadFullName(lead),
+      stage: lead.status, // Map status to stage
+      estimatedValue: lead.budget, // Map budget to estimatedValue
+      // Ensure other properties exist (email is already in lead from API)
+      phone: lead.phone || "",
+      company: lead.company || "",
+      // Don't override email, use the one from API
+    } as UILead; // Type assertion to handle the Omit
+  };
 
+  // सभी data एक साथ fetch करें
+  const fetchAllData = async () => {
     try {
       setLoading(true);
 
-      const response = await leadsApi.getLeads({
-        page: pagination.page,
-        limit: pagination.limit,
+      // Fetch ALL leads (no filters)
+      const allLeadsResponse = await leadsApi.getLeads({
+        page: 1,
+        limit: 1000,
         sortBy: "createdAt",
         sortOrder: "desc",
-        status: selectedStage !== "All" ? selectedStage : undefined,
-        source: selectedSource !== "All" ? selectedSource : undefined,
-        priority: selectedPriority !== "All" ? selectedPriority : undefined,
-        search: searchQuery || undefined,
-        ...filters,
       });
 
-      if (response.success && response.data) {
-        const leadsResponse = response.data as LeadsResponse;
-        setLeadsData(leadsResponse.data || []);
+      // Fetch ALL stats
+      const statsResponse = await leadsApi.getLeadStats();
 
-        if (leadsResponse.pagination) {
-          setPagination({
-            page: leadsResponse.pagination.page || 1,
-            pages: leadsResponse.pagination.pages || 1,
-            total: leadsResponse.pagination.total || 0,
-            limit: leadsResponse.pagination.limit || 10,
-          });
+      if (allLeadsResponse.success && allLeadsResponse.data) {
+        const allLeads = allLeadsResponse.data as LeadsResponse;
+        const apiData = allLeads.data || [];
+
+        // Transform API data to UILead
+        const uiData: UILead[] = apiData.map(transformToUILead);
+
+        // Store ALL leads
+        setAllLeadsData(uiData);
+
+        // Initially show ALL leads
+        setLeadsData(uiData);
+        setPagination({
+          page: 1,
+          pages: Math.ceil(uiData.length / 10),
+          total: uiData.length,
+          limit: 10,
+        });
+
+        // Calculate stats if API stats not available
+        if (!statsResponse.success || !statsResponse.data) {
+          const calculatedStats = calculateStatsFromLeads(uiData);
+          setAllStats(calculatedStats);
+          setStats(calculatedStats);
         }
       }
-    } catch (error: any) {
-      console.error("Error fetching leads:", error);
-      // Only show alert for actual API errors, not auth errors
-      if (
-        !error.message?.includes("Session expired") &&
-        !error.message?.includes("Not authorized")
-      ) {
-        Alert.alert("Error", error.message || "Failed to fetch leads");
+
+      if (statsResponse.success && statsResponse.data) {
+        // Store ALL stats from API
+        setAllStats(statsResponse.data);
+        setStats(statsResponse.data);
       }
+    } catch (error: any) {
+      console.error("Error fetching all data:", error);
+      Alert.alert("Error", "Failed to fetch leads data");
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchLeadStats = async () => {
-    // ✅ CHECK: Don't fetch if not authenticated
-    if (!isAuthenticated) {
-      // console.log("useLeads: Skipping stats fetch - not authenticated");
+  // Filtered leads show करें (client-side filtering)
+  const applyFilters = () => {
+    if (!allLeadsData.length) {
+      setLeadsData([]);
       return;
     }
 
-    try {
-      const response = await leadsApi.getLeadStats();
+    let filteredLeads = [...allLeadsData];
 
-      if (response.success && response.data) {
-        setStats(response.data);
-      }
-    } catch (error) {
-      console.error("Error fetching lead stats:", error);
+    // Apply stage filter
+    if (selectedStage !== "All") {
+      filteredLeads = filteredLeads.filter(
+        (lead) =>
+          lead.status?.toLowerCase() === selectedStage.toLowerCase() ||
+          lead.stage?.toLowerCase() === selectedStage.toLowerCase(),
+      );
     }
+
+    // Apply source filter
+    if (selectedSource !== "All") {
+      filteredLeads = filteredLeads.filter(
+        (lead) => lead.source?.toLowerCase() === selectedSource.toLowerCase(),
+      );
+    }
+
+    // Apply priority filter
+    if (selectedPriority !== "All") {
+      filteredLeads = filteredLeads.filter(
+        (lead) =>
+          lead.priority?.toLowerCase() === selectedPriority.toLowerCase(),
+      );
+    }
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filteredLeads = filteredLeads.filter(
+        (lead) =>
+          lead.firstName?.toLowerCase().includes(query) ||
+          lead.lastName?.toLowerCase().includes(query) ||
+          (lead.firstName + " " + (lead.lastName || ""))
+            .toLowerCase()
+            .includes(query) ||
+          lead.email?.toLowerCase().includes(query) ||
+          lead.company?.toLowerCase().includes(query) ||
+          lead.phone?.toLowerCase().includes(query),
+      );
+    }
+
+    // Update pagination and show filtered data
+    const total = filteredLeads.length;
+    const pages = Math.ceil(total / pagination.limit);
+
+    // Get current page data
+    const startIndex = (pagination.page - 1) * pagination.limit;
+    const endIndex = startIndex + pagination.limit;
+    const pageData = filteredLeads.slice(startIndex, endIndex);
+
+    setLeadsData(pageData);
+    setPagination((prev) => ({
+      ...prev,
+      total,
+      pages,
+    }));
   };
 
-  const onRefresh = useCallback(async () => {
-    // ✅ CHECK: Don't refresh if not authenticated
-    if (!isAuthenticated) {
-      // console.log("useLeads: Skipping refresh - not authenticated");
-      return;
+  // Apply filters when any filter changes
+  useEffect(() => {
+    if (isAuthenticated && allLeadsData.length > 0) {
+      applyFilters();
     }
-
-    setRefreshing(true);
-    await Promise.all([fetchLeads(), fetchLeadStats()]);
-    setRefreshing(false);
   }, [
-    isAuthenticated,
-    searchQuery,
     selectedStage,
     selectedSource,
     selectedPriority,
+    searchQuery,
+    pagination.page,
   ]);
+
+  const onRefresh = useCallback(async () => {
+    if (!isAuthenticated) return;
+
+    setRefreshing(true);
+    await fetchAllData();
+    setRefreshing(false);
+  }, [isAuthenticated]);
 
   const handleSearch = (text: string) => {
     setSearchQuery(text);
-    if (isAuthenticated) {
-      fetchLeads({ search: text, page: 1 });
-    }
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   const handleStageFilter = (stage: string) => {
     setSelectedStage(stage);
-    if (isAuthenticated) {
-      fetchLeads({
-        status: stage !== "All" ? stage : undefined,
-        page: 1,
-      });
-    }
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   const handleSourceFilter = (source: string) => {
     setSelectedSource(source);
-    if (isAuthenticated) {
-      fetchLeads({
-        source: source !== "All" ? source : undefined,
-        page: 1,
-      });
-    }
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   const handlePriorityFilter = (priority: string) => {
     setSelectedPriority(priority);
-    if (isAuthenticated) {
-      fetchLeads({
-        priority: priority !== "All" ? priority : undefined,
-        page: 1,
-      });
-    }
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   const handlePageChange = (newPage: number) => {
-    if (isAuthenticated && newPage >= 1 && newPage <= pagination.pages) {
-      fetchLeads({ page: newPage });
+    if (newPage >= 1 && newPage <= pagination.pages) {
+      setPagination((prev) => ({ ...prev, page: newPage }));
     }
   };
 
@@ -177,11 +283,12 @@ export const useLeads = () => {
     selectedSource,
     selectedPriority,
     leadsData,
-    stats,
+    stats: allStats,
     pagination,
     totalPipelineValue,
-    fetchLeads,
-    fetchLeadStats,
+    allLeadsData,
+    fetchLeads: fetchAllData,
+    fetchLeadStats: () => {},
     onRefresh,
     handleSearch,
     handleStageFilter,

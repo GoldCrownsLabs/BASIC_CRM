@@ -1,5 +1,6 @@
+// @/models/Leads/StageFilter.tsx में
 import React from "react";
-import { View, TouchableOpacity, ScrollView } from "react-native";
+import { View, TouchableOpacity } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/context/ThemeContext";
 
@@ -26,6 +27,7 @@ export const StageFilter: React.FC<StageFilterProps> = ({
 }) => {
   const { colors } = useAppTheme();
 
+  // Original UI layout
   return (
     <View
       style={{
@@ -39,6 +41,58 @@ export const StageFilter: React.FC<StageFilterProps> = ({
         gap: 8,
       }}
     >
+      {/* "All" option */}
+      <TouchableOpacity
+        style={{
+          alignItems: "center",
+          padding: 8,
+          borderRadius: 10,
+          borderWidth: 1,
+          minWidth: 80,
+          backgroundColor:
+            selectedStage === "All" ? colors.primary + "20" : colors.card,
+          borderColor: selectedStage === "All" ? colors.primary : colors.border,
+        }}
+        onPress={() => onSelectStage("All")}
+      >
+        <View
+          style={{
+            width: 8,
+            height: 8,
+            borderRadius: 4,
+            marginBottom: 6,
+            backgroundColor:
+              selectedStage === "All" ? colors.primary : colors.textSecondary,
+          }}
+        />
+        <ThemedText
+          style={{
+            color: colors.text,
+            fontSize: 10,
+            fontWeight: "500",
+            marginBottom: 4,
+          }}
+        >
+          All
+        </ThemedText>
+        <ThemedText
+          style={{
+            color: selectedStage === "All" ? colors.primary : colors.text,
+            fontSize: 16,
+            fontWeight: "bold",
+            marginBottom: 2,
+          }}
+        >
+          {stages.reduce((total, stage) => total + stage.count, 0)}
+        </ThemedText>
+        <ThemedText style={{ color: colors.textSecondary, fontSize: 9 }}>
+          {formatCurrency(
+            stages.reduce((total, stage) => total + stage.totalValue, 0),
+          )}
+        </ThemedText>
+      </TouchableOpacity>
+
+      {/* अन्य stages - ORIGINAL UI */}
       {stages.map((stage) => (
         <TouchableOpacity
           key={stage.id}
@@ -49,10 +103,11 @@ export const StageFilter: React.FC<StageFilterProps> = ({
             borderWidth: 1,
             minWidth: 80,
             backgroundColor:
-              selectedStage === stage.label ? stage.color + "20" : colors.card,
-            borderColor: stage.color,
+              selectedStage === stage.id ? stage.color + "20" : colors.card,
+            borderColor:
+              selectedStage === stage.id ? stage.color : colors.border,
           }}
-          onPress={() => onSelectStage(stage.label)}
+          onPress={() => onSelectStage(stage.id)}
         >
           <View
             style={{

@@ -1,6 +1,21 @@
 import { leadStages } from "@/data/leads";
 
-export const getStageColor = (status: string): string => {
+export const getStageColor = (status: string, colors?: any): string => {
+  // Use theme colors if available, otherwise default
+  if (colors) {
+    const colorMapping: Record<string, string> = {
+      new: colors.primary || "#4CAF50",
+      contacted: colors.info || "#2196F3",
+      qualified: colors.warning || "#FF9800",
+      proposal: colors.accent || "#9C27B0",
+      negotiation: colors.purple || "#FF5722",
+      closed_won: colors.success || "#4CAF50",
+      closed_lost: colors.error || "#F44336",
+    };
+    return colorMapping[status] || colors.textSecondary || "#666666";
+  }
+
+  // Fallback to default colors
   const stageMapping: Record<string, string> = {
     new: "#4CAF50",
     contacted: "#2196F3",
@@ -94,40 +109,56 @@ export const formatDate = (dateString?: string): string => {
   });
 };
 
-export const getStageStats = (stats: any, leadsData: any[], colors: any) => {
-  if (!stats) return [];
-
-  const allStages = [
-    { id: "0", label: "All", status: "all", color: colors.primary },
-    ...leadStages.map((stage) => ({
-      // ❌ LINE 96 - ERROR HERE
-      ...stage,
-      status: (stage as any).status || stage.label.toLowerCase(),
-    })),
+export const getStageStats = (stats: any, allLeadsData: any[], colors: any) => {
+  // Define all possible stages (excluding "All")
+  const stageDefinitions = [
+    { id: "new", label: "New", status: "new" },
+    { id: "contacted", label: "Contacted", status: "contacted" },
+    { id: "qualified", label: "Qualified", status: "qualified" },
+    { id: "proposal", label: "Proposal", status: "proposal" },
+    { id: "negotiation", label: "Negotiation", status: "negotiation" },
+    { id: "closed_won", label: "Won", status: "closed_won" },
+    { id: "closed_lost", label: "Lost", status: "closed_lost" },
   ];
 
-  return allStages.map((stage) => {
-    let count = 0;
-    let totalValue = 0;
+  // ALWAYS calculate from ALL leads data - counts NEVER change
+  const processedStages = stageDefinitions.map((stageDef) => {
+    const color = getStageColor(stageDef.status, colors);
 
-    if (stage.status === "all") {
-      count = stats?.totalLeads || leadsData.length;
-      totalValue = leadsData.reduce((sum, lead) => sum + (lead.budget || 0), 0);
-    } else {
-      const stageData = stats?.leadsByStatus?.find(
-        (s: any) => s._id === stage.status,
-      );
-      count = stageData?.count || 0;
+    // Filter ALL leads for this stage
+    const stageLeads = allLeadsData.filter((lead) => {
+      const leadStatus = lead.status || lead.stage || "";
+      return leadStatus.toLowerCase() === stageDef.status.toLowerCase();
+    });
 
-      totalValue = leadsData
-        .filter((lead) => lead.status === stage.status)
-        .reduce((sum, lead) => sum + (lead.budget || 0), 0);
-    }
+    // Calculate count and total value from ALL leads
+    const count = stageLeads.length;
+    const totalValue = stageLeads.reduce(
+      (sum, lead) => sum + (lead.budget || lead.estimatedValue || 0),
+      0,
+    );
 
     return {
-      ...stage,
-      count,
-      totalValue,
+      id: stageDef.id,
+      label: stageDef.label,
+      status: stageDef.status,
+      color,
+      count, // ✅ ये count कभी नहीं बदलेगा
+      totalValue, // ✅ ये value कभी नहीं बदलेगा
     };
   });
+
+  // Return only the stages (without "All")
+  return processedStages;
+};
+
+// Helper function to get "All" stage data separately
+export const getAllStageData = (stages: any[]) => {
+  const totalCount = stages.reduce((sum, stage) => sum + stage.count, 0);
+  const totalValue = stages.reduce((sum, stage) => sum + stage.totalValue, 0);
+
+  return {
+    count: totalCount,
+    value: totalValue,
+  };
 };

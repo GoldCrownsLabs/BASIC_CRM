@@ -52,8 +52,13 @@ export interface Lead {
   customFields?: Record<string, any>;
   createdAt: string;
   updatedAt: string;
-}
 
+  // ✅ ADD THESE MISSING PROPERTIES:
+  name?: string; // For display purposes (full name)
+  stage?: string; // Alternative to status
+  estimatedValue?: number; // Alternative to budget
+  // Add any other properties your UI needs
+}
 // Lead creation payload
 export interface CreateLeadPayload {
   firstName: string;
