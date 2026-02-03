@@ -48,11 +48,20 @@ declare module "axios" {
 
 // ✅ Now we can use AxiosRequestConfig directly without custom interface
 type CustomAxiosRequestConfig = AxiosRequestConfig;
-
+// Server Render URL
 // Create axios instance
+// const api = axios.create({
+//   baseURL: "https://basic-crm-backend-p5tb.onrender.com/api/",
+//   timeout: 30000,
+//   headers: {
+//     "Content-Type": "application/json",
+//     Accept: "application/json",
+//   },
+// });
+
+// Localhost URL
 const api = axios.create({
-  baseURL: "https://basic-crm-backend-p5tb.onrender.com/api/",
-  // baseURL: "http://localhost:5000/api/",
+  baseURL: "http://192.168.1.23:5000/api/",
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",

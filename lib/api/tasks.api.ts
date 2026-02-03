@@ -1,6 +1,16 @@
-import { APIPriority, APIStatus, BulkStatusUpdatePayload, QueryParams, StatsResponse, TaskPayload, TaskResponse, TasksResponse, TaskUpdatePayload, TaskFormData } from "@/data/types/task";
+import {
+  APIPriority,
+  APIStatus,
+  BulkStatusUpdatePayload,
+  QueryParams,
+  StatsResponse,
+  TaskPayload,
+  TaskResponse,
+  TasksResponse,
+  TaskUpdatePayload,
+  TaskFormData,
+} from "@/data/types/task";
 import api from "./index";
-
 
 /**
  * Get all tasks with optional filters
@@ -34,13 +44,40 @@ export const getTask = async (id: string): Promise<TaskResponse> => {
  * Create a new task
  */
 export const createTask = async (
-  payload: TaskPayload,
+  payload: TaskFormData, // यह आपका frontend form data है
 ): Promise<TaskResponse> => {
   try {
-    const response = await api.post("/tasks", payload);
+    console.log("🔄 Frontend task data:", payload);
+
+    // Transform frontend data to backend format
+    const backendPayload = {
+      title: payload.title,
+      description: payload.description || "",
+      priority: payload.priority?.toLowerCase() || "medium",
+      dueDate: payload.dueDate, // Format: "YYYY-MM-DD"
+      // Add reminder date if reminder is enabled
+      reminderDate:
+        payload.reminder && payload.reminderTime
+          ? `${payload.dueDate}T${payload.reminderTime}:00`
+          : undefined,
+      // Add other fields
+      type: payload.type, // 'call', 'meeting', etc.
+      assignedTo: payload.assignedTo || "",
+      relatedTo: payload.relatedTo || "",
+      relatedToType: payload.relatedToType || "contact",
+      tags: payload.tags || [],
+      notes: payload.notes || "",
+      timeEstimate: payload.timeEstimate || "1h",
+      location: payload.location || "",
+      recurrence: payload.recurrence || "none",
+    };
+
+    console.log("📤 Backend payload:", backendPayload);
+
+    const response = await api.post("/tasks", backendPayload);
     return response.data;
   } catch (error) {
-    console.error("Create task error:", error);
+    console.error("❌ Create task API error:", error);
     throw error;
   }
 };
@@ -68,10 +105,12 @@ export const deleteTask = async (
   id: string,
 ): Promise<{ success: boolean; message: string }> => {
   try {
+    console.log("🗑️ Deleting task:", id);
     const response = await api.delete(`/tasks/${id}`);
+    console.log("✅ Delete response:", response.data);
     return response.data;
   } catch (error) {
-    console.error(`Delete task ${id} error:`, error);
+    console.error(`❌ Delete task ${id} error:`, error);
     throw error;
   }
 };
