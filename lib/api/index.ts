@@ -50,24 +50,24 @@ declare module "axios" {
 type CustomAxiosRequestConfig = AxiosRequestConfig;
 // Server Render URL
 // Create axios instance
-const api = axios.create({
-  baseURL: "https://basic-crm-backend-p5tb.onrender.com/api/",
-  timeout: 30000,
-  headers: {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-  },
-});
-
-// Localhost URL
 // const api = axios.create({
-//   baseURL: "http://192.168.1.23:5000/api/",
+//   baseURL: "https://basic-crm-backend-p5tb.onrender.com/api/",
 //   timeout: 30000,
 //   headers: {
 //     "Content-Type": "application/json",
 //     Accept: "application/json",
 //   },
 // });
+
+// Localhost URL
+const api = axios.create({
+  baseURL: "http://192.168.1.23:5000/api/",
+  timeout: 30000,
+  headers: {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  },
+});
 
 // =================== TOKEN MANAGEMENT ===================
 
