@@ -401,6 +401,7 @@ const AnalyticsPage: React.FC = () => {
 
         {/* Weekly Trends - Always show with data */}
         {analyticsData && (
+          
           <WeeklyTrends weeklyTrends={analyticsData.weeklyTrends} />
         )}
 
