@@ -3,7 +3,7 @@ import { useAppTheme } from "@/context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "expo-router";
 import React from "react";
-import { TouchableOpacity, View } from "react-native";
+import { TouchableOpacity, View, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface CommonHeaderProps {
@@ -14,6 +14,7 @@ interface CommonHeaderProps {
   onRightPress?: () => void;
   backgroundColor?: string;
   textColor?: string;
+  showSafeArea?: boolean;
 }
 
 export default function CommonHeader({
@@ -24,8 +25,8 @@ export default function CommonHeader({
   onRightPress,
   backgroundColor,
   textColor,
-  showSafeArea = true, // Add this prop
-}: CommonHeaderProps & { showSafeArea?: boolean }) {
+  showSafeArea = true,
+}: CommonHeaderProps) {
   const { colors } = useAppTheme();
   const navigation = useNavigation();
 
@@ -33,7 +34,7 @@ export default function CommonHeader({
     if (onBackPress) {
       onBackPress();
     } else if (navigation.canGoBack()) {
-      navigation.goBack();
+      navigation.goBack(); // यह सिर्फ पिछले screen पर जाएगा
     }
   };
 
@@ -41,30 +42,19 @@ export default function CommonHeader({
   const txtColor = textColor || colors.text;
 
   const HeaderContent = () => (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: 20,
-        height: 60,
-      }}
-    >
+    <View style={styles.headerContainer}>
       {/* Left Section */}
-      <View style={{ width: 40 }}>
+      <View style={styles.sideContainer}>
         {showBackButton && (
           <TouchableOpacity
             onPress={handleBack}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: colors.card,
-              justifyContent: "center",
-              alignItems: "center",
-              borderWidth: 1,
-              borderColor: colors.border,
-            }}
+            style={[
+              styles.backButton,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
+            ]}
             activeOpacity={0.7}
           >
             <Ionicons name="arrow-back" size={22} color={txtColor} />
@@ -73,15 +63,10 @@ export default function CommonHeader({
       </View>
 
       {/* Center Section - Title */}
-      <View style={{ flex: 1, alignItems: "center" }}>
+      <View style={styles.centerContainer}>
         <ThemedText
           type="subtitle"
-          style={{
-            color: txtColor,
-            fontSize: 17,
-            fontWeight: "600",
-            textAlign: "center",
-          }}
+          style={[styles.title, { color: txtColor }]}
           numberOfLines={1}
         >
           {title}
@@ -89,17 +74,11 @@ export default function CommonHeader({
       </View>
 
       {/* Right Section */}
-      <View style={{ width: 40 }}>
+      <View style={styles.sideContainer}>
         {rightIcon && (
           <TouchableOpacity
             onPress={onRightPress}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              justifyContent: "center",
-              alignItems: "center",
-            }}
+            style={styles.rightButton}
             activeOpacity={0.7}
           >
             {rightIcon}
@@ -111,14 +90,16 @@ export default function CommonHeader({
 
   return (
     <View
-      style={{
-        backgroundColor: bgColor,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border,
-      }}
+      style={[
+        styles.container,
+        {
+          backgroundColor: bgColor,
+          borderBottomColor: colors.border,
+        },
+      ]}
     >
       {showSafeArea ? (
-        <SafeAreaView edges={["top"]}>
+        <SafeAreaView edges={["top"]} style={styles.safeArea}>
           <HeaderContent />
         </SafeAreaView>
       ) : (
@@ -127,3 +108,46 @@ export default function CommonHeader({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    borderBottomWidth: 1,
+  },
+  safeArea: {
+  },
+  headerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    height: 60, // Fixed height
+  },
+  sideContainer: {
+    width: 40,
+  },
+  centerContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  title: {
+    fontSize: 17,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+  },
+  rightButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+});

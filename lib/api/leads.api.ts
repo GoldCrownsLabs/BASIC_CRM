@@ -2,6 +2,7 @@ import { ApiResponse, apiService } from ".";
 
 // Lead interface based on your schema
 export interface Lead {
+  contactName: string;
   _id: string;
   firstName: string;
   lastName?: string;
@@ -411,7 +412,7 @@ export const leadsApi = {
       }
 
       const response = await apiService.put<{
-        matched: number;
+        matched: number;  
         modified: number;
       }>("/leads/bulk-update", payload);
       return response;

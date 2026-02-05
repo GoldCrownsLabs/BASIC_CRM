@@ -1,24 +1,24 @@
 // ActivitiesPage.tsx
+import CommonHeader from "@/components/common/CommonHeader";
 import { useAppTheme } from "@/context/ThemeContext";
 import { activitiesData, Activity, activityTypes } from "@/data/activities";
 import {
-    AntDesign,
-    Feather,
-    FontAwesome,
-    MaterialIcons,
+  AntDesign,
+  Feather,
+  FontAwesome,
+  MaterialIcons,
 } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
-    FlatList,
-    Modal,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  FlatList,
+  Modal,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 type ActivityConfig = {
@@ -34,7 +34,7 @@ const ActivitiesPage = () => {
   const [activities, setActivities] = useState(activitiesData);
   const [search, setSearch] = useState("");
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(
-    null
+    null,
   );
   const [showAddModal, setShowAddModal] = useState(false);
   const [newActivity, setNewActivity] = useState({
@@ -99,59 +99,6 @@ const ActivitiesPage = () => {
     pending: isDark ? "#9CA3AF" : "#6B7280",
   };
 
-  // Styles with theme
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    header: {
-      backgroundColor: colors.card,
-      borderBottomColor: colors.border,
-    },
-    headerTitle: {
-      color: colors.text,
-    },
-    headerSubtitle: {
-      color: colors.textSecondary,
-    },
-    activityCard: {
-      backgroundColor: colors.card,
-      borderRadius: 16,
-      marginBottom: 12,
-      shadowColor: isDark ? "#000" : "#000",
-      shadowOpacity: isDark ? 0.2 : 0.05,
-      elevation: isDark ? 8 : 2,
-    },
-    activityTitle: {
-      color: colors.text,
-    },
-    activityText: {
-      color: colors.textSecondary,
-    },
-    modalBackground: {
-      backgroundColor: isDark ? "rgba(0, 0, 0, 0.8)" : "rgba(0, 0, 0, 0.5)",
-    },
-    modalContent: {
-      backgroundColor: colors.card,
-    },
-    input: {
-      backgroundColor: isDark ? colors.card : "#F9FAFB",
-      borderColor: colors.border,
-      color: colors.text,
-    },
-    filterChip: {
-      backgroundColor: isDark ? colors.border : "#F3F4F6",
-      borderColor: colors.border,
-    },
-    filterText: {
-      color: colors.textSecondary,
-    },
-    emptyStateText: {
-      color: colors.text,
-    },
-  });
-
   // Filter activities
   const filteredActivities = activities.filter((activity) => {
     const matchesSearch =
@@ -199,7 +146,7 @@ const ActivitiesPage = () => {
   // Update activity status
   const updateStatus = (id: string, status: Activity["status"]) => {
     setActivities(
-      activities.map((act) => (act.id === id ? { ...act, status } : act))
+      activities.map((act) => (act.id === id ? { ...act, status } : act)),
     );
     setSelectedActivity(null);
   };
@@ -218,160 +165,160 @@ const ActivitiesPage = () => {
 
     return (
       <TouchableOpacity
-        style={styles.activityCard}
+        style={{
+          backgroundColor: colors.card,
+          borderRadius: 16,
+          marginBottom: 12,
+          padding: 16,
+          shadowColor: isDark ? "#000" : "#000",
+          shadowOpacity: isDark ? 0.2 : 0.05,
+          elevation: isDark ? 8 : 2,
+        }}
         onPress={() => setSelectedActivity(item)}
         activeOpacity={0.7}
       >
         <View
           style={{
-            padding: 16,
+            flexDirection: "row",
+            alignItems: "center",
+            marginBottom: 12,
           }}
         >
           <View
             style={{
-              flexDirection: "row",
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              justifyContent: "center",
               alignItems: "center",
-              marginBottom: 12,
+              backgroundColor: config.bg,
+              marginRight: 12,
             }}
           >
-            <View
+            <Feather name={config.icon} size={18} color={config.color} />
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text
               style={{
-                width: 40,
-                height: 40,
-                borderRadius: 12,
-                justifyContent: "center",
-                alignItems: "center",
-                backgroundColor: config.bg,
-                marginRight: 12,
+                fontSize: 16,
+                fontWeight: "600",
+                marginBottom: 4,
+                color: colors.text,
               }}
             >
-              <Feather name={config.icon} size={18} color={config.color} />
-            </View>
-
-            <View style={{ flex: 1 }}>
+              {item.title}
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                flexWrap: "wrap",
+              }}
+            >
+              <FontAwesome name="user" size={12} color={colors.textSecondary} />
               <Text
-                style={[
-                  styles.activityTitle,
-                  { fontSize: 16, fontWeight: "600", marginBottom: 4 },
-                ]}
-              >
-                {item.title}
-              </Text>
-              <View
                 style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  flexWrap: "wrap",
+                  fontSize: 14,
+                  color: colors.textSecondary,
+                  marginLeft: 4,
+                  marginRight: 8,
                 }}
               >
-                <FontAwesome
-                  name="user"
-                  size={12}
-                  color={colors.textSecondary}
-                />
-                <Text
-                  style={{
-                    fontSize: 14,
-                    color: colors.textSecondary,
-                    marginLeft: 4,
-                    marginRight: 8,
-                  }}
-                >
-                  {item.contactName}
-                </Text>
-                {item.company && (
-                  <>
-                    <Text style={{ color: colors.border, marginHorizontal: 6 }}>
-                      •
-                    </Text>
-                    <MaterialIcons
-                      name="business"
-                      size={12}
-                      color={colors.textSecondary}
-                    />
-                    <Text
-                      style={{
-                        fontSize: 14,
-                        color: colors.textSecondary,
-                        marginLeft: 4,
-                      }}
-                    >
-                      {item.company}
-                    </Text>
-                  </>
-                )}
-              </View>
-            </View>
-
-            <View
-              style={{
-                paddingHorizontal: 8,
-                paddingVertical: 4,
-                borderRadius: 6,
-                backgroundColor: `${statusColor}20`,
-              }}
-            >
-              <Text
-                style={{ fontSize: 12, fontWeight: "500", color: statusColor }}
-              >
-                {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                {item.contactName}
               </Text>
+              {item.company && (
+                <>
+                  <Text style={{ color: colors.border, marginHorizontal: 6 }}>
+                    •
+                  </Text>
+                  <MaterialIcons
+                    name="business"
+                    size={12}
+                    color={colors.textSecondary}
+                  />
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: colors.textSecondary,
+                      marginLeft: 4,
+                    }}
+                  >
+                    {item.company}
+                  </Text>
+                </>
+              )}
             </View>
           </View>
 
-          {item.description && (
+          <View
+            style={{
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+              borderRadius: 6,
+              backgroundColor: `${statusColor}20`,
+            }}
+          >
+            <Text
+              style={{ fontSize: 12, fontWeight: "500", color: statusColor }}
+            >
+              {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+            </Text>
+          </View>
+        </View>
+
+        {item.description && (
+          <Text
+            style={{
+              fontSize: 14,
+              color: colors.textSecondary,
+              lineHeight: 20,
+              marginBottom: 12,
+            }}
+            numberOfLines={2}
+          >
+            {item.description}
+          </Text>
+        )}
+
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Feather name="clock" size={12} color={colors.textSecondary} />
             <Text
               style={{
-                fontSize: 14,
+                fontSize: 12,
                 color: colors.textSecondary,
-                lineHeight: 20,
-                marginBottom: 12,
+                marginLeft: 4,
               }}
-              numberOfLines={2}
             >
-              {item.description}
+              {item.date} • {item.time}
+              {item.duration && ` • ${item.duration}`}
             </Text>
-          )}
+          </View>
 
           <View
             style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+              borderRadius: 6,
+              backgroundColor: `${priorityColor}20`,
             }}
           >
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Feather name="clock" size={12} color={colors.textSecondary} />
-              <Text
-                style={{
-                  fontSize: 12,
-                  color: colors.textSecondary,
-                  marginLeft: 4,
-                }}
-              >
-                {item.date} • {item.time}
-                {item.duration && ` • ${item.duration}`}
-              </Text>
-            </View>
-
-            <View
+            <Text
               style={{
-                paddingHorizontal: 8,
-                paddingVertical: 4,
-                borderRadius: 6,
-                backgroundColor: `${priorityColor}20`,
+                fontSize: 12,
+                fontWeight: "500",
+                color: priorityColor,
               }}
             >
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: "500",
-                  color: priorityColor,
-                }}
-              >
-                {item.priority.toUpperCase()}
-              </Text>
-            </View>
+              {item.priority.toUpperCase()}
+            </Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -382,20 +329,19 @@ const ActivitiesPage = () => {
   const renderDetailModal = () => (
     <Modal visible={!!selectedActivity} transparent animationType="slide">
       <View
-        style={[
-          styles.modalBackground,
-          { flex: 1, justifyContent: "flex-end" },
-        ]}
+        style={{
+          flex: 1,
+          backgroundColor: isDark ? "rgba(0,0,0,0.8)" : "rgba(0,0,0,0.5)",
+          justifyContent: "flex-end",
+        }}
       >
         <View
-          style={[
-            styles.modalContent,
-            {
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
-              maxHeight: "90%",
-            },
-          ]}
+          style={{
+            backgroundColor: colors.card,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            maxHeight: "90%",
+          }}
         >
           {selectedActivity && (
             <>
@@ -412,10 +358,11 @@ const ActivitiesPage = () => {
                 }}
               >
                 <Text
-                  style={[
-                    styles.activityTitle,
-                    { fontSize: 20, fontWeight: "600" },
-                  ]}
+                  style={{
+                    fontSize: 20,
+                    fontWeight: "600",
+                    color: colors.text,
+                  }}
                 >
                   Activity Details
                 </Text>
@@ -428,10 +375,7 @@ const ActivitiesPage = () => {
                 style={{ maxHeight: "80%" }}
                 showsVerticalScrollIndicator={false}
               >
-                <View style={{ padding: 24 }}>
-                  {/* ... rest of your modal content with theme-aware colors ... */}
-                  {/* Replace hardcoded colors with theme colors */}
-                </View>
+                <View style={{ padding: 24 }}>{/* Modal content */}</View>
               </ScrollView>
             </>
           )}
@@ -441,165 +385,128 @@ const ActivitiesPage = () => {
   );
 
   // Add activity modal
-const renderAddModal = () => (
-  <Modal visible={showAddModal} transparent animationType="slide">
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: isDark
-          ? "rgba(0,0,0,0.8)"
-          : "rgba(0,0,0,0.5)",
-        justifyContent: "flex-end",
-      }}
-    >
+  const renderAddModal = () => (
+    <Modal visible={showAddModal} transparent animationType="slide">
       <View
         style={{
-          backgroundColor: colors.card,
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
-          maxHeight: "90%",
+          flex: 1,
+          backgroundColor: isDark ? "rgba(0,0,0,0.8)" : "rgba(0,0,0,0.5)",
+          justifyContent: "flex-end",
         }}
       >
-        {/* Header */}
         <View
           style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            paddingHorizontal: 24,
-            paddingTop: 24,
-            paddingBottom: 20,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.border,
+            backgroundColor: colors.card,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            maxHeight: "90%",
           }}
         >
-          <Text
-            style={{
-              fontSize: 20,
-              fontWeight: "600",
-              color: colors.text,
-            }}
-          >
-            Add New Activity
-          </Text>
-          <TouchableOpacity onPress={() => setShowAddModal(false)}>
-            <Feather name="x" size={24} color={colors.text} />
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView
-          style={{ paddingHorizontal: 24 }}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Activity Type */}
-          <Text
-            style={{
-              fontSize: 14,
-              fontWeight: "600",
-              color: colors.text,
-              marginTop: 16,
-              marginBottom: 8,
-            }}
-          >
-            Activity Type
-          </Text>
-
+          {/* Header */}
           <View
             style={{
               flexDirection: "row",
-              flexWrap: "wrap",
-              gap: 8,
-              marginBottom: 16,
+              justifyContent: "space-between",
+              alignItems: "center",
+              paddingHorizontal: 24,
+              paddingTop: 24,
+              paddingBottom: 20,
+              borderBottomWidth: 1,
+              borderBottomColor: colors.border,
             }}
           >
-            {activityTypes.map((type) => (
-              <TouchableOpacity
-                key={type}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  gap: 8,
-                  backgroundColor:
-                    newActivity.type === type
-                      ? activityConfig[type].bg
-                      : "transparent",
-                }}
-                onPress={() => setNewActivity({ ...newActivity, type })}
-              >
-                <Feather
-                  name={activityConfig[type].icon}
-                  size={20}
-                  color={
-                    newActivity.type === type
-                      ? activityConfig[type].color
-                      : colors.textSecondary
-                  }
-                />
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: "500",
-                    color:
-                      newActivity.type === type
-                        ? activityConfig[type].color
-                        : colors.textSecondary,
-                  }}
-                >
-                  {activityConfig[type].label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: "600",
+                color: colors.text,
+              }}
+            >
+              Add New Activity
+            </Text>
+            <TouchableOpacity onPress={() => setShowAddModal(false)}>
+              <Feather name="x" size={24} color={colors.text} />
+            </TouchableOpacity>
           </View>
 
-          {/* Common Input Style */}
-          {(
-            [
-              ["Title *", "title", "Enter activity title"],
-              ["Contact Name *", "contactName", "Enter contact name"],
-              ["Company", "company", "Enter company name (optional)"],
-            ] as const
-          ).map(([label, key, placeholder]) => (
-            <View key={key} style={{ marginBottom: 16 }}>
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "600",
-                  color: colors.text,
-                  marginBottom: 8,
-                }}
-              >
-                {label}
-              </Text>
-              <TextInput
-                style={{
-                  backgroundColor: isDark ? colors.card : "#F9FAFB",
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: 8,
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  fontSize: 16,
-                  color: colors.text,
-                }}
-                placeholder={placeholder}
-                placeholderTextColor={colors.textSecondary}
-                value={newActivity[key]}
-                onChangeText={(text) =>
-                  setNewActivity({ ...newActivity, [key]: text })
-                }
-              />
-            </View>
-          ))}
+          <ScrollView
+            style={{ paddingHorizontal: 24 }}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Activity Type */}
+            <Text
+              style={{
+                fontSize: 14,
+                fontWeight: "600",
+                color: colors.text,
+                marginTop: 16,
+                marginBottom: 8,
+              }}
+            >
+              Activity Type
+            </Text>
 
-          {/* Date & Time */}
-          <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
-            {(["date", "time"] as const).map((key) => (
-              <View key={key} style={{ flex: 1 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: 8,
+                marginBottom: 16,
+              }}
+            >
+              {activityTypes.map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    gap: 8,
+                    backgroundColor:
+                      newActivity.type === type
+                        ? activityConfig[type].bg
+                        : "transparent",
+                  }}
+                  onPress={() => setNewActivity({ ...newActivity, type })}
+                >
+                  <Feather
+                    name={activityConfig[type].icon}
+                    size={20}
+                    color={
+                      newActivity.type === type
+                        ? activityConfig[type].color
+                        : colors.textSecondary
+                    }
+                  />
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: "500",
+                      color:
+                        newActivity.type === type
+                          ? activityConfig[type].color
+                          : colors.textSecondary,
+                    }}
+                  >
+                    {activityConfig[type].label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Common Input Style */}
+            {(
+              [
+                ["Title *", "title", "Enter activity title"],
+                ["Contact Name *", "contactName", "Enter contact name"],
+                ["Company", "company", "Enter company name (optional)"],
+              ] as const
+            ).map(([label, key, placeholder]) => (
+              <View key={key} style={{ marginBottom: 16 }}>
                 <Text
                   style={{
                     fontSize: 14,
@@ -608,7 +515,7 @@ const renderAddModal = () => (
                     marginBottom: 8,
                   }}
                 >
-                  {key === "date" ? "Date" : "Time"}
+                  {label}
                 </Text>
                 <TextInput
                   style={{
@@ -621,9 +528,7 @@ const renderAddModal = () => (
                     fontSize: 16,
                     color: colors.text,
                   }}
-                  placeholder={
-                    key === "date" ? "YYYY-MM-DD" : "HH:MM AM/PM"
-                  }
+                  placeholder={placeholder}
                   placeholderTextColor={colors.textSecondary}
                   value={newActivity[key]}
                   onChangeText={(text) =>
@@ -632,304 +537,282 @@ const renderAddModal = () => (
                 />
               </View>
             ))}
-          </View>
 
-          {/* Description */}
-          <View style={{ marginBottom: 16 }}>
-            <Text
-              style={{
-                fontSize: 14,
-                fontWeight: "600",
-                color: colors.text,
-                marginBottom: 8,
-              }}
-            >
-              Description
-            </Text>
-            <TextInput
-              style={{
-                backgroundColor: isDark ? colors.card : "#F9FAFB",
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: 8,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                fontSize: 16,
-                color: colors.text,
-                height: 100,
-                textAlignVertical: "top",
-              }}
-              placeholder="Enter activity description"
-              placeholderTextColor={colors.textSecondary}
-              multiline
-              value={newActivity.description}
-              onChangeText={(text) =>
-                setNewActivity({ ...newActivity, description: text })
-              }
-            />
-          </View>
-
-          {/* Priority */}
-          <View style={{ marginBottom: 24 }}>
-            <Text
-              style={{
-                fontSize: 14,
-                fontWeight: "600",
-                color: colors.text,
-                marginBottom: 8,
-              }}
-            >
-              Priority
-            </Text>
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              {(["low", "medium", "high"] as const).map((priority) => {
-                const color = priorityColors[priority];
-                return (
-                  <TouchableOpacity
-                    key={priority}
+            {/* Date & Time */}
+            <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
+              {(["date", "time"] as const).map((key) => (
+                <View key={key} style={{ flex: 1 }}>
+                  <Text
                     style={{
-                      flex: 1,
-                      paddingVertical: 12,
-                      borderRadius: 8,
+                      fontSize: 14,
+                      fontWeight: "600",
+                      color: colors.text,
+                      marginBottom: 8,
+                    }}
+                  >
+                    {key === "date" ? "Date" : "Time"}
+                  </Text>
+                  <TextInput
+                    style={{
+                      backgroundColor: isDark ? colors.card : "#F9FAFB",
                       borderWidth: 1,
                       borderColor: colors.border,
-                      alignItems: "center",
-                      backgroundColor:
-                        newActivity.priority === priority
-                          ? `${color}20`
-                          : "transparent",
+                      borderRadius: 8,
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                      fontSize: 16,
+                      color: colors.text,
                     }}
-                    onPress={() =>
-                      setNewActivity({ ...newActivity, priority })
+                    placeholder={key === "date" ? "YYYY-MM-DD" : "HH:MM AM/PM"}
+                    placeholderTextColor={colors.textSecondary}
+                    value={newActivity[key]}
+                    onChangeText={(text) =>
+                      setNewActivity({ ...newActivity, [key]: text })
                     }
-                  >
-                    <Text
-                      style={{
-                        fontSize: 14,
-                        fontWeight: "600",
-                        color:
-                          newActivity.priority === priority
-                            ? color
-                            : colors.textSecondary,
-                      }}
-                    >
-                      {priority.toUpperCase()}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+                  />
+                </View>
+              ))}
             </View>
+
+            {/* Description */}
+            <View style={{ marginBottom: 16 }}>
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontWeight: "600",
+                  color: colors.text,
+                  marginBottom: 8,
+                }}
+              >
+                Description
+              </Text>
+              <TextInput
+                style={{
+                  backgroundColor: isDark ? colors.card : "#F9FAFB",
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderRadius: 8,
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  fontSize: 16,
+                  color: colors.text,
+                  height: 100,
+                  textAlignVertical: "top",
+                }}
+                placeholder="Enter activity description"
+                placeholderTextColor={colors.textSecondary}
+                multiline
+                value={newActivity.description}
+                onChangeText={(text) =>
+                  setNewActivity({ ...newActivity, description: text })
+                }
+              />
+            </View>
+
+            {/* Priority */}
+            <View style={{ marginBottom: 24 }}>
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontWeight: "600",
+                  color: colors.text,
+                  marginBottom: 8,
+                }}
+              >
+                Priority
+              </Text>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                {(["low", "medium", "high"] as const).map((priority) => {
+                  const color = priorityColors[priority];
+                  return (
+                    <TouchableOpacity
+                      key={priority}
+                      style={{
+                        flex: 1,
+                        paddingVertical: 12,
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        alignItems: "center",
+                        backgroundColor:
+                          newActivity.priority === priority
+                            ? `${color}20`
+                            : "transparent",
+                      }}
+                      onPress={() =>
+                        setNewActivity({ ...newActivity, priority })
+                      }
+                    >
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          fontWeight: "600",
+                          color:
+                            newActivity.priority === priority
+                              ? color
+                              : colors.textSecondary,
+                        }}
+                      >
+                        {priority.toUpperCase()}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          </ScrollView>
+
+          {/* Footer */}
+          <View
+            style={{
+              flexDirection: "row",
+              paddingHorizontal: 24,
+              paddingVertical: 16,
+              borderTopWidth: 1,
+              borderTopColor: colors.border,
+              gap: 12,
+            }}
+          >
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                paddingVertical: 16,
+                borderRadius: 12,
+                backgroundColor: isDark ? colors.border : "#F3F4F6",
+                borderWidth: 1,
+                borderColor: colors.border,
+                alignItems: "center",
+              }}
+              onPress={() => setShowAddModal(false)}
+            >
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: "600",
+                  color: colors.text,
+                }}
+              >
+                Cancel
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                paddingVertical: 16,
+                borderRadius: 12,
+                backgroundColor: colors.primary,
+                alignItems: "center",
+              }}
+              onPress={handleAddActivity}
+            >
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: "600",
+                  color: "#FFFFFF",
+                }}
+              >
+                Save Activity
+              </Text>
+            </TouchableOpacity>
           </View>
-        </ScrollView>
-
-        {/* Footer */}
-        <View
-          style={{
-            flexDirection: "row",
-            paddingHorizontal: 24,
-            paddingVertical: 16,
-            borderTopWidth: 1,
-            borderTopColor: colors.border,
-            gap: 12,
-          }}
-        >
-          <TouchableOpacity
-            style={{
-              flex: 1,
-              paddingVertical: 16,
-              borderRadius: 12,
-              backgroundColor: isDark ? colors.border : "#F3F4F6",
-              borderWidth: 1,
-              borderColor: colors.border,
-              alignItems: "center",
-            }}
-            onPress={() => setShowAddModal(false)}
-          >
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: "600",
-                color: colors.text,
-              }}
-            >
-              Cancel
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={{
-              flex: 1,
-              paddingVertical: 16,
-              borderRadius: 12,
-              backgroundColor: colors.primary,
-              alignItems: "center",
-            }}
-            onPress={handleAddActivity}
-          >
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: "600",
-                color: "#FFFFFF",
-              }}
-            >
-              Save Activity
-            </Text>
-          </TouchableOpacity>
         </View>
       </View>
-    </View>
-  </Modal>
-);
-
-
-
-
+    </Modal>
+  );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar
         barStyle={isDark ? "light-content" : "dark-content"}
         backgroundColor={colors.card}
       />
 
-      {/* Fixed Header */}
+      <CommonHeader title="Activities" showSafeArea={true} />
+
+      {/* Search Bar - Directly under header */}
       <View
-        style={[
-          styles.header,
-          {
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            paddingHorizontal: 20,
-            paddingTop: 20,
-            paddingBottom: 16,
-            borderBottomWidth: 1,
-          },
-        ]}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          marginHorizontal: 20,
+          marginTop: 16,
+          marginBottom: 12,
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: colors.border,
+          backgroundColor: isDark ? colors.card : "#F9FAFB",
+        }}
       >
-        <View>
-          <Text
-            style={[styles.headerTitle, { fontSize: 28, fontWeight: "700" }]}
-          >
-            Activities
-          </Text>
-          <Text style={[styles.headerSubtitle, { fontSize: 14, marginTop: 2 }]}>
-            Manage your interactions
-          </Text>
-        </View>
-        <TouchableOpacity
+        <Feather
+          name="search"
+          size={20}
+          color={colors.textSecondary}
+          style={{ marginRight: 12 }}
+        />
+        <TextInput
           style={{
-            width: 48,
-            height: 48,
-            borderRadius: 24,
-            backgroundColor: colors.primary,
-            justifyContent: "center",
-            alignItems: "center",
-            shadowColor: colors.primary,
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 8,
-            elevation: 6,
+            flex: 1,
+            fontSize: 16,
+            padding: 0,
+            color: colors.text,
           }}
-          onPress={() => setShowAddModal(true)}
-        >
-          <AntDesign name="plus" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
+          placeholder="Search by title, contact, or company..."
+          placeholderTextColor={colors.textSecondary}
+          value={search}
+          onChangeText={setSearch}
+        />
+        {search.length > 0 && (
+          <TouchableOpacity onPress={() => setSearch("")}>
+            <Feather name="x" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+        )}
       </View>
 
-      {/* Fixed Search & Filters */}
-      <View>
-        {/* Search Bar */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            marginHorizontal: 20,
-            marginTop: 16,
-            marginBottom: 12,
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: colors.border,
-            backgroundColor: isDark ? colors.card : "#F9FAFB",
-          }}
+      {/* Filter Chips */}
+      <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 8, paddingRight: 20 }}
         >
-          <Feather
-            name="search"
-            size={20}
-            color={colors.textSecondary}
-            style={{ marginRight: 12 }}
-          />
-          <TextInput
-            style={[
-              styles.activityTitle,
-              { flex: 1, fontSize: 16, padding: 0 },
-            ]}
-            placeholder="Search by title, contact, or company..."
-            placeholderTextColor={colors.textSecondary}
-            value={search}
-            onChangeText={setSearch}
-          />
-          {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch("")}>
-              <Feather name="x" size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Filter Chips */}
-        <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 8, paddingRight: 20 }}
-          >
-            {(["all", ...activityTypes] as const).map((type) => (
-              <TouchableOpacity
-                key={type}
-                style={[
-                  styles.filterChip,
-                  {
-                    paddingHorizontal: 16,
-                    paddingVertical: 8,
-                    borderRadius: 20,
-                    minHeight: 36,
-                    borderWidth: 1,
-                    backgroundColor:
-                      filter === type
-                        ? colors.primary
-                        : isDark
-                        ? colors.border
-                        : "#F3F4F6",
-                    borderColor:
-                      filter === type ? colors.primary : colors.border,
-                  },
-                ]}
-                onPress={() => setFilter(type)}
+          {(["all", ...activityTypes] as const).map((type) => (
+            <TouchableOpacity
+              key={type}
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 20,
+                minHeight: 36,
+                borderWidth: 1,
+                backgroundColor:
+                  filter === type
+                    ? colors.primary
+                    : isDark
+                      ? colors.border
+                      : "#F3F4F6",
+                borderColor: filter === type ? colors.primary : colors.border,
+              }}
+              onPress={() => setFilter(type)}
+            >
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontWeight: "500",
+                  color: filter === type ? "#FFFFFF" : colors.textSecondary,
+                }}
               >
-                <Text
-                  style={[
-                    styles.filterText,
-                    {
-                      fontSize: 14,
-                      fontWeight: "500",
-                      color: filter === type ? "#FFFFFF" : colors.textSecondary,
-                    },
-                  ]}
-                >
-                  {type === "all"
-                    ? "All Activities"
-                    : activityConfig[type].label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+                {type === "all" ? "All Activities" : activityConfig[type].label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
-      {/* Scrollable Activities List */}
+      {/* Activities List */}
       <FlatList
         data={filteredActivities}
         renderItem={renderItem}
@@ -937,7 +820,7 @@ const renderAddModal = () => (
         contentContainerStyle={{
           paddingHorizontal: 20,
           paddingTop: 8,
-          paddingBottom: 100,
+          paddingBottom: 100, // Extra padding for FAB
         }}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
@@ -950,15 +833,13 @@ const renderAddModal = () => (
           >
             <Feather name="calendar" size={48} color={colors.textSecondary} />
             <Text
-              style={[
-                styles.emptyStateText,
-                {
-                  fontSize: 18,
-                  fontWeight: "600",
-                  marginTop: 16,
-                  marginBottom: 8,
-                },
-              ]}
+              style={{
+                fontSize: 18,
+                fontWeight: "600",
+                marginTop: 16,
+                marginBottom: 8,
+                color: colors.text,
+              }}
             >
               No activities found
             </Text>
@@ -1001,9 +882,33 @@ const renderAddModal = () => (
         }
       />
 
+      {/* Floating Action Button - Bottom Left */}
+      <TouchableOpacity
+        style={{
+          position: "absolute",
+          left: 20,
+          bottom: 30,
+          width: 60,
+          height: 60,
+          borderRadius: 30,
+          backgroundColor: colors.primary,
+          justifyContent: "center",
+          alignItems: "center",
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+          elevation: 8,
+          zIndex: 999, // High zIndex for overlay
+        }}
+        onPress={() => setShowAddModal(true)}
+      >
+        <AntDesign name="plus" size={28} color="#FFFFFF" />
+      </TouchableOpacity>
+
       {renderDetailModal()}
       {renderAddModal()}
-    </SafeAreaView>
+    </View>
   );
 };
 
