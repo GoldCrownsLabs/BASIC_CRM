@@ -334,8 +334,14 @@ export const activityTypes: ActivityType[] = [
   "email",
 ];
 
+export interface ActivityConfig {
+  icon: string;
+  color: string;
+  bg: string;
+  label: string;
+}
 // Activity configuration for icons, colors, etc. (Light theme)
-export const activityConfig = {
+export const activityConfig: Record<ActivityType, ActivityConfig> = {
   call: {
     icon: "phone" as const,
     color: "#10B981",
@@ -369,7 +375,7 @@ export const activityConfig = {
 };
 
 // Dark theme activity configuration
-export const darkActivityConfig = {
+export const darkActivityConfig: Record<ActivityType, ActivityConfig> = {
   call: {
     icon: "phone" as const,
     color: "#34D399",
@@ -382,6 +388,7 @@ export const darkActivityConfig = {
     bg: "#1E3A8A",
     label: "Meeting",
   },
+  
   note: {
     icon: "file-text" as const,
     color: "#A78BFA",
@@ -462,7 +469,7 @@ export const formatActivityDate = (date: string): string => {
   }
 };
 
-export const formatActivityTime = (time: string): string => {
+export const formatActivityTime = (time: string, date: string): string => {
   if (!time) return "";
 
   // If time is already in AM/PM format, return as is
@@ -547,5 +554,72 @@ export const ActivitiesAPI = {
   },
 };
 
-// You can still export types separately as named exports
-// They are already exported above
+
+export const formatIndianDateTime = (dateTimeString: string): string => {
+  if (!dateTimeString) return "";
+
+  try {
+    const date = new Date(dateTimeString);
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return dateTimeString;
+    }
+
+    // Format date using existing formatIndianDate logic
+    const day = date.getDate().toString().padStart(2, "0");
+    const monthNames = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    const month = monthNames[date.getMonth()];
+    const year = date.getFullYear();
+
+    // Format time (12-hour format with AM/PM)
+    let hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? "PM" : "AM";
+    const hour12 = hours % 12 || 12;
+    const formattedTime = `${hour12}:${minutes.toString().padStart(2, "0")} ${ampm}`;
+
+    return `${day} ${month} ${year} at ${formattedTime}`;
+  } catch (error) {
+    console.error("Error formatting date time:", error, dateTimeString);
+    return dateTimeString;
+  }
+};
+
+
+export const formatDuration = (
+  duration: number | string | undefined,
+): string => {
+  if (!duration && duration !== 0) return "";
+
+  if (typeof duration === "number") {
+    if (duration < 60) {
+      return `${duration} min${duration !== 1 ? "s" : ""}`;
+    } else {
+      const hours = Math.floor(duration / 60);
+      const minutes = duration % 60;
+      if (minutes === 0) {
+        return `${hours} hour${hours !== 1 ? "s" : ""}`;
+      } else {
+        return `${hours}h ${minutes}m`;
+      }
+    }
+  }
+
+  return String(duration);
+};
+
+

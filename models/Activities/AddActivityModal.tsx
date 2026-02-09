@@ -42,6 +42,12 @@ interface AddActivityModalProps {
   onUpdatePriority: (priority: PriorityType) => void;
 }
 
+// ✅ Feather icon names के लिए proper type
+type FeatherIconName = keyof typeof Feather.glyphMap;
+
+// ✅ Priority के लिए default value
+const DEFAULT_PRIORITY: PriorityType = "medium";
+
 const AddActivityModal: React.FC<AddActivityModalProps> = ({
   visible,
   colors,
@@ -55,6 +61,19 @@ const AddActivityModal: React.FC<AddActivityModalProps> = ({
   onUpdateType,
   onUpdatePriority,
 }) => {
+  // ✅ Safe priority value
+  const currentPriority = newActivity.priority || DEFAULT_PRIORITY;
+
+  // ✅ Activity type selection helper
+  const handleTypeSelect = (type: ActivityType) => {
+    onUpdateType(type);
+  };
+
+  // ✅ Priority selection helper
+  const handlePrioritySelect = (priority: PriorityType) => {
+    onUpdatePriority(priority);
+  };
+
   return (
     <Modal visible={visible} transparent animationType="slide">
       <View
@@ -124,48 +143,43 @@ const AddActivityModal: React.FC<AddActivityModalProps> = ({
                 marginBottom: 16,
               }}
             >
-              {activityTypes.map((type: ActivityType) => (
-                <TouchableOpacity
-                  key={type}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
-                    borderRadius: 8,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    gap: 8,
-                    backgroundColor:
-                      newActivity.type === type
-                        ? activityConfig[type].bg
-                        : "transparent",
-                  }}
-                  onPress={() => onUpdateType(type)}
-                >
-                  <Feather
-                    name={activityConfig[type].icon as any} // Type assertion
-                    size={20}
-                    color={
-                      newActivity.type === type
-                        ? activityConfig[type].color
-                        : colors.textSecondary
-                    }
-                  />
-                  <Text
+              {activityTypes.map((type: ActivityType) => {
+                const config = activityConfig[type];
+                const isSelected = newActivity.type === type;
+
+                return (
+                  <TouchableOpacity
+                    key={type}
                     style={{
-                      fontSize: 14,
-                      fontWeight: "500",
-                      color:
-                        newActivity.type === type
-                          ? activityConfig[type].color
-                          : colors.textSecondary,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: isSelected ? config.color : colors.border,
+                      gap: 8,
+                      backgroundColor: isSelected ? config.bg : "transparent",
                     }}
+                    onPress={() => handleTypeSelect(type)}
                   >
-                    {activityConfig[type].label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Feather
+                      name={config.icon as FeatherIconName} // ✅ Proper type
+                      size={20}
+                      color={isSelected ? config.color : colors.textSecondary}
+                    />
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        fontWeight: "500",
+                        color: isSelected ? config.color : colors.textSecondary,
+                      }}
+                    >
+                      {config.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
             {/* Common Input Style */}
@@ -321,7 +335,10 @@ const AddActivityModal: React.FC<AddActivityModalProps> = ({
               </Text>
               <View style={{ flexDirection: "row", gap: 8 }}>
                 {(["low", "medium", "high"] as const).map((priority) => {
-                  const color = priorityColors[priority];
+                  const color =
+                    priorityColors[priority] || priorityColors.medium;
+                  const isSelected = currentPriority === priority;
+
                   return (
                     <TouchableOpacity
                       key={priority}
@@ -330,23 +347,19 @@ const AddActivityModal: React.FC<AddActivityModalProps> = ({
                         paddingVertical: 12,
                         borderRadius: 8,
                         borderWidth: 1,
-                        borderColor: colors.border,
+                        borderColor: isSelected ? color : colors.border,
                         alignItems: "center",
-                        backgroundColor:
-                          newActivity.priority === priority
-                            ? `${color}20`
-                            : "transparent",
+                        backgroundColor: isSelected
+                          ? `${color}20`
+                          : "transparent",
                       }}
-                      onPress={() => onUpdatePriority(priority)}
+                      onPress={() => handlePrioritySelect(priority)}
                     >
                       <Text
                         style={{
                           fontSize: 14,
                           fontWeight: "600",
-                          color:
-                            newActivity.priority === priority
-                              ? color
-                              : colors.textSecondary,
+                          color: isSelected ? color : colors.textSecondary,
                         }}
                       >
                         {priority.toUpperCase()}

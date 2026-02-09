@@ -33,6 +33,21 @@ export const RecentLeads: React.FC<RecentLeadsProps> = ({
     Lost: "#F44336",
   };
 
+  // Format phone number for display
+  const formatPhoneNumber = (phone: string) => {
+    if (!phone) return "No phone";
+
+    // Remove any non-digit characters
+    const cleaned = phone.replace(/\D/g, "");
+
+    // Format Indian phone numbers
+    if (cleaned.length === 10) {
+      return `+91 ${cleaned.substring(0, 5)} ${cleaned.substring(5)}`;
+    }
+
+    return phone;
+  };
+
   return (
     <ThemedView
       style={{
@@ -42,10 +57,10 @@ export const RecentLeads: React.FC<RecentLeadsProps> = ({
         borderRadius: 20,
         backgroundColor: colors.card,
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0,
+        shadowRadius: 4,
+        elevation: 0.44,
       }}
     >
       <View
@@ -119,7 +134,7 @@ export const RecentLeads: React.FC<RecentLeadsProps> = ({
                   </ThemedText>
                 </View>
 
-                <View style={{ flex: 1 }}>
+                <View style={{ flex: 1, marginRight: 8 }}>
                   <ThemedText
                     type="defaultSemiBold"
                     style={{ color: colors.text, fontSize: 14 }}
@@ -127,63 +142,99 @@ export const RecentLeads: React.FC<RecentLeadsProps> = ({
                   >
                     {lead.firstName} {lead.lastName || ""}
                   </ThemedText>
+
                   <View
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
                       gap: 8,
+                      marginTop: 2,
                     }}
                   >
+                    <Ionicons
+                      name="business-outline"
+                      size={12}
+                      color={colors.textSecondary}
+                    />
                     <ThemedText
                       type="default"
                       style={{
                         color: colors.textSecondary,
                         fontSize: 12,
                       }}
-                    >
-                      {formatCurrency(lead.budget || 0)}
-                    </ThemedText>
-                    <ThemedText
-                      type="default"
-                      style={{
-                        color: colors.textSecondary,
-                        fontSize: 12,
-                      }}
-                    >
-                      •
-                    </ThemedText>
-                    <ThemedText
-                      type="default"
-                      style={{
-                        color: colors.textSecondary,
-                        fontSize: 12,
-                      }}
+                      numberOfLines={1}
                     >
                       {lead.company || "No company"}
+                    </ThemedText>
+                  </View>
+
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                      marginTop: 2,
+                    }}
+                  >
+                    <Ionicons
+                      name="call-outline"
+                      size={12}
+                      color={colors.textSecondary}
+                    />
+                    <ThemedText
+                      type="default"
+                      style={{
+                        color: colors.textSecondary,
+                        fontSize: 12,
+                      }}
+                      numberOfLines={1}
+                    >
+                      {/* {formatPhoneNumber(lead.phone)} */}
                     </ThemedText>
                   </View>
                 </View>
               </View>
 
-              <View
-                style={{
-                  paddingHorizontal: 10,
-                  paddingVertical: 4,
-                  borderRadius: 12,
-                  backgroundColor:
-                    stageColors[getStageLabel(lead.status)] + "20",
-                }}
-              >
-                <ThemedText
-                  type="default"
+              <View style={{ alignItems: "flex-end" }}>
+                <View
                   style={{
-                    color: stageColors[getStageLabel(lead.status)],
-                    fontSize: 11,
-                    fontWeight: "600",
+                    marginBottom: 6,
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    borderRadius: 12,
+                    backgroundColor:
+                      stageColors[getStageLabel(lead.status)] + "20",
                   }}
                 >
-                  {getStageLabel(lead.status)}
-                </ThemedText>
+                  <ThemedText
+                    type="default"
+                    style={{
+                      color: stageColors[getStageLabel(lead.status)],
+                      fontSize: 11,
+                      fontWeight: "600",
+                    }}
+                  >
+                    {getStageLabel(lead.status)}
+                  </ThemedText>
+                </View>
+
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Ionicons
+                    name="cash-outline"
+                    size={12}
+                    color={colors.textSecondary}
+                  />
+                  <ThemedText
+                    type="defaultSemiBold"
+                    style={{
+                      color: colors.text,
+                      fontSize: 12,
+                      marginLeft: 4,
+                    }}
+                  >
+                    ₹{formatCurrency(lead.budget || 0)}
+                  </ThemedText>
+                </View>
               </View>
             </TouchableOpacity>
           ))}

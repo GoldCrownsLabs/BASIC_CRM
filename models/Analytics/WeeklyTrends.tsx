@@ -1,3 +1,4 @@
+// models/Analytics/WeeklyTrends.tsx
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Feather } from "@expo/vector-icons";
@@ -6,6 +7,7 @@ import { useAppTheme } from "@/context/ThemeContext";
 interface WeeklyTrendData {
   day: string;
   activities: number;
+  leads: number;
 }
 
 interface WeeklyTrendsProps {
@@ -19,6 +21,11 @@ const WeeklyTrends: React.FC<WeeklyTrendsProps> = ({ weeklyTrends }) => {
 
   const leadsColor = isDark ? "#60A5FA" : "#3B82F6";
   const activitiesColor = isDark ? "#34D399" : "#10B981";
+
+  // Calculate max value for scaling
+  const maxValue = Math.max(
+    ...weeklyTrends.map((d) => Math.max(d.activities, d.leads)),
+  );
 
   return (
     <View
@@ -64,30 +71,42 @@ const WeeklyTrends: React.FC<WeeklyTrendsProps> = ({ weeklyTrends }) => {
         }}
       >
         {weeklyTrends.map((day) => {
-          const maxActivities = Math.max(
-            ...weeklyTrends.map((d) => d.activities),
-          );
-          const barHeight = (day.activities / maxActivities) * 80;
+          const leadsHeight = maxValue > 0 ? (day.leads / maxValue) * 80 : 5;
+          const activitiesHeight =
+            maxValue > 0 ? (day.activities / maxValue) * 80 : 5;
 
           return (
             <View key={day.day} style={{ alignItems: "center" }}>
               <View
-                style={{ flexDirection: "row", alignItems: "flex-end", gap: 2 }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "flex-end",
+                  gap: 4,
+                  height: 80,
+                }}
               >
+                {/* Leads Bar */}
                 <View
                   style={{
-                    width: 6,
-                    height: barHeight * 0.7,
+                    width: 8,
+                    height: leadsHeight,
                     backgroundColor: leadsColor,
-                    borderRadius: 3,
+                    borderRadius: 4,
+                    borderWidth: 1,
+                    borderColor: isDark ? `${leadsColor}80` : `${leadsColor}30`,
                   }}
                 />
+                {/* Activities Bar */}
                 <View
                   style={{
-                    width: 6,
-                    height: barHeight,
+                    width: 8,
+                    height: activitiesHeight,
                     backgroundColor: activitiesColor,
-                    borderRadius: 3,
+                    borderRadius: 4,
+                    borderWidth: 1,
+                    borderColor: isDark
+                      ? `${activitiesColor}80`
+                      : `${activitiesColor}30`,
                   }}
                 />
               </View>
@@ -100,15 +119,26 @@ const WeeklyTrends: React.FC<WeeklyTrendsProps> = ({ weeklyTrends }) => {
               >
                 {day.day}
               </Text>
-              <Text
-                style={{
-                  fontSize: 10,
-                  color: colors.textSecondary,
-                  marginTop: 2,
-                }}
-              >
-                {day.activities}
-              </Text>
+              <View style={{ flexDirection: "row", gap: 4, marginTop: 2 }}>
+                <Text
+                  style={{
+                    fontSize: 9,
+                    color: leadsColor,
+                    fontWeight: "600",
+                  }}
+                >
+                  {day.leads}L
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 9,
+                    color: activitiesColor,
+                    fontWeight: "600",
+                  }}
+                >
+                  {day.activities}A
+                </Text>
+              </View>
             </View>
           );
         })}
@@ -125,27 +155,28 @@ const WeeklyTrends: React.FC<WeeklyTrendsProps> = ({ weeklyTrends }) => {
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           <View
             style={{
-              width: 8,
-              height: 8,
-              borderRadius: 4,
+              width: 12,
+              height: 12,
+              borderRadius: 6,
               backgroundColor: leadsColor,
             }}
           />
           <Text style={{ fontSize: 12, color: colors.textSecondary }}>
-            Leads
+            Leads ({weeklyTrends.reduce((sum, day) => sum + day.leads, 0)})
           </Text>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           <View
             style={{
-              width: 8,
-              height: 8,
-              borderRadius: 4,
+              width: 12,
+              height: 12,
+              borderRadius: 6,
               backgroundColor: activitiesColor,
             }}
           />
           <Text style={{ fontSize: 12, color: colors.textSecondary }}>
-            Activities
+            Activities (
+            {weeklyTrends.reduce((sum, day) => sum + day.activities, 0)})
           </Text>
         </View>
       </View>

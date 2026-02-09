@@ -1,3 +1,4 @@
+// models/Analytics/ActivitiesChart.tsx
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Feather } from "@expo/vector-icons";
@@ -12,14 +13,34 @@ interface ActivityData {
 
 interface ActivitiesChartProps {
   activitiesByType: ActivityData[];
+  onActivityClick?: (type: string) => void; // Add this prop
 }
 
 const ActivitiesChart: React.FC<ActivitiesChartProps> = ({
   activitiesByType,
+  onActivityClick,
 }) => {
   const { colors, isDark } = useAppTheme();
 
   if (!activitiesByType?.length) return null;
+
+  // Map activity types to icons and colors
+  const getActivityConfig = (type: string) => {
+    const configs = {
+      call: { icon: "phone", color: isDark ? "#34D399" : "#10B981" },
+      meeting: { icon: "calendar", color: isDark ? "#60A5FA" : "#3B82F6" },
+      note: { icon: "file-text", color: isDark ? "#A78BFA" : "#8B5CF6" },
+      task: { icon: "check-square", color: isDark ? "#FBBF24" : "#F59E0B" },
+      email: { icon: "mail", color: isDark ? "#F87171" : "#EF4444" },
+    };
+
+    return (
+      configs[type as keyof typeof configs] || {
+        icon: "activity",
+        color: colors.primary,
+      }
+    );
+  };
 
   return (
     <View
@@ -45,7 +66,7 @@ const ActivitiesChart: React.FC<ActivitiesChartProps> = ({
         }}
       >
         <Text style={{ fontSize: 18, fontWeight: "600", color: colors.text }}>
-          Activities
+          Activities by Type
         </Text>
         <TouchableOpacity>
           <Feather
@@ -58,14 +79,20 @@ const ActivitiesChart: React.FC<ActivitiesChartProps> = ({
 
       <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
         {activitiesByType.map((activity) => {
-          const activityColor = isDark ? activity.color : activity.color;
+          const config = getActivityConfig(activity.type);
+          const activityColor = activity.color || config.color;
 
           return (
-            <View key={activity.type} style={{ alignItems: "center", flex: 1 }}>
+            <TouchableOpacity
+              key={activity.type}
+              style={{ alignItems: "center", flex: 1 }}
+              onPress={() => onActivityClick?.(activity.type)}
+              activeOpacity={0.7}
+            >
               <View
                 style={{
-                  width: 40,
-                  height: 40,
+                  width: 48,
+                  height: 48,
                   borderRadius: 12,
                   backgroundColor: isDark
                     ? `${activityColor}30`
@@ -76,8 +103,8 @@ const ActivitiesChart: React.FC<ActivitiesChartProps> = ({
                 }}
               >
                 <Feather
-                  name={activity.icon as any}
-                  size={20}
+                  name={config.icon as any}
+                  size={22}
                   color={activityColor}
                 />
               </View>
@@ -96,9 +123,52 @@ const ActivitiesChart: React.FC<ActivitiesChartProps> = ({
               >
                 {activity.type}
               </Text>
-            </View>
+            </TouchableOpacity>
           );
         })}
+      </View>
+
+      {/* Total Activities */}
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "center",
+          alignItems: "center",
+          marginTop: 20,
+          paddingTop: 16,
+          borderTopWidth: 1,
+          borderTopColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)",
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: isDark
+              ? "rgba(255,255,255,0.05)"
+              : "rgba(0,0,0,0.02)",
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            borderRadius: 20,
+          }}
+        >
+          <Feather name="activity" size={16} color={colors.primary} />
+          <Text
+            style={{
+              marginLeft: 8,
+              fontSize: 14,
+              fontWeight: "600",
+              color: colors.text,
+            }}
+          >
+            Total:{" "}
+            {activitiesByType.reduce(
+              (sum, activity) => sum + activity.count,
+              0,
+            )}{" "}
+            activities
+          </Text>
+        </View>
       </View>
     </View>
   );

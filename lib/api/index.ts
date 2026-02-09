@@ -61,7 +61,7 @@ type CustomAxiosRequestConfig = AxiosRequestConfig;
 
 // Localhost URL
 const api = axios.create({
-  baseURL: "http://192.168.1.12:5000/api/",
+  baseURL: "http://192.168.1.11:5000/api/",
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",

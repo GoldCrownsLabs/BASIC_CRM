@@ -6,8 +6,9 @@ import {
   ScrollView,
   Dimensions,
 } from "react-native";
-import { Feather } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
+import { getStageLabel } from "@/utils/leads.utils";
 
 const { width } = Dimensions.get("window");
 
@@ -15,7 +16,7 @@ interface TopContactData {
   id: string;
   name: string;
   company: string;
-  status: string;
+  status: string; // lead status like "new", "contacted", etc.
   activities: number;
   value: string;
 }
@@ -26,6 +27,17 @@ interface TopContactsProps {
 
 const TopContacts: React.FC<TopContactsProps> = ({ topContacts }) => {
   const { colors, isDark } = useAppTheme();
+
+  // Stage colors mapping
+  const stageColors: Record<string, string> = {
+    New: isDark ? "#60A5FA" : "#3B82F6",
+    Contacted: isDark ? "#34D399" : "#10B981",
+    Qualified: isDark ? "#FBBF24" : "#F59E0B",
+    Proposal: isDark ? "#A78BFA" : "#8B5CF6",
+    Negotiation: isDark ? "#F87171" : "#EF4444",
+    Won: isDark ? "#10B981" : "#059669",
+    Lost: isDark ? "#9CA3AF" : "#6B7280",
+  };
 
   if (!topContacts?.length) return null;
 
@@ -65,129 +77,214 @@ const TopContacts: React.FC<TopContactsProps> = ({ topContacts }) => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View style={{ minWidth: width - 72, gap: 12 }}>
-          {topContacts.map((contact) => {
-            const statusBgColor = isDark
-              ? contact.status === "hot"
-                ? "rgba(248, 113, 113, 0.2)"
-                : contact.status === "warm"
-                  ? "rgba(251, 191, 36, 0.2)"
-                  : colors.border
-              : contact.status === "hot"
-                ? "#FEE2E2"
-                : contact.status === "warm"
-                  ? "#FEF3C7"
-                  : "#E5E7EB";
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 12 }}
+      >
+        {topContacts.map((contact) => {
+          // Get proper stage label from status
+          const stageLabel = getStageLabel(contact.status) || "New";
+          const stageColor = stageColors[stageLabel] || colors.primary;
 
-            const statusColor = isDark
-              ? contact.status === "hot"
-                ? "#F87171"
-                : contact.status === "warm"
-                  ? "#FBBF24"
-                  : colors.textSecondary
-              : contact.status === "hot"
-                ? "#DC2626"
-                : contact.status === "warm"
-                  ? "#D97706"
-                  : "#6B7280";
+          // Use contact name initials
+          const initials = contact.name
+            .split(" ")
+            .map((word) => word.charAt(0))
+            .join("")
+            .toUpperCase()
+            .slice(0, 2);
 
-            return (
+          return (
+            <View
+              key={contact.id}
+              style={{
+                width: width * 0.7,
+                flexDirection: "row",
+                alignItems: "center",
+                padding: 16,
+                backgroundColor: isDark
+                  ? "rgba(255,255,255,0.05)"
+                  : "rgba(0,0,0,0.02)",
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+            >
               <View
-                key={contact.id}
                 style={{
-                  flexDirection: "row",
+                  width: 50,
+                  height: 50,
+                  borderRadius: 25,
+                  backgroundColor: stageColor + "20",
+                  justifyContent: "center",
                   alignItems: "center",
-                  padding: 12,
-                  backgroundColor: isDark ? colors.border : "#F9FAFB",
-                  borderRadius: 12,
-                  borderWidth: 1,
-                  borderColor: colors.border,
+                  marginRight: 16,
                 }}
               >
-                <View
+                <Text
                   style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 20,
-                    backgroundColor: colors.primary,
-                    justifyContent: "center",
-                    alignItems: "center",
-                    marginRight: 12,
+                    fontSize: 18,
+                    fontWeight: "600",
+                    color: stageColor,
                   }}
                 >
-                  <Text
-                    style={{
-                      fontSize: 16,
-                      fontWeight: "600",
-                      color: "#FFFFFF",
-                    }}
-                  >
-                    {contact.name.charAt(0)}
-                  </Text>
-                </View>
+                  {initials}
+                </Text>
+              </View>
 
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      fontWeight: "600",
-                      color: colors.text,
-                    }}
-                  >
-                    {contact.name}
-                  </Text>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "600",
+                    color: colors.text,
+                  }}
+                  numberOfLines={1}
+                >
+                  {contact.name}
+                </Text>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginTop: 4,
+                  }}
+                >
+                  <Feather
+                    name="briefcase"
+                    size={12}
+                    color={colors.textSecondary}
+                    style={{ marginRight: 4 }}
+                  />
                   <Text
                     style={{
                       fontSize: 12,
                       color: colors.textSecondary,
-                      marginTop: 2,
                     }}
+                    numberOfLines={1}
                   >
                     {contact.company}
                   </Text>
                 </View>
 
-                <View style={{ alignItems: "flex-end" }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginTop: 8,
+                  }}
+                >
                   <View
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
-                      backgroundColor: statusBgColor,
+                      backgroundColor: stageColor + "20",
                       paddingHorizontal: 8,
                       paddingVertical: 4,
-                      borderRadius: 12,
-                      marginBottom: 4,
+                      borderRadius: 8,
+                      marginRight: 8,
                     }}
                   >
-                    <Feather name="activity" size={12} color={statusColor} />
                     <Text
                       style={{
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: "600",
-                        marginLeft: 4,
-                        color: statusColor,
+                        color: stageColor,
                       }}
                     >
-                      {contact.activities}
+                      {stageLabel}
                     </Text>
                   </View>
 
-                  <Text
+                  <View
                     style={{
-                      fontSize: 14,
-                      fontWeight: "700",
-                      color: isDark ? "#34D399" : "#059669",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      backgroundColor: isDark
+                        ? "rgba(139, 92, 246, 0.2)"
+                        : "rgba(168, 85, 247, 0.1)",
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 8,
                     }}
                   >
-                    {contact.value}
+                    <Feather name="activity" size={12} color="#8B5CF6" />
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        fontWeight: "600",
+                        marginLeft: 4,
+                        color: "#8B5CF6",
+                      }}
+                    >
+                      {contact.activities} activities
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={{ alignItems: "flex-end" }}>
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight: "700",
+                    color: isDark ? "#34D399" : "#059669",
+                  }}
+                >
+                  {contact.value}
+                </Text>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginTop: 4,
+                  }}
+                >
+                  <Feather
+                    name="calendar"
+                    size={12}
+                    color={colors.textSecondary}
+                  />
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      color: colors.textSecondary,
+                      marginLeft: 4,
+                    }}
+                  >
+                    Recent
                   </Text>
                 </View>
               </View>
-            );
-          })}
-        </View>
+            </View>
+          );
+        })}
       </ScrollView>
+
+      {/* Indicators for horizontal scroll */}
+      {topContacts.length > 1 && (
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "center",
+            marginTop: 16,
+          }}
+        >
+          {topContacts.map((_, index) => (
+            <View
+              key={index}
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: index === 0 ? colors.primary : colors.border,
+                marginHorizontal: 3,
+              }}
+            />
+          ))}
+        </View>
+      )}
     </View>
   );
 };
