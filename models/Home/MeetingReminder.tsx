@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -6,9 +6,8 @@ import {
   Animated,
   StyleSheet,
 } from "react-native";
-import { Feather,  } from "@expo/vector-icons";
-import { Activity , formatActivityTime } from "@/lib/api/activities.api";
-
+import { Feather, Ionicons } from "@expo/vector-icons";
+import { Activity } from "@/lib/api/activities.api";
 import { useRouter } from "expo-router";
 
 interface MeetingReminderProps {
@@ -25,99 +24,169 @@ export const MeetingReminder: React.FC<MeetingReminderProps> = ({
   onMeetingPress,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [fadeAnim] = useState(new Animated.Value(1));
+  const [timeRemaining, setTimeRemaining] = useState("");
+  const [countdownActive, setCountdownActive] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
   const router = useRouter();
+
+  const currentMeeting = upcomingMeetings[currentIndex];
+
+  // Calculate time remaining for countdown
+  const calculateTimeRemaining = () => {
+    if (!currentMeeting)
+      return { hours: 0, minutes: 0, seconds: 0, isPast: true };
+
+    try {
+      const now = new Date();
+      const meetingTime = new Date(currentMeeting.date);
+
+      if (currentMeeting.time) {
+        const [hours, minutes] = currentMeeting.time.split(":");
+        meetingTime.setHours(parseInt(hours), parseInt(minutes));
+      }
+
+      const diffMs = meetingTime.getTime() - now.getTime();
+
+      if (diffMs <= 0) {
+        return { hours: 0, minutes: 0, seconds: 0, isPast: true };
+      }
+
+      const totalSeconds = Math.floor(diffMs / 1000);
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+
+      return { hours, minutes, seconds, isPast: false };
+    } catch {
+      return { hours: 0, minutes: 0, seconds: 0, isPast: true };
+    }
+  };
+
+  // Format time remaining for display
+  const formatTimeRemaining = () => {
+    const { hours, minutes, seconds, isPast } = calculateTimeRemaining();
+
+    if (isPast) {
+      return "Meeting time passed";
+    }
+
+    if (hours > 24) {
+      const days = Math.floor(hours / 24);
+      const remainingHours = hours % 24;
+      return `${days}d ${remainingHours}h`;
+    }
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${seconds}s`;
+    }
+
+    if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    }
+
+    return `${seconds}s`;
+  };
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (!currentMeeting) return;
+
+    const { isPast } = calculateTimeRemaining();
+
+    if (isPast) {
+      setCountdownActive(false);
+      return;
+    }
+
+    setCountdownActive(true);
+
+    const timer = setInterval(() => {
+      const formattedTime = formatTimeRemaining();
+      setTimeRemaining(formattedTime);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [currentMeeting]);
+
+  // Auto-cycle through meetings effect
+  useEffect(() => {
+    if (upcomingMeetings.length <= 1) return;
+
+    const interval = setInterval(() => {
+      Animated.sequence([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+          delay: 100,
+        }),
+      ]).start();
+
+      setTimeout(() => {
+        setCurrentIndex((prev) => (prev + 1) % upcomingMeetings.length);
+      }, 300);
+    }, 10000); // Change every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [upcomingMeetings.length, fadeAnim]);
 
   if (!upcomingMeetings || upcomingMeetings.length === 0) {
     return null;
   }
 
-  // Get next meeting (nearest to current time)
-  const getNextMeeting = () => {
-    const now = new Date();
-
-    // Filter future meetings
-    const futureMeetings = upcomingMeetings.filter((meeting) => {
-      try {
-        const meetingTime = new Date(meeting.date);
-        if (meeting.time) {
-          const [hours, minutes] = meeting.time.split(":");
-          meetingTime.setHours(parseInt(hours), parseInt(minutes));
-        }
-        return meetingTime > now;
-      } catch {
-        return false;
-      }
-    });
-
-    // Sort by time
-    futureMeetings.sort((a, b) => {
-      const dateA = new Date(a.date);
-      const dateB = new Date(b.date);
-      return dateA.getTime() - dateB.getTime();
-    });
-
-    return futureMeetings[0];
-  };
-
-  const nextMeeting = getNextMeeting();
-
-  if (!nextMeeting) {
-    return null;
-  }
-
-  const currentMeeting = upcomingMeetings[currentIndex];
-
-  // Calculate time until meeting
-  const calculateTimeUntilMeeting = (meeting: Activity) => {
+  // Format date properly
+  const formatMeetingDate = (dateString: string) => {
     try {
-      const now = new Date();
-      const meetingTime = new Date(meeting.date);
-
-      if (meeting.time) {
-        const [hours, minutes] = meeting.time.split(":");
-        meetingTime.setHours(parseInt(hours), parseInt(minutes));
-      }
-
-      const diffMs = meetingTime.getTime() - now.getTime();
-      const diffMins = Math.floor(diffMs / (1000 * 60));
-      const diffHours = Math.floor(diffMins / 60);
-
-      if (diffMins < 0) return "Time passed";
-      if (diffMins < 60) return `${diffMins} min`;
-      if (diffHours < 24) return `${diffHours} hr`;
-
-      const diffDays = Math.floor(diffHours / 24);
-      return `${diffDays} day${diffDays > 1 ? "s" : ""}`;
-    } catch {
-      return "Soon";
-    }
-  };
-
-  const timeUntilMeeting = calculateTimeUntilMeeting(currentMeeting);
-
-  // Format date and time properly
-  const formatMeetingDateTime = (meeting: Activity) => {
-    try {
-      const date = new Date(meeting.date);
-
-      // Format date
-      const dateOptions: Intl.DateTimeFormatOptions = {
+      const date = new Date(dateString);
+      const options: Intl.DateTimeFormatOptions = {
         weekday: "short",
         day: "numeric",
         month: "short",
       };
-      const formattedDate = date.toLocaleDateString("en-US", dateOptions);
-
-      // Format time
-      const formattedTime = formatActivityTime(
-        meeting.time || "",
-        meeting.date,
-      );
-
-      return `${formattedDate} • ${formattedTime}`;
+      return date.toLocaleDateString("en-US", options);
     } catch {
-      return meeting.date || "Date not set";
+      return dateString || "Date not set";
+    }
+  };
+
+  // Format time properly
+  const formatMeetingTime = (timeString: string, dateString: string) => {
+    try {
+      if (timeString) {
+        // If time is in 24-hour format (e.g., "14:30")
+        if (timeString.includes(":")) {
+          const [hours, minutes] = timeString.split(":");
+          const hour = parseInt(hours);
+          const ampm = hour >= 12 ? "PM" : "AM";
+          const hour12 = hour % 12 || 12;
+          return `${hour12}:${minutes.padStart(2, "0")} ${ampm}`;
+        }
+        return timeString;
+      }
+
+      // If no time string, check if date has time component
+      if (dateString) {
+        const date = new Date(dateString);
+        const hours = date.getHours();
+        const minutes = date.getMinutes();
+
+        if (hours === 0 && minutes === 0) {
+          return "All day";
+        }
+
+        const ampm = hours >= 12 ? "PM" : "AM";
+        const hour12 = hours % 12 || 12;
+        return `${hour12}:${minutes.toString().padStart(2, "0")} ${ampm}`;
+      }
+
+      return "Time not set";
+    } catch {
+      return "Time not set";
     }
   };
 
@@ -126,10 +195,11 @@ export const MeetingReminder: React.FC<MeetingReminderProps> = ({
     if (onMeetingPress) {
       onMeetingPress(currentMeeting);
     } else {
-      // Navigate to activities page with meeting filter
       router.push("/(tabs)/(tools)/activities");
     }
   };
+
+  const { hours, minutes, seconds, isPast } = calculateTimeRemaining();
 
   return (
     <View
@@ -146,7 +216,7 @@ export const MeetingReminder: React.FC<MeetingReminderProps> = ({
         elevation: isDark ? 4 : 2,
       }}
     >
-      {/* Header - ActivitiesChart की तरह */}
+      {/* Header */}
       <View
         style={{
           flexDirection: "row",
@@ -190,7 +260,7 @@ export const MeetingReminder: React.FC<MeetingReminderProps> = ({
         </TouchableOpacity>
       </View>
 
-      {/* Meeting Card - ActivitiesChart के tiles की तरह */}
+      {/* Meeting Card */}
       <Animated.View style={{ opacity: fadeAnim }}>
         <TouchableOpacity
           onPress={handleMeetingPress}
@@ -223,28 +293,55 @@ export const MeetingReminder: React.FC<MeetingReminderProps> = ({
                 {currentMeeting.title}
               </Text>
 
-              {/* Date & Time - ActivitiesChart के format में */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginBottom: 6,
-                }}
-              >
-                <Feather
-                  name="calendar"
-                  size={14}
-                  color={colors.textSecondary}
-                />
-                <Text
+              {/* Date & Time */}
+              <View style={{ marginBottom: 6 }}>
+                <View
                   style={{
-                    fontSize: 13,
-                    color: colors.textSecondary,
-                    marginLeft: 6,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginBottom: 4,
                   }}
                 >
-                  {formatMeetingDateTime(currentMeeting)}
-                </Text>
+                  <Feather
+                    name="calendar"
+                    size={14}
+                    color={colors.textSecondary}
+                  />
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      color: colors.textSecondary,
+                      marginLeft: 6,
+                    }}
+                  >
+                    {formatMeetingDate(currentMeeting.date)}
+                  </Text>
+                </View>
+
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                  }}
+                >
+                  <Feather
+                    name="clock"
+                    size={14}
+                    color={colors.textSecondary}
+                  />
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      color: colors.textSecondary,
+                      marginLeft: 6,
+                    }}
+                  >
+                    {formatMeetingTime(
+                      currentMeeting.time || "",
+                      currentMeeting.date,
+                    )}
+                  </Text>
+                </View>
               </View>
 
               {/* Contact */}
@@ -290,34 +387,74 @@ export const MeetingReminder: React.FC<MeetingReminderProps> = ({
               )}
             </View>
 
-            {/* Right side - Time badge */}
+            {/* Right side - Countdown Timer */}
             <View style={{ alignItems: "flex-end" }}>
               <View
                 style={[
-                  styles.timeBadge,
+                  styles.countdownContainer,
                   {
-                    backgroundColor: timeUntilMeeting.includes("min")
-                      ? "#FEF2F2"
-                      : timeUntilMeeting.includes("hr")
-                        ? "#FFFBEB"
-                        : "#F0F9FF",
+                    backgroundColor: isPast
+                      ? "#F3F4F6"
+                      : hours > 24
+                        ? "#F0F9FF"
+                        : hours > 0
+                          ? "#FFFBEB"
+                          : "#FEF2F2",
+                    borderColor: isPast
+                      ? colors.border
+                      : hours > 24
+                        ? "#0EA5E9"
+                        : hours > 0
+                          ? "#F59E0B"
+                          : "#DC2626",
                   },
                 ]}
               >
-                <Text
-                  style={[
-                    styles.timeBadgeText,
-                    {
-                      color: timeUntilMeeting.includes("min")
-                        ? "#DC2626"
-                        : timeUntilMeeting.includes("hr")
-                          ? "#D97706"
-                          : "#0EA5E9",
-                    },
-                  ]}
-                >
-                  {timeUntilMeeting}
-                </Text>
+                {!isPast && countdownActive ? (
+                  <>
+                    {/* Digital Countdown */}
+                    <Text
+                      style={[
+                        styles.countdownText,
+                        {
+                          color:
+                            hours > 24
+                              ? "#0EA5E9"
+                              : hours > 0
+                                ? "#D97706"
+                                : "#DC2626",
+                        },
+                      ]}
+                    >
+                      {timeRemaining}
+                    </Text>
+
+                    {/* Time units */}
+                    <View style={styles.timeUnits}>
+                      <Text
+                        style={[
+                          styles.timeUnit,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
+                        {hours > 24
+                          ? "Days"
+                          : hours > 0
+                            ? "Hrs Min Sec"
+                            : "Min Sec"}
+                      </Text>
+                    </View>
+                  </>
+                ) : (
+                  <Text
+                    style={[
+                      styles.countdownText,
+                      { color: isPast ? colors.textSecondary : "#DC2626" },
+                    ]}
+                  >
+                    {isPast ? "Time Passed" : "Starts Soon"}
+                  </Text>
+                )}
               </View>
 
               {/* Meeting counter */}
@@ -350,7 +487,7 @@ export const MeetingReminder: React.FC<MeetingReminderProps> = ({
         </TouchableOpacity>
       </Animated.View>
 
-      {/* View All Button - ActivitiesChart के total activities की तरह */}
+      {/* View All Button */}
       <TouchableOpacity
         style={{
           marginTop: 16,
@@ -380,7 +517,7 @@ export const MeetingReminder: React.FC<MeetingReminderProps> = ({
         </Text>
       </TouchableOpacity>
 
-      {/* Auto-cycle dots (if multiple meetings) */}
+      {/* Auto-cycle dots */}
       {upcomingMeetings.length > 1 && (
         <View
           style={{
@@ -409,15 +546,26 @@ export const MeetingReminder: React.FC<MeetingReminderProps> = ({
 };
 
 const styles = StyleSheet.create({
-  timeBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+  countdownContainer: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderRadius: 12,
-    minWidth: 70,
+    minWidth: 90,
     alignItems: "center",
+    borderWidth: 1,
+    borderStyle: "solid",
   },
-  timeBadgeText: {
-    fontSize: 12,
+  countdownText: {
+    fontSize: 14,
     fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+  timeUnits: {
+    marginTop: 2,
+  },
+  timeUnit: {
+    fontSize: 9,
+    fontWeight: "500",
+    opacity: 0.8,
   },
 });

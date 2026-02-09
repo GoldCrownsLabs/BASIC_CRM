@@ -42,10 +42,8 @@ interface AddActivityModalProps {
   onUpdatePriority: (priority: PriorityType) => void;
 }
 
-// ✅ Feather icon names के लिए proper type
 type FeatherIconName = keyof typeof Feather.glyphMap;
 
-// ✅ Priority के लिए default value
 const DEFAULT_PRIORITY: PriorityType = "medium";
 
 const AddActivityModal: React.FC<AddActivityModalProps> = ({
