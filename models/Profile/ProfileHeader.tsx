@@ -19,7 +19,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 }) => {
   const { colors, isDark } = useAppTheme();
 
-  const tabs = ["profile", "security", "activity", "address"] as const;
+  // const tabs = ["profile", "security", "activity", "address"] as const;
+    const tabs = ["profile", "security","address"] as const;
 
   return (
     <>
