@@ -202,6 +202,7 @@ export default function TasksScreen() {
             formatDate={formatDate}
             getDaysUntilDue={getDaysUntilDue}
             colors={colors}
+            
           />
         </View>
 
