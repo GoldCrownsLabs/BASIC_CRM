@@ -6,11 +6,9 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useContacts } from "@/hooks/useContacts";
 import { useContactActions } from "@/hooks/useContactActions";
-
 
 import AddContactModal from "@/models/Contacts/AddContactModal";
 import ContactDetailModal from "@/models/Contacts/ContactDetailModal";
@@ -65,24 +63,29 @@ export default function ContactsScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
         <ScrollView
           style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingTop: 0, // ✅ Remove top padding
+            paddingBottom: 20,
+          }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
               tintColor={colors.primary}
               colors={[colors.primary]}
+              style={{ backgroundColor: colors.background }}
+              progressViewOffset={20} // ✅ Adjust refresh indicator position
             />
           }
-          contentContainerStyle={{ paddingBottom: 20 }}
           onScroll={({ nativeEvent }) => {
             const { layoutMeasurement, contentOffset, contentSize } =
               nativeEvent;
@@ -107,10 +110,8 @@ export default function ContactsScreen() {
             filters={filters}
             sortOptions={sortOptions}
           />
-
           {/* Stats Summary */}
           <StatsSummary stats={contactStats} />
-
           {/* Contacts List */}
           <ContactsList
             loading={loading}
@@ -124,9 +125,8 @@ export default function ContactsScreen() {
             onDeleteContact={handleDeleteContact}
             onAddContact={() => setAddContactModalVisible(true)}
           />
-
           {/* Bottom Spacer */}
-          <View style={{ height: 100 }} />
+          <View style={{ height: 80 }} /> {/* ✅ Reduced from 100 to 80 */}
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -150,6 +150,6 @@ export default function ContactsScreen() {
           onContactUpdated={handleContactUpdated}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }

@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { ScrollView, RefreshControl, View, Alert } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useTasks } from "@/hooks/useTasks";
 import AddTaskModal from "@/components/Modal/AddTaskModal";
@@ -13,7 +12,6 @@ import { TasksList } from "@/models/Tasks/TasksList";
 import { FloatingAddButton } from "@/models/Tasks/FloatingAddButton";
 import { formatDate, getPriorityColor } from "@/utils/leads.utils";
 import { getDaysUntilDue, getStatusColor } from "@/utils/task.utils";
-
 
 export default function TasksScreen() {
   const { colors } = useAppTheme();
@@ -93,42 +91,65 @@ export default function TasksScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-      {/* Main Content */}
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: colors.background,
+      }}
+    >
+      {/* ✅ Fixed Header (Outside ScrollView) */}
+      <View
+        style={{
+          backgroundColor: colors.card,
+          paddingHorizontal: 16,
+          paddingTop: 10,
+          paddingBottom: 10,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+          zIndex: 10, // Ensure it stays above content
+        }}
+      >
+        <TasksHeader
+          searchQuery={searchQuery}
+          onSearchChange={handleSearch}
+          viewMode={viewMode}
+          onToggleView={() =>
+            setViewMode(viewMode === "list" ? "calendar" : "list")
+          }
+          onAddTask={() => setShowAddModal(true)}
+          loading={loading}
+          taskCount={tasks.length}
+        />
+      </View>
+
+      {/* Main Scrollable Content */}
       <ScrollView
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingBottom: 20,
+        }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor={colors.primary}
             colors={[colors.primary]}
+            style={{ backgroundColor: colors.background }}
+            progressViewOffset={60} // ✅ Increased because header is fixed
           />
         }
-        contentContainerStyle={{ paddingBottom: 20 }}
       >
-        {/* Header Section */}
+        {/* Header Section - Now only contains stats and filters */}
         <View
           style={{
             backgroundColor: colors.card,
-            padding: 20,
+            padding: 16,
+            paddingTop: 0, // ✅ No top padding since header is fixed
             borderBottomWidth: 1,
             borderBottomColor: colors.border,
           }}
         >
-          <TasksHeader
-            searchQuery={searchQuery}
-            onSearchChange={handleSearch}
-            viewMode={viewMode}
-            onToggleView={() =>
-              setViewMode(viewMode === "list" ? "calendar" : "list")
-            }
-            onAddTask={() => setShowAddModal(true)}
-            loading={loading}
-            taskCount={tasks.length}
-          />
-
           {/* Stats Cards */}
           <TaskStatsCards
             stats={{
@@ -166,7 +187,7 @@ export default function TasksScreen() {
         </View>
 
         {/* Tasks List */}
-        <View style={{ padding: 20 }}>
+        <View style={{ padding: 16, paddingTop: 0 }}>
           <TasksList
             tasks={tasks}
             loading={loading}
@@ -185,7 +206,7 @@ export default function TasksScreen() {
         </View>
 
         {/* Bottom Spacer for floating buttons */}
-        <View style={{ height: 80 }} />
+        <View style={{ height: 20 }} />
       </ScrollView>
 
       {/* Floating Action Button */}
@@ -197,6 +218,6 @@ export default function TasksScreen() {
         onClose={() => setShowAddModal(false)}
         onAddTask={handleAddTaskSubmit}
       />
-    </SafeAreaView>
+    </View>
   );
 }

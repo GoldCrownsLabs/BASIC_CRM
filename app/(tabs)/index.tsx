@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { ScrollView, RefreshControl, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useAuthStore } from "@/store/auth.store";
 import { useDashboard } from "@/hooks/useDashboard";
@@ -15,10 +14,12 @@ import { SyncStatus } from "@/models/Home/SyncStatus";
 import { fetchActivities, Activity } from "@/lib/api/activities.api";
 import { MeetingReminder } from "@/models/Home/MeetingReminder";
 import { router } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function DashboardScreen() {
   const { user } = useAuthStore();
   const { colors, isDark } = useAppTheme();
+  const insets = useSafeAreaInsets();
 
   const {
     greeting,
@@ -134,9 +135,19 @@ export default function DashboardScreen() {
   }, [refreshing]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: colors.background,
+        paddingTop: 0, // ✅ Remove top padding
+      }}
+    >
       <ScrollView
         style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingTop: 0, // ✅ Remove top padding from scrollview
+          paddingBottom: 20 + insets.bottom, // ✅ Add bottom safe area
+        }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -144,6 +155,9 @@ export default function DashboardScreen() {
             onRefresh={onRefresh}
             tintColor={colors.primary}
             colors={[colors.primary]}
+            // ✅ Adjust refresh control position
+            style={{ backgroundColor: colors.background }}
+            progressViewOffset={20} // Adjust this value as needed
           />
         }
       >
@@ -195,8 +209,8 @@ export default function DashboardScreen() {
         <SyncStatus />
 
         {/* Bottom Spacer */}
-        <View style={{ height: 100 }} />
+        <View style={{ height: 20 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

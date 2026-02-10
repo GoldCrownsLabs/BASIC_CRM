@@ -8,11 +8,10 @@ import {
   ActivityIndicator,
   Text,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useLeads } from "@/hooks/useLeads";
 import { useAuthStore } from "@/store/auth.store";
-import { Redirect } from "expo-router";
+import { Redirect, router } from "expo-router";
 import {
   getStageColor,
   getStageLabel,
@@ -31,11 +30,13 @@ import { PipelineStats } from "@/models/Leads/PipelineStats";
 import { LeadsList } from "@/models/Leads/LeadsList";
 import { LeadDetailModal } from "@/models/Leads/LeadDetailModal";
 import { AddLeadModal } from "@/models/Leads/AddLeadModal";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function LeadsScreen() {
   const { colors } = useAppTheme();
   const { isAuthenticated, isLoading: authLoading } = useAuthStore();
   const [authChecked, setAuthChecked] = useState(false);
+  const insets = useSafeAreaInsets();
 
   // Check authentication
   useEffect(() => {
@@ -63,7 +64,6 @@ export default function LeadsScreen() {
     handlePageChange,
     fetchLeads,
     fetchLeadStats,
-    
   } = useLeads();
 
   const [selectedLead, setSelectedLead] = useState(null);
@@ -72,23 +72,25 @@ export default function LeadsScreen() {
 
   // Redirect if not authenticated
   if (authChecked && !isAuthenticated) {
-    // console.log("LeadsScreen: Not authenticated, redirecting to login...");
     return <Redirect href="/(auth)/login" />;
   }
 
   // Show loading while checking auth
   if (authLoading || !authChecked) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-        <View
-          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-        >
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={{ marginTop: 10, color: colors.text }}>
-            Checking authentication...
-          </Text>
-        </View>
-      </SafeAreaView>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: colors.background,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ marginTop: 10, color: colors.text }}>
+          Checking authentication...
+        </Text>
+      </View>
     );
   }
 
@@ -112,19 +114,30 @@ export default function LeadsScreen() {
   const stageStats = getStageStats(stats, leadsData, colors);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: colors.background,
+        paddingTop: 0, // ✅ Remove top padding
+      }}
+    >
       <ScrollView
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingTop: 0, // ✅ Remove top padding
+          paddingBottom: 20 + insets.bottom, // ✅ Add bottom safe area
+        }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor={colors.primary}
             colors={[colors.primary]}
+            style={{ backgroundColor: colors.background }} // ✅ Add background
+            progressViewOffset={20} // ✅ Adjust pull position
           />
         }
-        contentContainerStyle={{ paddingBottom: 20 }}
       >
         {/* Header with Search */}
         <LeadsHeader
@@ -132,7 +145,6 @@ export default function LeadsScreen() {
           onSearchChange={handleSearch}
           onAddLead={() => setAddLeadModalVisible(true)}
         />
-
         {/* Stage Filter */}
         <StageFilter
           stages={stageStats}
@@ -140,13 +152,11 @@ export default function LeadsScreen() {
           onSelectStage={handleStageFilter}
           formatCurrency={formatCurrency}
         />
-
         {/* Source Filter */}
         <SourceFilter
           selectedSource={selectedSource}
           onSelectSource={handleSourceFilter}
         />
-
         {/* Priority Filter */}
         <PriorityFilter
           selectedPriority={selectedPriority}
@@ -155,7 +165,6 @@ export default function LeadsScreen() {
           getPriorityColor={getPriorityColor}
           getPriorityDisplayLabel={getPriorityDisplayLabel}
         />
-
         {/* Pipeline Stats */}
         <PipelineStats
           totalPipelineValue={totalPipelineValue}
@@ -163,7 +172,6 @@ export default function LeadsScreen() {
           totalLeads={pagination.total}
           formatCurrency={formatCurrency}
         />
-
         {/* Leads List */}
         <View style={{ paddingHorizontal: 15 }}>
           <LeadsList
@@ -180,8 +188,7 @@ export default function LeadsScreen() {
             calculateDaysToClose={calculateDaysToClose}
           />
         </View>
-
-        <View style={{ height: 100 }} />
+        <View style={{ height: 20 }} /> {/* ✅ Reduced from 100 to 20 */}
       </ScrollView>
 
       {/* Lead Detail Modal */}
@@ -203,6 +210,6 @@ export default function LeadsScreen() {
         onClose={() => setAddLeadModalVisible(false)}
         onLeadAdded={handleLeadAdded}
       />
-    </SafeAreaView>
+    </View>
   );
 }

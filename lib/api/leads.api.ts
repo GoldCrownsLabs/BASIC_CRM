@@ -54,11 +54,11 @@ export interface Lead {
   createdAt: string;
   updatedAt: string;
 
-  // ✅ ADD THESE MISSING PROPERTIES:
-  name?: string; // For display purposes (full name)
-  stage?: string; // Alternative to status
-  estimatedValue?: number; // Alternative to budget
-  // Add any other properties your UI needs
+  // ✅ ADD THESE MISSING PROPERTIES FOR UI:
+  name?: string;
+  stage?: string; 
+  estimatedValue?: number; 
+  // Make sure email is always required
 }
 // Lead creation payload
 export interface CreateLeadPayload {
@@ -412,7 +412,7 @@ export const leadsApi = {
       }
 
       const response = await apiService.put<{
-        matched: number;  
+        matched: number;
         modified: number;
       }>("/leads/bulk-update", payload);
       return response;

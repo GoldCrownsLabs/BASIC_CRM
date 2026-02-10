@@ -29,7 +29,6 @@ import { ActivityTimelineCard } from "@/models/Profile/ActivityTimelineCard";
 import { AddressHeaderCard } from "@/models/Profile/AddressHeaderCard";
 import { AddressCard } from "@/models/Profile/AddressCard";
 import { EmptyAddressCard } from "@/models/Profile/EmptyAddressCard";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 const ProfilePage = () => {
   const { colors, isDark } = useAppTheme();
@@ -199,7 +198,13 @@ const ProfilePage = () => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: colors.background,
+        paddingTop: 0, // ✅ Remove top padding
+      }}
+    >
       <StatusBar
         barStyle={isDark ? "light-content" : "dark-content"}
         backgroundColor={colors.background}
@@ -215,19 +220,26 @@ const ProfilePage = () => {
       <ScrollView
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={{
+          paddingTop: 0, // ✅ Remove top padding
+          paddingBottom: 40,
+        }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
             colors={[colors.primary]}
             tintColor={colors.primary}
+            style={{ backgroundColor: colors.background }} // ✅ Add background
+            progressViewOffset={20} // ✅ Adjust pull position
           />
         }
       >
         {/* Profile Tab */}
         {activeTab === "profile" && (
-          <View style={{ padding: 20 }}>
+          <View style={{ padding: 16 }}>
+            {" "}
+            {/* ✅ Reduced from 20 to 16 */}
             <ProfileInfoCard
               user={user}
               onEditProfile={() => {
@@ -235,32 +247,28 @@ const ProfilePage = () => {
                 setShowEditProfile(true);
               }}
             />
-
             <PersonalInfoCard user={user} />
-
             <PreferencesCard user={user} />
-
             <StatsCard user={user} stats={stats} />
           </View>
         )}
 
         {/* Security Tab */}
         {activeTab === "security" && securitySettings && (
-          <View style={{ padding: 20 }}>
+          <View style={{ padding: 16 }}>
+            {" "}
+            {/* ✅ Reduced from 20 to 16 */}
             <SecuritySettingsCard
               securitySettings={securitySettings}
               onSecuritySettingChange={(key, value) =>
                 setSecuritySettings({ ...securitySettings, [key]: value })
               }
             />
-
             <PasswordCard
               securitySettings={securitySettings}
               onChangePassword={() => setShowChangePassword(true)}
             />
-
             <ActiveDevicesCard securitySettings={securitySettings} />
-
             <DangerZoneCard
               onDeleteAccount={() => setShowDeleteAccount(true)}
             />
@@ -269,7 +277,13 @@ const ProfilePage = () => {
 
         {/* Activity Tab */}
         {activeTab === "activity" && (
-          <View style={{ paddingTop: 10, paddingLeft: 10, paddingRight: 10 }}>
+          <View
+            style={{
+              paddingTop: 10,
+              paddingLeft: 10,
+              paddingRight: 10,
+            }}
+          >
             <ActivityHeaderCard
               activityLogs={activityLogs}
               securitySettings={securitySettings}
@@ -281,7 +295,13 @@ const ProfilePage = () => {
 
         {/* Address Tab */}
         {activeTab === "address" && (
-          <View style={{ paddingTop: 10, paddingLeft: 10, paddingRight: 10 }}>
+          <View
+            style={{
+              paddingTop: 10,
+              paddingLeft: 10,
+              paddingRight: 10,
+            }}
+          >
             <AddressHeaderCard
               addresses={addresses}
               onAddAddress={() => setShowAddAddress(true)}
@@ -372,7 +392,7 @@ const ProfilePage = () => {
         isEditing={!!editingAddress}
         colors={colors}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 

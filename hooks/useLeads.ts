@@ -8,40 +8,59 @@ import leadsApi, {
 } from "@/lib/api/leads.api";
 import { useAuthStore } from "@/store/auth.store";
 
-// Create a type that extends Lead with UI-specific properties
-// Use Omit to exclude email and add it back with optional type
-interface UILead extends Omit<Lead, "email"> {
-  name?: string; // For full name display
-  stage?: string; // Alternative to status
-  estimatedValue?: number; // Alternative to budget
-  phone?: string;
-  company?: string;
-  email?: string; // Make optional to match original Lead
-}
-
-// Helper function to get full name from Lead
+// ✅ Helper function to get full name from Lead
 const getLeadFullName = (lead: Lead): string => {
   return `${lead.firstName} ${lead.lastName || ""}`.trim();
 };
 
-// Helper function to calculate stats from leads data
-const calculateStatsFromLeads = (leads: UILead[]): LeadStats => {
+// ✅ Helper function to enhance Lead with UI properties
+const enhanceLeadForUI = (lead: Lead): Lead => {
+  return {
+    ...lead,
+    // Ensure email is always a string (not undefined)
+    email: lead.email || "",
+    // Add UI-specific properties
+    name: getLeadFullName(lead),
+    stage: lead.status, 
+    estimatedValue: lead.budget, 
+    // Ensure other optional fields have defaults
+    phone: lead.phone || "",
+    company: lead.company || "",
+    jobTitle: lead.jobTitle || "",
+  };
+};
+
+// ✅ Helper function to calculate stats from leads data
+const calculateStatsFromLeads = (leads: Lead[]): LeadStats => {
   const statsByStage: Record<string, { count: number; totalValue: number }> =
     {};
+  const statsBySource: Record<string, number> = {};
+  const statsByPriority: Record<string, number> = {};
 
   leads.forEach((lead) => {
-    const stage = lead.status || lead.stage || "unknown";
+    const stage = lead.status || "unknown";
     if (!statsByStage[stage]) {
       statsByStage[stage] = { count: 0, totalValue: 0 };
     }
     statsByStage[stage].count += 1;
-    statsByStage[stage].totalValue += lead.budget || lead.estimatedValue || 0;
+    statsByStage[stage].totalValue += lead.budget || 0;
+
+    // Count by source
+    const source = lead.source || "unknown";
+    statsBySource[source] = (statsBySource[source] || 0) + 1;
+
+    // Count by priority
+    const priority = lead.priority || "medium";
+    statsByPriority[priority] = (statsByPriority[priority] || 0) + 1;
   });
 
   // Calculate conversion rate
   const wonLeads = leads.filter((lead) => lead.status === "closed_won").length;
   const conversionRatePercentage =
     leads.length > 0 ? ((wonLeads / leads.length) * 100).toFixed(1) : "0.0";
+
+  // Calculate hot leads (leads with high priority)
+  const hotLeads = leads.filter((lead) => lead.priority === "high").length;
 
   // Create a complete LeadStats object
   return {
@@ -51,11 +70,19 @@ const calculateStatsFromLeads = (leads: UILead[]): LeadStats => {
       count: data.count,
       totalValue: data.totalValue,
     })),
-    leadsBySource: [], // Empty for now
-    leadsByPriority: [], // Empty for now
-    leadsByMonth: [], // Empty for now
-    hotLeads: 0,
-    conversionRate: `${conversionRatePercentage}%`, // ✅ String format में
+    leadsBySource: Object.entries(statsBySource).map(([source, count]) => ({
+      _id: source,
+      count,
+    })),
+    leadsByPriority: Object.entries(statsByPriority).map(
+      ([priority, count]) => ({
+        _id: priority,
+        count,
+      }),
+    ),
+    leadsByMonth: [], 
+    hotLeads,
+    conversionRate: `${conversionRatePercentage}%`,
   };
 };
 
@@ -67,9 +94,9 @@ export const useLeads = () => {
   const [selectedStage, setSelectedStage] = useState("All");
   const [selectedSource, setSelectedSource] = useState("All");
   const [selectedPriority, setSelectedPriority] = useState("All");
-  const [leadsData, setLeadsData] = useState<UILead[]>([]);
+  const [leadsData, setLeadsData] = useState<Lead[]>([]);
   const [stats, setStats] = useState<LeadStats | null>(null);
-  const [allLeadsData, setAllLeadsData] = useState<UILead[]>([]);
+  const [allLeadsData, setAllLeadsData] = useState<Lead[]>([]);
   const [allStats, setAllStats] = useState<LeadStats | null>(null);
   const [pagination, setPagination] = useState({
     page: 1,
@@ -78,7 +105,6 @@ export const useLeads = () => {
     limit: 10,
   });
 
-  // Initial fetch - ALL data fetch करें
   useEffect(() => {
     if (isAuthenticated) {
       fetchAllData();
@@ -87,21 +113,6 @@ export const useLeads = () => {
     }
   }, [isAuthenticated]);
 
-  // Function to transform API Lead to UILead
-  const transformToUILead = (lead: Lead): UILead => {
-    return {
-      ...lead,
-      name: getLeadFullName(lead),
-      stage: lead.status, // Map status to stage
-      estimatedValue: lead.budget, // Map budget to estimatedValue
-      // Ensure other properties exist (email is already in lead from API)
-      phone: lead.phone || "",
-      company: lead.company || "",
-      // Don't override email, use the one from API
-    } as UILead; // Type assertion to handle the Omit
-  };
-
-  // सभी data एक साथ fetch करें
   const fetchAllData = async () => {
     try {
       setLoading(true);
@@ -121,33 +132,34 @@ export const useLeads = () => {
         const allLeads = allLeadsResponse.data as LeadsResponse;
         const apiData = allLeads.data || [];
 
-        // Transform API data to UILead
-        const uiData: UILead[] = apiData.map(transformToUILead);
+        // ✅ Transform API data to enhanced Lead
+        const enhancedData: Lead[] = apiData.map(enhanceLeadForUI);
 
         // Store ALL leads
-        setAllLeadsData(uiData);
+        setAllLeadsData(enhancedData);
 
         // Initially show ALL leads
-        setLeadsData(uiData);
+        setLeadsData(enhancedData);
         setPagination({
           page: 1,
-          pages: Math.ceil(uiData.length / 10),
-          total: uiData.length,
+          pages: Math.ceil(enhancedData.length / 10),
+          total: enhancedData.length,
           limit: 10,
         });
-
-        // Calculate stats if API stats not available
-        if (!statsResponse.success || !statsResponse.data) {
-          const calculatedStats = calculateStatsFromLeads(uiData);
-          setAllStats(calculatedStats);
-          setStats(calculatedStats);
-        }
       }
 
       if (statsResponse.success && statsResponse.data) {
         // Store ALL stats from API
         setAllStats(statsResponse.data);
         setStats(statsResponse.data);
+      } else if (allLeadsResponse.success && allLeadsResponse.data) {
+        // Calculate stats if API stats not available
+        const allLeads = allLeadsResponse.data as LeadsResponse;
+        const apiData = allLeads.data || [];
+        const enhancedData: Lead[] = apiData.map(enhanceLeadForUI);
+        const calculatedStats = calculateStatsFromLeads(enhancedData);
+        setAllStats(calculatedStats);
+        setStats(calculatedStats);
       }
     } catch (error: any) {
       console.error("Error fetching all data:", error);
@@ -157,7 +169,6 @@ export const useLeads = () => {
     }
   };
 
-  // Filtered leads show करें (client-side filtering)
   const applyFilters = () => {
     if (!allLeadsData.length) {
       setLeadsData([]);
@@ -200,13 +211,14 @@ export const useLeads = () => {
           (lead.firstName + " " + (lead.lastName || ""))
             .toLowerCase()
             .includes(query) ||
+          lead.name?.toLowerCase().includes(query) ||
           lead.email?.toLowerCase().includes(query) ||
           lead.company?.toLowerCase().includes(query) ||
-          lead.phone?.toLowerCase().includes(query),
+          lead.phone?.toLowerCase().includes(query) ||
+          lead.jobTitle?.toLowerCase().includes(query),
       );
     }
 
-    // Update pagination and show filtered data
     const total = filteredLeads.length;
     const pages = Math.ceil(total / pagination.limit);
 
@@ -223,7 +235,6 @@ export const useLeads = () => {
     }));
   };
 
-  // Apply filters when any filter changes
   useEffect(() => {
     if (isAuthenticated && allLeadsData.length > 0) {
       applyFilters();
@@ -282,13 +293,13 @@ export const useLeads = () => {
     selectedStage,
     selectedSource,
     selectedPriority,
-    leadsData,
+    leadsData, 
     stats: allStats,
     pagination,
     totalPipelineValue,
     allLeadsData,
     fetchLeads: fetchAllData,
-    fetchLeadStats: () => {},
+    fetchLeadStats: () => leadsApi.getLeadStats(),
     onRefresh,
     handleSearch,
     handleStageFilter,
