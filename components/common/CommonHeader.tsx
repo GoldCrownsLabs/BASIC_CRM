@@ -7,6 +7,7 @@ import { TouchableOpacity, View, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface CommonHeaderProps {
+  
   title: string;
   showBackButton?: boolean;
   rightIcon?: React.ReactNode;
