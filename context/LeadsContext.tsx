@@ -20,7 +20,6 @@ export const LeadsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [leadsData, setLeadsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // LeadsContext.tsx में refreshLeads function में:
   const refreshLeads = async () => {
     try {
       setLoading(true);
