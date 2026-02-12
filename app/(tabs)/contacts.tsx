@@ -73,7 +73,7 @@ export default function ContactsScreen() {
           style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
-            paddingTop: 0, // ✅ Remove top padding
+            paddingTop: 0,
             paddingBottom: 20,
           }}
           refreshControl={
@@ -83,7 +83,7 @@ export default function ContactsScreen() {
               tintColor={colors.primary}
               colors={[colors.primary]}
               style={{ backgroundColor: colors.background }}
-              progressViewOffset={20} // ✅ Adjust refresh indicator position
+              progressViewOffset={20} 
             />
           }
           onScroll={({ nativeEvent }) => {
@@ -126,7 +126,7 @@ export default function ContactsScreen() {
             onAddContact={() => setAddContactModalVisible(true)}
           />
           {/* Bottom Spacer */}
-          <View style={{ height: 80 }} /> {/* ✅ Reduced from 100 to 80 */}
+          <View style={{ height: 80 }} />
         </ScrollView>
       </KeyboardAvoidingView>
 

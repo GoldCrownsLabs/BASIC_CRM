@@ -188,7 +188,7 @@ export default function LeadsScreen() {
             calculateDaysToClose={calculateDaysToClose}
           />
         </View>
-        <View style={{ height: 20 }} /> {/* ✅ Reduced from 100 to 20 */}
+        <View style={{ height: 20 }} /> 
       </ScrollView>
 
       {/* Lead Detail Modal */}
