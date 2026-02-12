@@ -15,6 +15,7 @@ import { fetchActivities, Activity } from "@/lib/api/activities.api";
 import { MeetingReminder } from "@/models/Home/MeetingReminder";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import BannerSession from "@/models/Home/BannerSession";
 
 export default function DashboardScreen() {
   const { user } = useAuthStore();
@@ -167,6 +168,10 @@ export default function DashboardScreen() {
           userName={user?.name || "User"}
           fadeAnim={fadeAnim}
         />
+
+        {/* Banner Session Ad */}
+
+        <BannerSession />
 
         {/* Meeting Reminder */}
         <MeetingReminder
