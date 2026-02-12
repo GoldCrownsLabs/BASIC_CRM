@@ -6,8 +6,9 @@ import React from "react";
 import { TouchableOpacity, View, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+
+
 interface CommonHeaderProps {
-  
   title: string;
   showBackButton?: boolean;
   rightIcon?: React.ReactNode;
@@ -35,7 +36,7 @@ export default function CommonHeader({
     if (onBackPress) {
       onBackPress();
     } else if (navigation.canGoBack()) {
-      navigation.goBack(); // यह सिर्फ पिछले screen पर जाएगा
+      navigation.goBack();
     }
   };
 
