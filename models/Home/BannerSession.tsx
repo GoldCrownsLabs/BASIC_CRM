@@ -9,6 +9,8 @@ import {
   Easing,
 } from "react-native";
 
+
+
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = width - 40;
 const CARD_HEIGHT = 200;
