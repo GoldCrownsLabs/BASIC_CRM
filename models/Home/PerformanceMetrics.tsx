@@ -78,6 +78,9 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
         shadowRadius: 8,
         elevation: 4,
       }}
+
+
+      
     >
       <ThemedText
         type="subtitle"
