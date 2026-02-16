@@ -76,7 +76,7 @@ const BannerSession: React.FC = () => {
 
     return () => clearInterval(interval);
   }, [currentIndex]);
-
+ 
   const getFrontRotation = () => {
     switch (currentIndex % 4) {
       case 0: // Right ➝ Left
