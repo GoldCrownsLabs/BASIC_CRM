@@ -1,72 +1,138 @@
-// hooks/useNotifications.ts
 import { useState, useEffect, useCallback } from "react";
-import { useIsFocused } from "@react-navigation/native";
-import { AppState, AppStateStatus } from "react-native";
-import notificationService from "@/services/NotificationService";
+import { useNotifications as useNotificationsContext } from "@/context/NotificationContext";
+import { websocketService } from "@/lib/utils/websocket";
+import { fetchUnreadCount } from "@/lib/api/notifications";
 
-export const useNotifications = () => {
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const isFocused = useIsFocused();
-  const prevCountRef = useState(0);
+interface UseNotificationsOptions {
+  initialFetch?: boolean;
+  onNewNotification?: (notification: any) => void;
+}
 
-  // Subscribe to notification service
+export const useNotifications = (options: UseNotificationsOptions = {}) => {
+  const { initialFetch = true } = options;
+
+  // ✅ Context se data le lo
+  const context = useNotificationsContext();
+
+  const [isConnected, setIsConnected] = useState(
+    websocketService.isConnected(),
+  );
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [localLoading, setLocalLoading] = useState(false);
+
+  // 🔥 WebSocket connection status track karo
   useEffect(() => {
-    const unsubscribe = notificationService.subscribe((count) => {
-      setUnreadCount(count);
-      setLoading(false);
+    const unsubscribe = websocketService.onConnectionChange((connected) => {
+      setIsConnected(connected);
     });
 
     return unsubscribe;
   }, []);
 
-  // Handle screen focus
+  // 🔥 Initial fetch (agar needed ho)
   useEffect(() => {
-    if (isFocused) {
-      // Screen came into focus - refresh immediately
-      notificationService.manualRefresh();
+    if (initialFetch && context.notifications.length === 0) {
+      context.refreshNotifications();
     }
-  }, [isFocused]);
+  }, [initialFetch]);
 
-  // Handle app state changes
+  // 🔥 Manual refresh with timestamp
+  const refresh = useCallback(async () => {
+    setLocalLoading(true);
+    await context.refreshNotifications();
+    setLastUpdated(new Date());
+    setLocalLoading(false);
+  }, [context]);
+
+  // 🔥 Load more with pagination
+  const loadMore = useCallback(async () => {
+    if (!context.loading && context.hasMore) {
+      await context.loadMore();
+      setLastUpdated(new Date());
+    }
+  }, [context]);
+
+  // 🔥 Mark as read with optimistic update
+  const markAsRead = useCallback(
+    async (id: string) => {
+      await context.markAsRead(id);
+    },
+    [context],
+  );
+
+  // 🔥 Mark all as read
+  const markAllAsRead = useCallback(async () => {
+    await context.markAllAsRead();
+  }, [context]);
+
+  // 🔥 Get unread count (from context or fetch)
+  const getUnreadCount = useCallback(async () => {
+    if (isConnected) {
+      // WebSocket connected hai to context se le lo
+      return context.unreadCount;
+    } else {
+      // WebSocket disconnected hai to API se fetch karo
+      const count = await fetchUnreadCount();
+      return count;
+    }
+  }, [isConnected, context.unreadCount]);
+
+  return {
+    // 🔥 From Context
+    notifications: context.notifications,
+    unreadCount: context.unreadCount,
+    loading: context.loading || localLoading,
+    refreshing: context.refreshing,
+    hasMore: context.hasMore,
+
+    // 🔥 WebSocket Status
+    isConnected,
+
+    // 🔥 Timestamps
+    lastUpdated,
+
+    // 🔥 Actions
+    refresh,
+    loadMore,
+    markAsRead,
+    markAllAsRead,
+    getUnreadCount,
+
+    // 🔥 Utilities
+    isEmpty: context.notifications.length === 0,
+    hasNotifications: context.notifications.length > 0,
+  };
+};
+
+// 🔥 Optional: Hook for unread count only (lightweight)
+export const useUnreadCount = () => {
+  const { unreadCount } = useNotificationsContext();
+  const [isConnected, setIsConnected] = useState(
+    websocketService.isConnected(),
+  );
+
   useEffect(() => {
-    const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      if (nextAppState === "active") {
-        notificationService.setAppState("active");
-      } else {
-        notificationService.setAppState("background");
-      }
-    };
-
-    const subscription = AppState.addEventListener(
-      "change",
-      handleAppStateChange,
-    );
-    return () => {
-      subscription.remove();
-    };
-  }, []);
-
-  // Manual refresh function
-  const refreshCount = useCallback(async () => {
-    setLoading(true);
-    const count = await notificationService.manualRefresh();
-    setUnreadCount(count);
-    setLoading(false);
-    return count;
-  }, []);
-
-  // Force refresh (bypasses cache)
-  const forceRefresh = useCallback(async () => {
-    setLoading(true);
-    await notificationService.forceRefresh();
-    setLoading(false);
+    const unsubscribe = websocketService.onConnectionChange((connected) => {
+      setIsConnected(connected);
+    });
+    return unsubscribe;
   }, []);
 
   return {
     unreadCount,
-    loading,
-    refreshCount,
-    forceRefresh,
+    isConnected,
   };
+};
+
+// 🔥 Optional: Hook for real-time badge updates
+export const useNotificationBadge = () => {
+  const { unreadCount } = useNotificationsContext();
+
+  // Update app icon badge (for iOS)
+  useEffect(() => {
+    // Agar app icon badge set karna ho to
+    // Notifications.setBadgeCount?.(unreadCount);
+  }, [unreadCount]);
+
+  return unreadCount;
 };

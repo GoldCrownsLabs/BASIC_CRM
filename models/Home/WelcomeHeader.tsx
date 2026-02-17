@@ -5,7 +5,7 @@ import { ThemedText } from "@/components/themed-text";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 
-import { useNotifications } from "@/hooks/useNotifications";
+import { useNotifications } from "@/hooks/useNotifications"; // ✅ Naya hook
 import { NotificationModal } from "../Notifications/Notification-modal";
 
 interface WelcomeHeaderProps {
@@ -25,8 +25,8 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
   const [hasNewNotification, setHasNewNotification] = useState(false);
   const prevCountRef = useRef(0);
 
-  // Use custom hook
-  const { unreadCount, loading, refreshCount } = useNotifications();
+  // ✅ Use custom hook - refreshCount ko refresh mein badal diya
+  const { unreadCount, loading, refresh } = useNotifications();
 
   // Create interpolated value for translateY
   const translateY = fadeAnim.interpolate({
@@ -101,13 +101,13 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
     setModalVisible(false);
     // Refresh count after modal closes
     setTimeout(() => {
-      refreshCount();
+      refresh(); // ✅ refreshCount → refresh
     }, 300);
   };
 
   const handleNotificationPress = () => {
     // Refresh before opening
-    refreshCount();
+    refresh(); // ✅ refreshCount → refresh
     setModalVisible(true);
   };
 
@@ -247,7 +247,8 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
             </ThemedText>
           </View>
 
-          <TouchableOpacity onPress={refreshCount} style={styles.refreshButton}>
+          {/* ✅ Refresh button bhi update kiya */}
+          <TouchableOpacity onPress={refresh} style={styles.refreshButton}>
             <Ionicons name="refresh" size={14} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
@@ -362,7 +363,6 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
   },
-  // NEW STYLES ADD करें
   statusContainer: {
     flexDirection: "row",
     justifyContent: "space-between",

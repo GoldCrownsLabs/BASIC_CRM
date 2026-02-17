@@ -1,8 +1,8 @@
-// components/notification-modal.tsx
 import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/context/ThemeContext";
+import { useNotifications } from "@/context/NotificationContext";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import {
   Animated,
   Modal,
@@ -14,157 +14,719 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from "react-native";
+import { deleteNotification as deleteNotificationApi } from "@/lib/api/notifications";
 
-// Import ALL notification APIs from your file
-import {
-  fetchNotifications,
-  markAsRead as markAsReadApi,
-  markAllAsRead as markAllAsReadApi,
-  deleteNotification as deleteNotificationApi,
-  clearAllNotifications as clearAllNotificationsApi,
-  sendTestNotification as sendTestNotificationApi,
-  fetchUnreadCount,
-  type Notification as ApiNotification,
-} from "@/lib/api/notifications";
-
-// Use the imported ApiNotification type
-interface Notification extends ApiNotification {
-  // Add any additional fields if needed
-}
+// Import Notification type
+import { Notification } from "@/lib/api/notifications";
+import leadsApi, { Lead } from "@/lib/api/leads.api";
 
 interface NotificationModalProps {
   visible: boolean;
   onClose: () => void;
 }
 
+interface NotificationDetailModalProps {
+  visible: boolean;
+  notification: Notification | null;
+  onClose: () => void;
+  onMarkAsRead: (id: string) => void;
+}
+
+// Detail Modal Component with Lead Details
+const NotificationDetailModal: React.FC<NotificationDetailModalProps> = ({
+  visible,
+  notification,
+  onClose,
+  onMarkAsRead,
+}) => {
+  const { colors } = useAppTheme();
+  const [leadData, setLeadData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch lead data when notification is a lead
+  useEffect(() => {
+    if (!notification || notification.type !== "lead" || !visible) return;
+
+    const fetchLeadData = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const leadId = notification.data?.leadId;
+        if (!leadId) {
+          setError("No lead ID found in notification");
+          setLoading(false);
+          return;
+        }
+
+        console.log("🔍 Fetching lead with ID:", leadId);
+
+        // ✅ Use leadsApi.getLeadById
+        const response = await leadsApi.getLeadById(leadId);
+
+        // console.log("✅ Lead API Response:", response);
+
+        // ✅ Extract data properly - response.data.data contains the lead
+        if (response.success && response.data) {
+          // The actual lead data is in response.data.data
+          const lead = response.data.data || response.data;
+          setLeadData(lead);
+        } else {
+          setError(response.message || "Failed to fetch lead details");
+        }
+      } catch (error: any) {
+        console.error("❌ Error fetching lead data:", error?.message || error);
+        setError(error?.message || "Network error. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeadData();
+  }, [notification, visible]);
+
+  if (!notification) return null;
+
+  // Format currency
+  const formatCurrency = (amount?: number) => {
+    if (!amount) return "N/A";
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  // Format date
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "Invalid date";
+    }
+  };
+
+  // Get status color
+  const getStatusColor = (status: string): string => {
+    switch (status?.toLowerCase()) {
+      case "new":
+        return "#3B82F6";
+      case "contacted":
+        return "#8B5CF6";
+      case "qualified":
+        return "#10B981";
+      case "proposal":
+        return "#F59E0B";
+      case "negotiation":
+        return "#F97316";
+      case "closed_won":
+        return "#10B981";
+      case "closed_lost":
+        return "#EF4444";
+      default:
+        return "#6B7280";
+    }
+  };
+
+  // Get priority color
+  const getPriorityColor = (priority: string): string => {
+    switch (priority?.toLowerCase()) {
+      case "high":
+        return "#EF4444";
+      case "medium":
+        return "#F59E0B";
+      case "low":
+        return "#10B981";
+      default:
+        return "#6B7280";
+    }
+  };
+
+  // Render Lead Details with exact API fields
+  // Render Lead Details with exact API fields
+  const renderLeadDetails = () => {
+    if (!leadData) return null;
+
+    return (
+      <>
+        {/* Lead Details Section */}
+        <View style={[styles.sectionContainer, { marginTop: 20 }]}>
+          <ThemedText style={[styles.sectionTitle, { color: colors.primary }]}>
+            Lead Details
+          </ThemedText>
+
+          <View
+            style={[styles.detailCard, { backgroundColor: colors.background }]}
+          >
+            {/* ID */}
+            <View style={styles.detailRow}>
+              <Ionicons name="pricetag" size={18} color={colors.primary} />
+              <ThemedText
+                style={[styles.detailLabel, { color: colors.textSecondary }]}
+              >
+                ID:
+              </ThemedText>
+              <ThemedText style={[styles.detailValue, { color: colors.text }]}>
+                {leadData._id || leadData.id || "N/A"}
+              </ThemedText>
+            </View>
+
+            {/* Full Name */}
+            <View style={styles.detailRow}>
+              <Ionicons name="person" size={18} color={colors.primary} />
+              <ThemedText
+                style={[styles.detailLabel, { color: colors.textSecondary }]}
+              >
+                Name:
+              </ThemedText>
+              <ThemedText style={[styles.detailValue, { color: colors.text }]}>
+                {leadData.fullName ||
+                  `${leadData.firstName || ""} ${leadData.lastName || ""}`.trim() ||
+                  "N/A"}
+              </ThemedText>
+            </View>
+
+            {/* Email */}
+            <View style={styles.detailRow}>
+              <Ionicons name="mail" size={18} color={colors.primary} />
+              <ThemedText
+                style={[styles.detailLabel, { color: colors.textSecondary }]}
+              >
+                Email:
+              </ThemedText>
+              <ThemedText style={[styles.detailValue, { color: colors.text }]}>
+                {leadData.email || "N/A"}
+              </ThemedText>
+            </View>
+
+            {/* Phone */}
+            <View style={styles.detailRow}>
+              <Ionicons name="call" size={18} color={colors.primary} />
+              <ThemedText
+                style={[styles.detailLabel, { color: colors.textSecondary }]}
+              >
+                Phone:
+              </ThemedText>
+              <ThemedText style={[styles.detailValue, { color: colors.text }]}>
+                {leadData.phone || "N/A"}
+              </ThemedText>
+            </View>
+
+            {/* Company */}
+            <View style={styles.detailRow}>
+              <Ionicons name="business" size={18} color={colors.primary} />
+              <ThemedText
+                style={[styles.detailLabel, { color: colors.textSecondary }]}
+              >
+                Company:
+              </ThemedText>
+              <ThemedText style={[styles.detailValue, { color: colors.text }]}>
+                {leadData.company || "N/A"}
+              </ThemedText>
+            </View>
+
+            {/* Job Title */}
+            <View style={styles.detailRow}>
+              <Ionicons name="briefcase" size={18} color={colors.primary} />
+              <ThemedText
+                style={[styles.detailLabel, { color: colors.textSecondary }]}
+              >
+                Job Title:
+              </ThemedText>
+              <ThemedText style={[styles.detailValue, { color: colors.text }]}>
+                {leadData.jobTitle || "N/A"}
+              </ThemedText>
+            </View>
+
+            {/* Status and Priority Badges */}
+            <View style={styles.badgesContainer}>
+              <View
+                style={[
+                  styles.statusBadge,
+                  { backgroundColor: getStatusColor(leadData.status) + "20" },
+                ]}
+              >
+                <ThemedText
+                  style={[
+                    styles.statusText,
+                    { color: getStatusColor(leadData.status) },
+                  ]}
+                >
+                  {leadData.status || "N/A"}
+                </ThemedText>
+              </View>
+
+              <View
+                style={[
+                  styles.priorityBadge,
+                  {
+                    backgroundColor: getPriorityColor(leadData.priority) + "20",
+                  },
+                ]}
+              >
+                <ThemedText
+                  style={[
+                    styles.priorityText,
+                    { color: getPriorityColor(leadData.priority) },
+                  ]}
+                >
+                  {leadData.priority || "N/A"}
+                </ThemedText>
+              </View>
+            </View>
+
+            {/* Budget */}
+            {leadData.budget && (
+              <View style={styles.detailRow}>
+                <Ionicons name="cash" size={18} color={colors.success} />
+                <ThemedText
+                  style={[styles.detailLabel, { color: colors.textSecondary }]}
+                >
+                  Budget:
+                </ThemedText>
+                <ThemedText
+                  style={[
+                    styles.detailValue,
+                    { color: colors.success, fontWeight: "600" },
+                  ]}
+                >
+                  {formatCurrency(leadData.budget)}
+                </ThemedText>
+              </View>
+            )}
+
+            {/* Source */}
+            <View style={styles.detailRow}>
+              <Ionicons name="globe" size={18} color={colors.primary} />
+              <ThemedText
+                style={[styles.detailLabel, { color: colors.textSecondary }]}
+              >
+                Source:
+              </ThemedText>
+              <ThemedText style={[styles.detailValue, { color: colors.text }]}>
+                {leadData.source || "N/A"}
+              </ThemedText>
+            </View>
+
+            {/* Age In Days */}
+            {leadData.ageInDays !== undefined && (
+              <View style={styles.detailRow}>
+                <Ionicons name="time" size={18} color={colors.primary} />
+                <ThemedText
+                  style={[styles.detailLabel, { color: colors.textSecondary }]}
+                >
+                  Age:
+                </ThemedText>
+                <ThemedText
+                  style={[styles.detailValue, { color: colors.text }]}
+                >
+                  {leadData.ageInDays} day{leadData.ageInDays !== 1 ? "s" : ""}
+                </ThemedText>
+              </View>
+            )}
+
+            {/* Created By */}
+            {leadData.createdBy && (
+              <View style={styles.detailRow}>
+                <Ionicons name="person-add" size={18} color={colors.primary} />
+                <ThemedText
+                  style={[styles.detailLabel, { color: colors.textSecondary }]}
+                >
+                  Created By:
+                </ThemedText>
+                <ThemedText
+                  style={[styles.detailValue, { color: colors.text }]}
+                >
+                  {typeof leadData.createdBy === "object"
+                    ? leadData.createdBy.name ||
+                      leadData.createdBy.email ||
+                      JSON.stringify(leadData.createdBy)
+                    : leadData.createdBy}
+                </ThemedText>
+              </View>
+            )}
+
+            {/* Created At */}
+            <View style={styles.detailRow}>
+              <Ionicons name="calendar" size={18} color={colors.primary} />
+              <ThemedText
+                style={[styles.detailLabel, { color: colors.textSecondary }]}
+              >
+                Created:
+              </ThemedText>
+              <ThemedText style={[styles.detailValue, { color: colors.text }]}>
+                {formatDate(leadData.createdAt)}
+              </ThemedText>
+            </View>
+
+            {/* Updated At */}
+            <View style={styles.detailRow}>
+              <Ionicons name="refresh" size={18} color={colors.primary} />
+              <ThemedText
+                style={[styles.detailLabel, { color: colors.textSecondary }]}
+              >
+                Updated:
+              </ThemedText>
+              <ThemedText style={[styles.detailValue, { color: colors.text }]}>
+                {formatDate(leadData.updatedAt)}
+              </ThemedText>
+            </View>
+          </View>
+        </View>
+
+        {/* Notes Section */}
+        {leadData.notes && leadData.notes.length > 0 && (
+          <View style={[styles.sectionContainer, { marginTop: 16 }]}>
+            <ThemedText
+              style={[styles.sectionTitle, { color: colors.primary }]}
+            >
+              Notes ({leadData.notes.length})
+            </ThemedText>
+            {leadData.notes.map((note: any, index: number) => (
+              <View
+                key={note._id || index}
+                style={[
+                  styles.noteCard,
+                  { backgroundColor: colors.background },
+                ]}
+              >
+                <ThemedText style={[styles.noteText, { color: colors.text }]}>
+                  {note.content || JSON.stringify(note)}
+                </ThemedText>
+                <View style={styles.noteMeta}>
+                  <ThemedText
+                    style={[styles.noteAuthor, { color: colors.primary }]}
+                  >
+                    {note.createdBy?.name || note.createdBy || "System"}
+                  </ThemedText>
+                  <ThemedText
+                    style={[styles.noteTime, { color: colors.textSecondary }]}
+                  >
+                    {formatDate(note.createdAt)}
+                  </ThemedText>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </>
+    );
+  };
+
+  // Render loading state
+  if (loading) {
+    return (
+      <Modal
+        visible={visible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={onClose}
+      >
+        <View style={styles.detailOverlay}>
+          <View
+            style={[
+              styles.detailContainer,
+              {
+                backgroundColor: colors.card,
+                alignItems: "center",
+                padding: 40,
+              },
+            ]}
+          >
+            <ActivityIndicator size="large" color={colors.primary} />
+            <ThemedText style={{ color: colors.textSecondary, marginTop: 16 }}>
+              Loading lead details...
+            </ThemedText>
+          </View>
+        </View>
+      </Modal>
+    );
+  }
+
+  // Render error state
+  if (error) {
+    return (
+      <Modal
+        visible={visible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={onClose}
+      >
+        <View style={styles.detailOverlay}>
+          <View
+            style={[
+              styles.detailContainer,
+              { backgroundColor: colors.card, alignItems: "center" },
+            ]}
+          >
+            <Ionicons name="alert-circle" size={64} color={colors.error} />
+            <ThemedText
+              style={[styles.errorText, { color: colors.error, marginTop: 16 }]}
+            >
+              {error}
+            </ThemedText>
+            <View style={styles.errorActions}>
+              <TouchableOpacity
+                style={[
+                  styles.errorButton,
+                  { backgroundColor: colors.primary },
+                ]}
+                onPress={() => {
+                  setError(null);
+                  setLoading(true);
+                  // Refetch will happen automatically due to useEffect
+                }}
+              >
+                <ThemedText style={{ color: colors.background }}>
+                  Retry
+                </ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.errorButton,
+                  {
+                    backgroundColor: colors.card,
+                    borderWidth: 1,
+                    borderColor: colors.primary,
+                  },
+                ]}
+                onPress={onClose}
+              >
+                <ThemedText style={{ color: colors.primary }}>Close</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  }
+
+  // Render lead details
+  return (
+    <Modal
+      visible={visible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={styles.detailOverlay}>
+        <ScrollView
+          style={[styles.detailContainer, { backgroundColor: colors.card }]}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 20 }}
+        >
+          {/* Header with Icon */}
+          <View style={styles.detailHeader}>
+            <View
+              style={[
+                styles.detailIcon,
+                {
+                  backgroundColor:
+                    getNotificationColor(notification.type) + "20",
+                },
+              ]}
+            >
+              <Ionicons
+                name={getNotificationIcon(notification.type) as any}
+                size={32}
+                color={getNotificationColor(notification.type)}
+              />
+            </View>
+            <TouchableOpacity
+              onPress={onClose}
+              style={styles.detailCloseButton}
+            >
+              <Ionicons name="close" size={24} color={colors.text} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Notification Title */}
+          <ThemedText style={[styles.detailTitle, { color: colors.text }]}>
+            {notification.title}
+          </ThemedText>
+
+          {/* Notification Message */}
+          <ThemedText
+            style={[styles.detailMessage, { color: colors.textSecondary }]}
+          >
+            {notification.message}
+          </ThemedText>
+
+          {/* Time */}
+          <View style={styles.detailMeta}>
+            <Ionicons name="time" size={16} color={colors.textSecondary} />
+            <ThemedText
+              style={[styles.detailTime, { color: colors.textSecondary }]}
+            >
+              {formatTime(notification.createdAt)}
+            </ThemedText>
+          </View>
+
+          {/* Render Lead Details */}
+          {notification.type === "lead" && renderLeadDetails()}
+
+          {/* Original notification data (fallback for other types) */}
+          {notification.type !== "lead" &&
+            notification.data &&
+            typeof notification.data === "object" &&
+            !Array.isArray(notification.data) &&
+            Object.keys(notification.data).length > 0 && (
+              <View
+                style={[
+                  styles.detailData,
+                  { backgroundColor: colors.background, marginTop: 20 },
+                ]}
+              >
+                <ThemedText
+                  style={[
+                    styles.sectionTitle,
+                    { color: colors.primary, marginBottom: 10 },
+                  ]}
+                >
+                  Additional Info
+                </ThemedText>
+
+                {Object.entries(notification.data).map(([key, value]) => (
+                  <View key={key} style={styles.detailDataRow}>
+                    <ThemedText
+                      style={[
+                        styles.detailDataKey,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      {key}:
+                    </ThemedText>
+
+                    <ThemedText
+                      style={[styles.detailDataValue, { color: colors.text }]}
+                    >
+                      {typeof value === "object"
+                        ? JSON.stringify(value)
+                        : String(value)}
+                    </ThemedText>
+                  </View>
+                ))}
+              </View>
+            )}
+
+          {/* Action Button - Only show if notification is unread */}
+          {!notification.read && (
+            <TouchableOpacity
+              style={[
+                styles.detailButton,
+                { backgroundColor: colors.primary, marginTop: 20 },
+              ]}
+              onPress={() => {
+                onMarkAsRead(notification._id);
+                onClose();
+              }}
+            >
+              <ThemedText style={styles.detailButtonText}>
+                Mark as Read
+              </ThemedText>
+            </TouchableOpacity>
+          )}
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+};;
+
 export const NotificationModal: React.FC<NotificationModalProps> = ({
   visible,
   onClose,
 }) => {
   const { colors } = useAppTheme();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [selectedNotification, setSelectedNotification] =
+    useState<Notification | null>(null);
+  const [detailVisible, setDetailVisible] = useState(false);
+  const processingIds = useRef<Set<string>>(new Set());
+  const notificationVersion = useRef<number>(0);
 
-  // Load notifications from API
-  const loadNotifications = async (refresh: boolean = false) => {
-    try {
-      if (refresh) {
-        setRefreshing(true);
-        setPage(1);
-      } else if (page === 1) {
-        setLoading(true);
-      } else {
-        setLoadingMore(true);
-      }
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    refreshing,
+    hasMore,
+    loadMore,
+    refreshNotifications,
+    markAsRead,
+    markAllAsRead,
+  } = useNotifications();
 
-      // Call the API
-      const response = await fetchNotifications(
-        refresh ? 1 : page,
-        20,
-      );
-
-      // Check if response has success property
-      if (response.success) {
-        const notificationsData = response.notifications || [];
-        const totalUnread = response.unreadCount || 0;
-        const hasMoreData = response.pagination?.hasMore || false;
-
-        if (refresh) {
-          setNotifications(notificationsData);
-        } else {
-          setNotifications((prev) => [...prev, ...notificationsData]);
-        }
-
-        setUnreadCount(totalUnread);
-        setHasMore(hasMoreData);
-
-        if (!refresh && hasMoreData) {
-          setPage((prev) => prev + 1);
-        }
-      } else {
-        Alert.alert("Error", "Failed to load notifications");
-      }
-    } catch (error: any) {
-      console.error("Failed to load notifications:", error);
-      Alert.alert(
-        "Error",
-        error.message || "Failed to load notifications. Please try again.",
-      );
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-      setLoadingMore(false);
+  // Smooth animation for modal open/close
+  useEffect(() => {
+    if (visible) {
+      Animated.spring(fadeAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 65,
+        friction: 11,
+      }).start();
+    } else {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
     }
+  }, [visible]);
+
+  // Deduplicate notifications
+  const uniqueNotifications = useMemo(() => {
+    const seen = new Map<string, Notification>();
+    [...notifications].reverse().forEach((notification) => {
+      seen.set(notification._id, notification);
+    });
+    return Array.from(seen.values()).sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  }, [notifications, notificationVersion.current]);
+
+  const handleNotificationPress = (notification: Notification) => {
+    setSelectedNotification(notification);
+    setDetailVisible(true);
   };
 
-  // Load unread count separately
-  const loadUnreadCount = async () => {
-    try {
-      const count = await fetchUnreadCount();
-      setUnreadCount(count);
-    } catch (error) {
-      console.error("Failed to load unread count:", error);
-    }
-  };
-
-  // Mark notification as read
   const handleMarkAsRead = async (id: string) => {
-    try {
-      const response = await markAsReadApi(id);
+    if (processingIds.current.has(id)) return;
+    processingIds.current.add(id);
 
-      if (response.success) {
-        // Update local state
-        setNotifications((prev) =>
-          prev.map((notification) =>
-            notification._id === id
-              ? { ...notification, read: true }
-              : notification,
-          ),
-        );
-        // Update unread count
-        setUnreadCount((prev) => Math.max(0, prev - 1));
-      } else {
-        Alert.alert("Error", response.message || "Failed to mark as read");
-      }
-    } catch (error: any) {
-      console.error("Failed to mark as read:", error);
-      Alert.alert("Error", "Failed to mark notification as read");
+    try {
+      await markAsRead(id);
+      notificationVersion.current += 1;
+
+      // Smoothly update the UI
+      setTimeout(() => {
+        processingIds.current.delete(id);
+      }, 300);
+    } catch (error) {
+      processingIds.current.delete(id);
+      console.error("Error marking as read:", error);
     }
   };
 
-  // Mark all as read
-  const handleMarkAllAsRead = async () => {
-    try {
-      const response = await markAllAsReadApi();
-
-      if (response.success) {
-        // Update all notifications to read
-        setNotifications((prev) =>
-          prev.map((notification) => ({ ...notification, read: true })),
-        );
-        // Reset unread count
-        setUnreadCount(0);
-        Alert.alert(
-          "Success",
-          response.message || "All notifications marked as read",
-        );
-      } else {
-        Alert.alert("Error", response.message || "Failed to mark all as read");
-      }
-    } catch (error: any) {
-      console.error("Failed to mark all as read:", error);
-      Alert.alert("Error", "Failed to mark all as read");
-    }
+  const handleDetailClose = () => {
+    // Smooth close animation for detail modal
+    setDetailVisible(false);
+    setTimeout(() => {
+      setSelectedNotification(null);
+    }, 200);
   };
 
-  // Delete single notification
   const handleDeleteNotification = async (id: string) => {
     Alert.alert(
       "Delete Notification",
@@ -177,23 +739,8 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
           onPress: async () => {
             try {
               const response = await deleteNotificationApi(id);
-
               if (response.success) {
-                // Remove from local state
-                setNotifications((prev) =>
-                  prev.filter((notification) => notification._id !== id),
-                );
-
-                // Update unread count if deleted notification was unread
-                const deletedNotif = notifications.find((n) => n._id === id);
-                if (deletedNotif && !deletedNotif.read) {
-                  setUnreadCount((prev) => Math.max(0, prev - 1));
-                }
-
-                Alert.alert(
-                  "Success",
-                  response.message || "Notification deleted",
-                );
+                refreshNotifications();
               } else {
                 Alert.alert(
                   "Error",
@@ -201,7 +748,6 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
                 );
               }
             } catch (error: any) {
-              console.error("Failed to delete notification:", error);
               Alert.alert("Error", "Failed to delete notification");
             }
           },
@@ -210,532 +756,358 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
     );
   };
 
-  // Clear all notifications
-  const handleClearAll = async () => {
-    Alert.alert(
-      "Clear All Notifications",
-      "Are you sure you want to delete all notifications?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Clear All",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const response = await clearAllNotificationsApi();
-
-              if (response.success) {
-                setNotifications([]);
-                setUnreadCount(0);
-                setPage(1);
-                setHasMore(true);
-                Alert.alert(
-                  "Success",
-                  response.message || "All notifications cleared",
-                );
-              } else {
-                Alert.alert(
-                  "Error",
-                  response.message || "Failed to clear all notifications",
-                );
-              }
-            } catch (error: any) {
-              console.error("Failed to clear all:", error);
-              Alert.alert("Error", "Failed to clear all notifications");
-            }
-          },
-        },
-      ],
-    );
-  };
-
-  // Send test notification
-  // const handleSendTest = async () => {
-  //   try {
-  //     const response = await sendTestNotificationApi();
-
-  //     if (response.success) {
-  //       Alert.alert("Success", response.message || "Test notification sent");
-  //       // Refresh notifications to show the new test notification
-  //       loadNotifications(true);
-  //       loadUnreadCount();
-  //     } else {
-  //       Alert.alert(
-  //         "Error",
-  //         response.message || "Failed to send test notification",
-  //       );
-  //     }
-  //   } catch (error: any) {
-  //     console.error("Failed to send test:", error);
-  //     Alert.alert("Error", "Failed to send test notification");
-  //   }
-  // };
-
-  // Format time
-  const formatTime = (createdAt: string) => {
-    try {
-      const date = new Date(createdAt);
-      const now = new Date();
-      const diffMs = now.getTime() - date.getTime();
-      const diffMins = Math.floor(diffMs / (1000 * 60));
-      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-      if (diffDays > 0) return `${diffDays}d ago`;
-      if (diffHours > 0) return `${diffHours}h ago`;
-      if (diffMins > 0) return `${diffMins}m ago`;
-      return "Just now";
-    } catch (error) {
-      return "Recently";
-    }
-  };
-
-  // Get notification icon
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case "task":
-        return "checkbox-outline";
-      case "lead":
-        return "person-outline";
-      case "project":
-        return "folder-outline";
-      case "success":
-        return "checkmark-circle";
-      case "error":
-        return "alert-circle";
-      case "warning":
-        return "warning";
-      case "reminder":
-        return "time-outline";
-      case "order":
-        return "cart-outline";
-      case "payment":
-        return "cash-outline";
-      case "system":
-      case "info":
-      default:
-        return "information-circle";
-    }
-  };
-
-  // Get notification color
-  const getNotificationColor = (type: string) => {
-    switch (type) {
-      case "success":
-        return colors.success || "#10B981";
-      case "error":
-        return colors.error || "#EF4444";
-      case "warning":
-        return colors.warning || "#F59E0B";
-      case "task":
-        return colors.primary || "#3B82F6";
-      case "lead":
-        return "#8B5CF6";
-      case "project":
-        return "#10B981";
-      case "reminder":
-        return "#F59E0B";
-      case "order":
-        return "#8B5CF6";
-      case "payment":
-        return "#10B981";
-      default:
-        return colors.primary || "#3B82F6";
-    }
-  };
-
-  // Animation effect
-  useEffect(() => {
-    if (visible) {
-      loadNotifications(true);
-      loadUnreadCount();
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-    } else {
-      fadeAnim.setValue(0);
-    }
-  }, [visible]);
-
-  // Handle refresh
-  const onRefresh = () => {
-    loadNotifications(true);
-    loadUnreadCount();
-  };
-
-  // Handle load more
-  const handleLoadMore = () => {
-    if (!loadingMore && hasMore) {
-      loadNotifications(false);
-    }
-  };
-
   return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalOverlay}>
-        <Animated.View
-          style={[
-            styles.modalContainer,
-            {
-              backgroundColor: colors.background,
-              opacity: fadeAnim,
-              transform: [
-                {
-                  translateY: fadeAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [50, 0],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          {/* Modal Header */}
-          <View style={styles.modalHeader}>
-            <View style={styles.headerTitleContainer}>
-              <ThemedText type="title" style={{ color: colors.text }}>
-                Notifications
-              </ThemedText>
-              {unreadCount > 0 && (
-                <View
-                  style={[styles.badge, { backgroundColor: colors.primary }]}
-                >
-                  <ThemedText
-                    style={{
-                      color: colors.background,
-                      fontSize: 12,
-                      fontWeight: "600",
-                    }}
-                  >
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </ThemedText>
-                </View>
-              )}
-            </View>
-
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={28} color={colors.text} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Action Buttons */}
-          <View style={styles.actionButtons}>
-            <TouchableOpacity
-              onPress={handleMarkAllAsRead}
-              disabled={unreadCount === 0}
-              style={[
-                styles.actionButton,
-                {
-                  backgroundColor: colors.card,
-                  opacity: unreadCount === 0 ? 0.5 : 1,
-                },
-              ]}
-            >
-              <Ionicons
-                name="checkmark-done"
-                size={20}
-                color={unreadCount === 0 ? colors.textSecondary : colors.text}
-              />
-              <ThemedText
-                style={{
-                  color: unreadCount === 0 ? colors.textSecondary : colors.text,
-                  fontSize: 14,
-                  marginLeft: 6,
-                }}
-              >
-                Mark all read
-              </ThemedText>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={handleClearAll}
-              disabled={notifications.length === 0}
-              style={[
-                styles.actionButton,
-                {
-                  backgroundColor: colors.card,
-                  opacity: notifications.length === 0 ? 0.5 : 1,
-                },
-              ]}
-            >
-              <Ionicons
-                name="trash"
-                size={20}
-                color={
-                  notifications.length === 0
-                    ? colors.textSecondary
-                    : colors.error
-                }
-              />
-              <ThemedText
-                style={{
-                  color:
-                    notifications.length === 0
-                      ? colors.textSecondary
-                      : colors.error,
-                  fontSize: 14,
-                  marginLeft: 6,
-                }}
-              >
-                Clear all
-              </ThemedText>
-            </TouchableOpacity>
-
-            {/* <TouchableOpacity
-              onPress={handleSendTest}
-              style={[
-                styles.actionButton,
-                {
-                  backgroundColor: colors.card,
-                  flex: 0.3,
-                },
-              ]}
-            >
-              <Ionicons name="notifications" size={20} color={colors.primary} />
-            </TouchableOpacity> */}
-          </View>
-
-          {/* Notifications List */}
-          <ScrollView
-            style={styles.notificationsList}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor={colors.primary}
-                colors={[colors.primary]}
-              />
-            }
-            onScroll={({ nativeEvent }) => {
-              const { layoutMeasurement, contentOffset, contentSize } =
-                nativeEvent;
-              const paddingToBottom = 20;
-              if (
-                layoutMeasurement.height + contentOffset.y >=
-                contentSize.height - paddingToBottom
-              ) {
-                handleLoadMore();
-              }
-            }}
-            scrollEventThrottle={400}
+    <>
+      <Modal
+        visible={visible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={onClose}
+      >
+        <View style={styles.modalOverlay}>
+          <Animated.View
+            style={[
+              styles.modalContainer,
+              {
+                backgroundColor: colors.background,
+                opacity: fadeAnim,
+                transform: [
+                  {
+                    translateY: fadeAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [50, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
           >
-            {loading && notifications.length === 0 ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={colors.primary} />
-                <ThemedText
-                  style={{ color: colors.textSecondary, marginTop: 16 }}
-                >
-                  Loading notifications...
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <View style={styles.headerTitleContainer}>
+                <ThemedText type="title" style={{ color: colors.text }}>
+                  Notifications
                 </ThemedText>
-              </View>
-            ) : notifications.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Ionicons
-                  name="notifications-off"
-                  size={64}
-                  color={colors.textSecondary}
-                  style={styles.emptyIcon}
-                />
-                <ThemedText
-                  type="subtitle"
-                  style={{ color: colors.textSecondary, textAlign: "center" }}
-                >
-                  No notifications
-                </ThemedText>
-                <ThemedText
-                  style={{
-                    color: colors.textSecondary,
-                    textAlign: "center",
-                    marginTop: 8,
-                  }}
-                >
-                  You&lsquo;re all caught up!
-                </ThemedText>
-                {/* <TouchableOpacity
-                  onPress={handleSendTest}
-                  style={[
-                    styles.testButton,
-                    { backgroundColor: colors.primary, marginTop: 20 },
-                  ]}
-                >
-                  <Ionicons name="notifications" size={20} color="#FFFFFF" />
-                  <ThemedText
-                    style={{
-                      color: "#FFFFFF",
-                      fontSize: 14,
-                      marginLeft: 8,
-                      fontWeight: "600",
-                    }}
+                {unreadCount > 0 && (
+                  <View
+                    style={[styles.badge, { backgroundColor: colors.primary }]}
                   >
-                    Send Test
-                  </ThemedText>
-                </TouchableOpacity> */}
-              </View>
-            ) : (
-              <>
-                {notifications.map((notification) => (
-                  <TouchableOpacity
-                    key={notification._id}
-                    style={[
-                      styles.notificationItem,
-                      {
-                        backgroundColor: colors.card,
-                        borderLeftColor: getNotificationColor(
-                          notification.type,
-                        ),
-                        opacity: notification.read ? 0.7 : 1,
-                      },
-                    ]}
-                    onPress={() => handleMarkAsRead(notification._id)}
-                    onLongPress={() =>
-                      handleDeleteNotification(notification._id)
-                    }
-                  >
-                    <View style={styles.notificationContent}>
-                      <View style={styles.notificationHeader}>
-                        <View style={styles.titleContainer}>
-                          <Ionicons
-                            name={getNotificationIcon(notification.type)}
-                            size={20}
-                            color={getNotificationColor(notification.type)}
-                            style={styles.notificationIcon}
-                          />
-                          <ThemedText
-                            style={[
-                              styles.notificationTitle,
-                              {
-                                color: colors.text,
-                                fontWeight: notification.read
-                                  ? "normal"
-                                  : "600",
-                              },
-                            ]}
-                          >
-                            {notification.title}
-                          </ThemedText>
-                        </View>
-                        {!notification.read && (
-                          <View
-                            style={[
-                              styles.unreadDot,
-                              { backgroundColor: colors.primary },
-                            ]}
-                          />
-                        )}
-                      </View>
-
-                      <ThemedText
-                        style={[
-                          styles.notificationMessage,
-                          { color: colors.textSecondary },
-                        ]}
-                        numberOfLines={2}
-                      >
-                        {notification.message}
-                      </ThemedText>
-
-                      <View style={styles.notificationFooter}>
-                        <ThemedText
-                          style={[
-                            styles.notificationTime,
-                            { color: colors.textSecondary },
-                          ]}
-                        >
-                          {notification.timeAgo ||
-                            formatTime(notification.createdAt)}
-                        </ThemedText>
-                        <View style={styles.notificationActions}>
-                          {!notification.read && (
-                            <TouchableOpacity
-                              onPress={() => handleMarkAsRead(notification._id)}
-                              style={styles.readButton}
-                            >
-                              <ThemedText
-                                style={{
-                                  color: colors.primary,
-                                  fontSize: 12,
-                                  fontWeight: "600",
-                                }}
-                              >
-                                Mark read
-                              </ThemedText>
-                            </TouchableOpacity>
-                          )}
-                          {notification.data && (
-                            <TouchableOpacity
-                              onPress={() => {
-                                // Handle navigation based on notification type
-                                if (notification.data?.taskId) {
-                                  // Navigate to task
-                                  Alert.alert(
-                                    "Info",
-                                    `Task ID: ${notification.data.taskId}`,
-                                  );
-                                } else if (notification.data?.leadId) {
-                                  // Navigate to lead
-                                  Alert.alert(
-                                    "Info",
-                                    `Lead ID: ${notification.data.leadId}`,
-                                  );
-                                }
-                              }}
-                              style={styles.viewButton}
-                            >
-                              <ThemedText
-                                style={{
-                                  color: colors.primary,
-                                  fontSize: 12,
-                                  fontWeight: "600",
-                                }}
-                              >
-                                View
-                              </ThemedText>
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-
-                {loadingMore && (
-                  <View style={styles.loadingMoreContainer}>
-                    <ActivityIndicator size="small" color={colors.primary} />
-                    <ThemedText
-                      style={{ color: colors.textSecondary, marginLeft: 8 }}
-                    >
-                      Loading more...
-                    </ThemedText>
-                  </View>
-                )}
-
-                {!hasMore && notifications.length > 0 && (
-                  <View style={styles.noMoreContainer}>
                     <ThemedText
                       style={{
-                        color: colors.textSecondary,
-                        textAlign: "center",
+                        color: colors.background,
+                        fontSize: 12,
+                        fontWeight: "600",
                       }}
                     >
-                      No more notifications
+                      {unreadCount > 9 ? "9+" : unreadCount}
                     </ThemedText>
                   </View>
                 )}
-              </>
-            )}
-          </ScrollView>
-        </Animated.View>
-      </View>
-    </Modal>
+              </View>
+
+              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                <Ionicons name="close" size={28} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Action Buttons */}
+            <View style={styles.actionButtons}>
+              <TouchableOpacity
+                onPress={markAllAsRead}
+                disabled={unreadCount === 0}
+                style={[
+                  styles.actionButton,
+                  {
+                    backgroundColor: colors.card,
+                    opacity: unreadCount === 0 ? 0.5 : 1,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="checkmark-done"
+                  size={20}
+                  color={unreadCount === 0 ? colors.textSecondary : colors.text}
+                />
+                <ThemedText
+                  style={{
+                    color:
+                      unreadCount === 0 ? colors.textSecondary : colors.text,
+                    fontSize: 14,
+                    marginLeft: 6,
+                  }}
+                >
+                  Mark all read
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+
+            {/* Notifications List */}
+            <ScrollView
+              style={styles.notificationsList}
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={refreshNotifications}
+                  tintColor={colors.primary}
+                  colors={[colors.primary]}
+                />
+              }
+              onScroll={({ nativeEvent }) => {
+                const { layoutMeasurement, contentOffset, contentSize } =
+                  nativeEvent;
+                const paddingToBottom = 20;
+                if (
+                  layoutMeasurement.height + contentOffset.y >=
+                  contentSize.height - paddingToBottom
+                ) {
+                  loadMore();
+                }
+              }}
+              scrollEventThrottle={400}
+            >
+              {loading && uniqueNotifications.length === 0 ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                  <ThemedText
+                    style={{ color: colors.textSecondary, marginTop: 16 }}
+                  >
+                    Loading notifications...
+                  </ThemedText>
+                </View>
+              ) : uniqueNotifications.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                  <Ionicons
+                    name="notifications-off"
+                    size={64}
+                    color={colors.textSecondary}
+                    style={styles.emptyIcon}
+                  />
+                  <ThemedText
+                    type="subtitle"
+                    style={{ color: colors.textSecondary, textAlign: "center" }}
+                  >
+                    No notifications
+                  </ThemedText>
+                  <ThemedText
+                    style={{
+                      color: colors.textSecondary,
+                      textAlign: "center",
+                      marginTop: 8,
+                    }}
+                  >
+                    You&rsquo;re all caught up!
+                  </ThemedText>
+                </View>
+              ) : (
+                <>
+                  {uniqueNotifications.map(
+                    (notification: Notification, index: number) => {
+                      const uniqueKey = `notif-${notification._id}-${notification.read ? "read" : "unread"}-${index}`;
+
+                      return (
+                        <TouchableOpacity
+                          key={uniqueKey}
+                          style={[
+                            styles.notificationItem,
+                            {
+                              backgroundColor: colors.card,
+                              borderLeftColor: getNotificationColor(
+                                notification.type,
+                              ),
+                              opacity: notification.read ? 0.7 : 1,
+                            },
+                          ]}
+                          onPress={() => handleNotificationPress(notification)}
+                          onLongPress={() =>
+                            handleDeleteNotification(notification._id)
+                          }
+                          disabled={processingIds.current.has(notification._id)}
+                        >
+                          <View style={styles.notificationContent}>
+                            <View style={styles.notificationHeader}>
+                              <View style={styles.titleContainer}>
+                                <Ionicons
+                                  name={
+                                    getNotificationIcon(
+                                      notification.type,
+                                    ) as any
+                                  }
+                                  size={20}
+                                  color={getNotificationColor(
+                                    notification.type,
+                                  )}
+                                  style={styles.notificationIcon}
+                                />
+                                <ThemedText
+                                  style={[
+                                    styles.notificationTitle,
+                                    {
+                                      color: colors.text,
+                                      fontWeight: notification.read
+                                        ? "normal"
+                                        : "600",
+                                    },
+                                  ]}
+                                >
+                                  {notification.title}
+                                </ThemedText>
+                              </View>
+                              {!notification.read && (
+                                <View
+                                  style={[
+                                    styles.unreadDot,
+                                    { backgroundColor: colors.primary },
+                                  ]}
+                                />
+                              )}
+                            </View>
+
+                            <ThemedText
+                              style={[
+                                styles.notificationMessage,
+                                { color: colors.textSecondary },
+                              ]}
+                              numberOfLines={2}
+                            >
+                              {notification.message}
+                            </ThemedText>
+
+                            <View style={styles.notificationFooter}>
+                              <ThemedText
+                                style={[
+                                  styles.notificationTime,
+                                  { color: colors.textSecondary },
+                                ]}
+                              >
+                                {notification.timeAgo ||
+                                  formatTime(notification.createdAt)}
+                              </ThemedText>
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    },
+                  )}
+
+                  {loading && hasMore && (
+                    <View style={styles.loadingMoreContainer}>
+                      <ActivityIndicator size="small" color={colors.primary} />
+                      <ThemedText
+                        style={{ color: colors.textSecondary, marginLeft: 8 }}
+                      >
+                        Loading more...
+                      </ThemedText>
+                    </View>
+                  )}
+
+                  {!hasMore && uniqueNotifications.length > 0 && (
+                    <View style={styles.noMoreContainer}>
+                      <ThemedText
+                        style={{
+                          color: colors.textSecondary,
+                          textAlign: "center",
+                        }}
+                      >
+                        No more notifications
+                      </ThemedText>
+                    </View>
+                  )}
+                </>
+              )}
+            </ScrollView>
+          </Animated.View>
+        </View>
+      </Modal>
+
+      {/* Detail Modal */}
+      <NotificationDetailModal
+        visible={detailVisible}
+        notification={selectedNotification}
+        onClose={handleDetailClose}
+        onMarkAsRead={handleMarkAsRead}
+      />
+    </>
   );
+};
+
+// Helper functions
+const formatTime = (createdAt: string): string => {
+  try {
+    const date = new Date(createdAt);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays > 0) return `${diffDays}d ago`;
+    if (diffHours > 0) return `${diffHours}h ago`;
+    if (diffMins > 0) return `${diffMins}m ago`;
+    return "Just now";
+  } catch (error) {
+    return "Recently";
+  }
+};
+
+const getNotificationIcon = (type: string): string => {
+  switch (type) {
+    case "task":
+      return "checkbox-outline";
+    case "lead":
+      return "person-outline";
+    case "contact":
+      return "people-outline";
+    case "profile":
+      return "person-circle-outline";
+    case "project":
+      return "folder-outline";
+    case "success":
+      return "checkmark-circle";
+    case "error":
+      return "alert-circle";
+    case "warning":
+      return "warning";
+    case "reminder":
+      return "time-outline";
+    case "order":
+      return "cart-outline";
+    case "payment":
+      return "cash-outline";
+    case "system":
+    case "info":
+    default:
+      return "information-circle";
+  }
+};
+
+const getNotificationColor = (type: string): string => {
+  switch (type) {
+    case "success":
+      return "#10B981";
+    case "error":
+      return "#EF4444";
+    case "warning":
+      return "#F59E0B";
+    case "task":
+      return "#3B82F6";
+    case "lead":
+      return "#8B5CF6";
+    case "contact":
+      return "#EC4899";
+    case "profile":
+      return "#F59E0B";
+    case "project":
+      return "#10B981";
+    case "reminder":
+      return "#F59E0B";
+    case "order":
+      return "#8B5CF6";
+    case "payment":
+      return "#10B981";
+    default:
+      return "#3B82F6";
+  }
 };
 
 const styles = StyleSheet.create({
@@ -789,14 +1161,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 12,
     flex: 1,
-    justifyContent: "center",
-  },
-  testButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
     justifyContent: "center",
   },
   notificationsList: {
@@ -865,20 +1229,6 @@ const styles = StyleSheet.create({
   notificationTime: {
     fontSize: 12,
   },
-  notificationActions: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  readButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  viewButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
   loadingMoreContainer: {
     flexDirection: "row",
     justifyContent: "center",
@@ -887,6 +1237,183 @@ const styles = StyleSheet.create({
   },
   noMoreContainer: {
     paddingVertical: 16,
+    alignItems: "center",
+  },
+
+  // Detail Modal Styles
+  detailOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  detailContainer: {
+    width: "100%",
+    maxWidth: 400,
+    borderRadius: 20,
+    padding: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+    maxHeight: "90%",
+  },
+  detailHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  detailIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  detailCloseButton: {
+    padding: 8,
+  },
+  detailTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    marginBottom: 12,
+  },
+  detailMessage: {
+    fontSize: 16,
+    lineHeight: 24,
+    marginBottom: 16,
+  },
+  detailMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  detailTime: {
+    fontSize: 14,
+    marginLeft: 8,
+  },
+  detailData: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  detailDataRow: {
+    flexDirection: "row",
+    marginBottom: 8,
+  },
+  detailDataKey: {
+    fontSize: 14,
+    fontWeight: "600",
+    width: 100,
+  },
+  detailDataValue: {
+    fontSize: 14,
+    flex: 1,
+  },
+  detailButton: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  detailButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  // New styles for lead details
+  sectionContainer: {
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  detailCard: {
+    borderRadius: 12,
+    padding: 16,
+  },
+  detailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+    gap: 8,
+  },
+  detailLabel: {
+    fontSize: 14,
+    width: 70,
+  },
+  detailValue: {
+    fontSize: 14,
+    fontWeight: "500",
+    flex: 1,
+  },
+  badgesContainer: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 12,
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "capitalize",
+  },
+  priorityBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  priorityText: {
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "capitalize",
+  },
+  noteCard: {
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+  },
+  noteText: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  noteMeta: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  noteAuthor: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  noteTime: {
+    fontSize: 12,
+  },
+  // Error styles
+  errorText: {
+    fontSize: 16,
+    textAlign: "center",
+    marginVertical: 10,
+  },
+  errorActions: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 20,
+  },
+  errorButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    minWidth: 100,
     alignItems: "center",
   },
 });

@@ -2,6 +2,7 @@ import { ApiResponse, apiService } from ".";
 
 // Lead interface based on your schema
 export interface Lead {
+  data: Lead;
   contactName: string;
   _id: string;
   firstName: string;
