@@ -105,6 +105,7 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
             }}
           >
             <View
+            
               style={{
                 width: 40,
                 height: 40,

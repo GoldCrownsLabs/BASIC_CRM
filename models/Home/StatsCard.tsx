@@ -23,7 +23,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   return (
     <View
       style={{
-        width: "48%",
+        width: "100%",
         padding: 15,
         borderRadius: 16,
         marginBottom: 12,
