@@ -202,7 +202,7 @@ const ProfilePage = () => {
       style={{
         flex: 1,
         backgroundColor: colors.background,
-        paddingTop: 0, // ✅ Remove top padding
+        paddingTop: 0,
       }}
     >
       <StatusBar
@@ -221,7 +221,7 @@ const ProfilePage = () => {
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingTop: 0, // ✅ Remove top padding
+          paddingTop: 0,
           paddingBottom: 40,
         }}
         refreshControl={
@@ -230,16 +230,14 @@ const ProfilePage = () => {
             onRefresh={onRefresh}
             colors={[colors.primary]}
             tintColor={colors.primary}
-            style={{ backgroundColor: colors.background }} // ✅ Add background
-            progressViewOffset={20} // ✅ Adjust pull position
+            style={{ backgroundColor: colors.background }}
+            progressViewOffset={20}
           />
         }
       >
         {/* Profile Tab */}
         {activeTab === "profile" && (
           <View style={{ padding: 16 }}>
-            {" "}
-            {/* ✅ Reduced from 20 to 16 */}
             <ProfileInfoCard
               user={user}
               onEditProfile={() => {
@@ -256,8 +254,6 @@ const ProfilePage = () => {
         {/* Security Tab */}
         {activeTab === "security" && securitySettings && (
           <View style={{ padding: 16 }}>
-            {" "}
-            {/* ✅ Reduced from 20 to 16 */}
             <SecuritySettingsCard
               securitySettings={securitySettings}
               onSecuritySettingChange={(key, value) =>
@@ -288,7 +284,6 @@ const ProfilePage = () => {
               activityLogs={activityLogs}
               securitySettings={securitySettings}
             />
-
             <ActivityTimelineCard activityLogs={activityLogs} />
           </View>
         )}
