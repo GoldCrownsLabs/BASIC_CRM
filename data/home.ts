@@ -10,9 +10,6 @@ export const dashboardData = {
     revenue: 125000,
   },
 
-
-  
-
   recentActivities: [
     {
       id: 1,
