@@ -78,9 +78,6 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
         shadowRadius: 8,
         elevation: 4,
       }}
-
-
-
     >
       <ThemedText
         type="subtitle"
@@ -105,7 +102,6 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
             }}
           >
             <View
-            
               style={{
                 width: 40,
                 height: 40,
@@ -122,9 +118,6 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
               type="title"
               style={{ color: colors.text, fontSize: 20, marginBottom: 4 }}
             >
-
-
-              
               {metric.value}
             </ThemedText>
             <ThemedText
