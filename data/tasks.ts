@@ -49,6 +49,8 @@ export const tasksData: Task[] = [
     actualTimeSpent: '2 hours',
     createdBy: 'John Doe'
   },
+
+  
   {
     id: '3',
     title: 'Send contract to XYZ Enterprises',
