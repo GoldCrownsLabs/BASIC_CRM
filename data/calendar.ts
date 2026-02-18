@@ -15,7 +15,7 @@ export interface CalendarEvent {
   location?: string;
   status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
   priority: 'high' | 'medium' | 'low';
-  reminder?: string; // '15m', '1h', '1d'
+  reminder?: string; 
 }
 
 export interface CalendarDay {
