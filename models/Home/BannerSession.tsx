@@ -31,9 +31,8 @@ type BannerItem = {
   color: string;
   image: string;
   itemId: string;
-  number?: string; 
-  company?: string; 
-  
+  number?: string;
+  company?: string;
 };
 
 const BannerSession: React.FC = () => {
@@ -41,10 +40,10 @@ const BannerSession: React.FC = () => {
   const [bannerData, setBannerData] = useState<BannerItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasLeads, setHasLeads] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
-
 
   // console.log("Banner Data dasfadfadfadf:", leadsApi);
 
@@ -83,7 +82,6 @@ const BannerSession: React.FC = () => {
       });
 
       const items: BannerItem[] = [];
-     
 
       // Process ALL leads from last 2 days
       if (leadsResponse.success && leadsResponse.data?.data) {
@@ -116,43 +114,51 @@ const BannerSession: React.FC = () => {
               lead.assignedTo?.avatar ||
               "https://img.icons8.com/fluency/96/user.png",
             itemId: lead._id,
-              company: lead.company || "No company",
+            company: lead.company || "No company",
           });
         });
       }
 
-      // If no data, show fallback
-      if (items.length === 0) {
-        items.push({
-          id: "welcome-1",
-          name: "No recent leads",
-          email: "Add leads in last 2 days",
-          phone: "",
-          created: "",
-          badge: "INFO",
-          color: "#0f172a",
-          image: "https://img.icons8.com/fluency/96/info.png",
-          itemId: "",
-        });
+      // Check if we have leads
+      if (items.length > 0) {
+        setHasLeads(true);
+        setBannerData(items);
+      } else {
+        // No leads - show static card
+        setHasLeads(false);
+        setBannerData([
+          {
+            id: "no-leads-1",
+            name: "NO LATEST LEADS",
+            email: "",
+            phone: "",
+            created: "",
+            badge: "INFO",
+            color: "#1e293b",
+            image: "",
+            itemId: "",
+            company: "Add new leads to see them here",
+          },
+        ]);
       }
-
-      setBannerData(items);
     } catch (err) {
       console.error("Error fetching banner data:", err);
       setError("Failed to load data");
+      setHasLeads(false);
 
-      // Fallback data in case of error
+      // Error fallback
       setBannerData([
         {
           id: "error-1",
           name: "Unable to load data",
-          email: "Pull to refresh",
+          email: "",
           phone: "",
           created: "",
           badge: "ERROR",
           color: "#2d3748",
-          image: "https://img.icons8.com/fluency/96/error.png",
+          image: "",
           itemId: "",
+          company: "Pull to refresh",
         },
       ]);
     } finally {
@@ -160,8 +166,9 @@ const BannerSession: React.FC = () => {
     }
   };
 
+  // Auto-scroll only if there are leads
   useEffect(() => {
-    if (bannerData.length === 0) return;
+    if (!hasLeads || bannerData.length <= 1) return;
 
     const interval = setInterval(() => {
       const nextIndex = (currentIndex + 1) % bannerData.length;
@@ -206,11 +213,12 @@ const BannerSession: React.FC = () => {
     }, AUTO_SCROLL_INTERVAL);
 
     return () => clearInterval(interval);
-  }, [currentIndex, bannerData.length]);
+  }, [currentIndex, bannerData.length, hasLeads]);
 
   const handleCardPress = () => {
-    const item = bannerData[currentIndex];
+    if (!hasLeads) return; // No action for static card
 
+    const item = bannerData[currentIndex];
     if (item.itemId) {
       router.push({
         pathname: "/(tabs)/leads",
@@ -236,64 +244,102 @@ const BannerSession: React.FC = () => {
     );
   }
 
-  const item = bannerData[currentIndex];
+  const item = bannerData[0]; // Always show first item (only item when no leads)
 
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        activeOpacity={0.9}
+        activeOpacity={hasLeads ? 0.9 : 1}
         onPress={handleCardPress}
-        disabled={!item.itemId}
+        disabled={!hasLeads}
       >
         <View style={styles.cardWrapper}>
-          <Animated.View
-            style={[
-              styles.bankCard,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateX: slideAnim }],
-              },
-            ]}
-          >
-            {/* Top Row */}
-            <View style={styles.topRow}>
-              <Text style={styles.cardBrand}>CRM</Text>
-              <Text style={styles.validDate}>{item.created}</Text>
-              <Text style={styles.contactless}>)))</Text>
-            </View>
-
-            {/* Chip */}
-            {/* <View style={styles.chip} /> */}
-            <View style={styles.chip}>
-              <View style={styles.iconWrapper}>
-                <Ionicons name="person" size={22} color="#333" />
-              </View>
-            </View>
-            {/* Lead Name (Card Number Style) */}
-            <Text style={styles.cardNumber}>{item.name.toUpperCase()}</Text>
-
-            <View style={styles.companySection}>
-              <Text style={styles.companyText}>
-                Company : {item?.company?.toUpperCase() || "N/A"}
-              </Text>
-            </View>
-
-            {/* Bottom Row */}
-            <View style={styles.bottomRow}>
-              <View>
-                {/* <Text style={styles.validLabel}>CREATED</Text> */}
-                <Text style={styles.validDate}>{item.phone}</Text>
-              </View>
-              <View>
-                <Text style={styles.cardHolder}>{item.email}</Text>
+          {/* When no leads, render static card without animation */}
+          {!hasLeads ? (
+            <View style={[styles.bankCard, { backgroundColor: item.color }]}>
+              {/* Top Row */}
+              <View style={styles.topRow}>
+                <Text style={styles.cardBrand}>CRM</Text>
+                <Text style={styles.contactless}>)))</Text>
               </View>
 
-              <View style={styles.mastercardContainer}>
-                <View style={styles.circleRed} />
-                <View style={styles.circleYellow} />
+              {/* Chip */}
+              <View style={styles.chip}>
+                <View style={styles.iconWrapper}>
+                  <Ionicons name="information-circle" size={22} color="#333" />
+                </View>
+              </View>
+
+              {/* Message */}
+              <Text style={styles.noLeadsText}>{item.name}</Text>
+
+              <View style={styles.companySection}>
+                <Text style={styles.companyText}>{item.company}</Text>
+              </View>
+
+              {/* Bottom Row */}
+              <View style={styles.bottomRow}>
+                <View>
+                  <Text style={styles.validDate}>No leads in last 2 days</Text>
+                </View>
+
+                <View style={styles.mastercardContainer}>
+                  <View style={styles.circleRed} />
+                  <View style={styles.circleYellow} />
+                </View>
               </View>
             </View>
-          </Animated.View>
+          ) : (
+            // Animated card for leads
+            <Animated.View
+              style={[
+                styles.bankCard,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateX: slideAnim }],
+                  backgroundColor: item.color,
+                },
+              ]}
+            >
+              {/* Top Row */}
+              <View style={styles.topRow}>
+                <Text style={styles.cardBrand}>CRM</Text>
+                <Text style={styles.validDate}>{item.created}</Text>
+                <Text style={styles.contactless}>)))</Text>
+              </View>
+
+              {/* Chip */}
+              <View style={styles.chip}>
+                <View style={styles.iconWrapper}>
+                  <Ionicons name="person" size={22} color="#333" />
+                </View>
+              </View>
+
+              {/* Lead Name */}
+              <Text style={styles.cardNumber}>{item.name.toUpperCase()}</Text>
+
+              <View style={styles.companySection}>
+                <Text style={styles.companyText}>
+                  Company : {item?.company?.toUpperCase() || "N/A"}
+                </Text>
+              </View>
+
+              {/* Bottom Row */}
+              <View style={styles.bottomRow}>
+                <View>
+                  <Text style={styles.validDate}>{item.phone}</Text>
+                </View>
+                <View>
+                  <Text style={styles.cardHolder}>{item.email}</Text>
+                </View>
+
+                <View style={styles.mastercardContainer}>
+                  <View style={styles.circleRed} />
+                  <View style={styles.circleYellow} />
+                </View>
+              </View>
+            </Animated.View>
+          )}
         </View>
       </TouchableOpacity>
     </View>
@@ -430,8 +476,8 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginTop: 10,
 
-    justifyContent: "center", // vertical center
-    alignItems: "center", // horizontal center
+    justifyContent: "center",
+    alignItems: "center",
   },
   iconWrapper: {
     padding: 8,
@@ -449,23 +495,27 @@ const styles = StyleSheet.create({
     marginVertical: 15,
   },
 
+  noLeadsText: {
+    color: "#ffffff",
+    fontSize: 20,
+    letterSpacing: 1,
+    fontWeight: "600",
+    marginVertical: 15,
+    textAlign: "center",
+  },
+
   company: {
     color: "#ffffff",
     fontSize: 16,
     letterSpacing: 4,
     fontWeight: "400",
-    // marginVertical: 15,
   },
 
   bottomRow: {
     flexDirection: "row",
-    alignItems: "center", // sab ek line me center
+    alignItems: "center",
     justifyContent: "space-between",
-    // marginTop: 12,
   },
-  // leftSection: {
-  //   width: "35%",
-  // },
 
   validLabel: {
     fontSize: 10,
@@ -475,13 +525,11 @@ const styles = StyleSheet.create({
   validDate: {
     fontSize: 12,
     color: "#ffffff",
-    // marginBottom: 4,
   },
 
   cardHolder: {
     fontSize: 14,
     color: "#e5e7eb",
-    // paddingTop: 4,
   },
 
   mastercardContainer: {
@@ -512,6 +560,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#ffffff",
     fontWeight: "500",
-    // letterSpacing:8,
   },
 });
