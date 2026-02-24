@@ -130,7 +130,7 @@ const AddActivityModal: React.FC<AddActivityModalProps> = ({
                 marginBottom: 8,
               }}
             >
-              Activity Type
+              {/* Activity Type */}
             </Text>
 
             <View
