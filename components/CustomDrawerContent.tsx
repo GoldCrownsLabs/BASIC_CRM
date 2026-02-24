@@ -79,7 +79,7 @@ export default function CustomDrawerContent(
       label: "Email Templates",
       icon: "mail-outline",
       onPress: () => {
-        router.push("/email-templates"); // ✅ email-templates.tsx
+        router.push("/email-templates");
         props.navigation.closeDrawer();
       },
     },
