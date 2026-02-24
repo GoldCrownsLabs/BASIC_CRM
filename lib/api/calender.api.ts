@@ -234,14 +234,23 @@ export const fetchEventById = async (
   eventId: string,
 ): Promise<ApiResponse<CalendarEvent>> => {
   try {
+    // ❌ Pehle: `/calendar/event/${eventId}`
+    // ✅ Ab: `/calendar/event/${eventId}` - WAISE HI SAHI HAI!
     const response = await api.get(`/calendar/event/${eventId}`);
     return response.data;
   } catch (error: any) {
     console.error("Error fetching event:", error);
+
+    // ✅ Add specific error handling for 403/404
+    if (error.response?.status === 403) {
+      throw new Error("You don't have permission to view this event");
+    }
+    if (error.response?.status === 404) {
+      throw new Error("Event not found");
+    }
     throw error;
   }
 };
-
 // Create new event
 export const createEvent = async (
   eventData: CreateEventPayload,
@@ -274,7 +283,11 @@ export const updateEventStatus = async (
   statusData: UpdateEventStatusPayload,
 ): Promise<ApiResponse<CalendarEvent>> => {
   try {
-    const response = await api.put(`/calendar/${eventId}/status`, statusData);
+    // ✅ Consistent URL pattern
+    const response = await api.patch(
+      `/calendar/event/${eventId}/status`,
+      statusData,
+    );
     return response.data;
   } catch (error: any) {
     console.error("Error updating event status:", error);
@@ -282,16 +295,24 @@ export const updateEventStatus = async (
   }
 };
 
+
 // Update entire event
 export const updateEvent = async (
   eventId: string,
   eventData: Partial<CreateEventPayload>,
 ): Promise<ApiResponse<CalendarEvent>> => {
   try {
-    const response = await api.put(`/calendar/${eventId}`, eventData);
+    // ❌ Pehle: `/calendar/${eventId}`
+    // ✅ Ab: `/calendar/event/${eventId}` - Consistent URL
+    const response = await api.put(`/calendar/event/${eventId}`, eventData);
     return response.data;
   } catch (error: any) {
     console.error("Error updating event:", error);
+
+    // ✅ Handle 403 Forbidden
+    if (error.response?.status === 403) {
+      throw new Error("You don't have permission to update this event");
+    }
     throw error;
   }
 };
@@ -301,10 +322,29 @@ export const deleteEvent = async (
   eventId: string,
 ): Promise<ApiResponse<{ message: string }>> => {
   try {
-    const response = await api.delete(`/calendar/${eventId}`);
+    // ❌ Pehle: `/calendar/${eventId}`
+    // ✅ Ab: `/calendar/event/${eventId}`
+    const response = await api.delete(`/calendar/event/${eventId}`);
     return response.data;
   } catch (error: any) {
     console.error("Error deleting event:", error);
+
+    if (error.response?.status === 403) {
+      throw new Error("You don't have permission to delete this event");
+    }
+    throw error;
+  }
+};
+  //  markEventAsComplete
+
+export const markEventAsCompleted = async (
+  eventId: string,
+): Promise<ApiResponse<CalendarEvent>> => {
+  try {
+    const response = await api.patch(`/calendar/event/${eventId}/complete`);
+    return response.data;
+  } catch (error: any) {
+    console.error("Error marking event as completed:", error);
     throw error;
   }
 };
@@ -734,13 +774,20 @@ export const addEventNote = async (
   note: string,
 ): Promise<ApiResponse<CalendarEvent>> => {
   try {
-    const response = await api.post(`/calendar/${eventId}/notes`, { note });
+    const response = await api.post(`/calendar/event/${eventId}/notes`, {
+      note,
+    });
     return response.data;
   } catch (error: any) {
     console.error("Error adding event note:", error);
+
+    if (error.response?.status === 403) {
+      throw new Error("You don't have permission to add notes to this event");
+    }
     throw error;
   }
 };
+
 
 // Get event notes
 export const getEventNotes = async (

@@ -1,6 +1,6 @@
 // data/calendar.ts
 
-// Interfaces पहले define करें
+
 export interface CalendarEvent {
   id: string;
   title: string;
