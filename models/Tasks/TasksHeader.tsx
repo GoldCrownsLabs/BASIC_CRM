@@ -97,7 +97,7 @@ export const TasksHeader: React.FC<TasksHeaderProps> = ({
       </View>
 
       {/* Search Bar */}
-      <View
+      {/* <View
         style={{
           flexDirection: "row",
           alignItems: "center",
@@ -135,7 +135,7 @@ export const TasksHeader: React.FC<TasksHeaderProps> = ({
             />
           </TouchableOpacity>
         )}
-      </View>
+      </View> */}
     </View>
   );
 };

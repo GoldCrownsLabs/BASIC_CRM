@@ -51,7 +51,7 @@ export default function ContactsHeader({
       </View>
 
       {/* Search Bar */}
-      <View
+      {/* <View
         style={{
           flexDirection: "row",
           alignItems: "center",
@@ -99,7 +99,7 @@ export default function ContactsHeader({
             />
           </TouchableOpacity>
         )}
-      </View>
+      </View> */}
 
       {/* Quick Filters */}
       <ScrollView

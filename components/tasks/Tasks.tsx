@@ -675,7 +675,7 @@ export default function TasksScreen() {
           </View>
 
           {/* Search Bar */}
-          <View
+          {/* <View
             style={{
               flexDirection: "row",
               alignItems: "center",
@@ -713,7 +713,7 @@ export default function TasksScreen() {
                 />
               </TouchableOpacity>
             )}
-          </View>
+          </View> */}
 
           {/* Stats Cards */}
           <ScrollView

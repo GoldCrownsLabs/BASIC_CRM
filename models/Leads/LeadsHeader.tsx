@@ -74,7 +74,7 @@ export const LeadsHeader: React.FC<LeadsHeaderProps> = ({
         </View>
       </View>
 
-      <View
+      {/* <View
         style={{
           flexDirection: "row",
           alignItems: "center",
@@ -107,7 +107,7 @@ export const LeadsHeader: React.FC<LeadsHeaderProps> = ({
             />
           </TouchableOpacity>
         )}
-      </View>
+      </View> */}
     </View>
   );
 };
