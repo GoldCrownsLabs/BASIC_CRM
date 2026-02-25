@@ -18,7 +18,7 @@ import {
 } from "react-native";
 
 export default function CustomDrawerContent(
-  props: DrawerContentComponentProps
+  props: DrawerContentComponentProps,
 ) {
   const { user, logout } = useAuthStore();
   const { theme, colors, isDark, toggleTheme } = useAppTheme();
@@ -206,7 +206,16 @@ export default function CustomDrawerContent(
             <Text style={styles.userEmail}>
               {user?.email || "guest@example.com"}
             </Text>
-            <View style={styles.profileStats}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+            >
+              <Text style={{ color: "rgba(255,255,255,0.8)" }}>Role: </Text>
+              <Text style={{ color: "rgba(255,255,255,0.8)" }}>
+                {user?.role || "guest@example.com"}
+              </Text>
+            </View>
+
+            {/* <View style={styles.profileStats}>
               <View style={styles.statItem}>
                 <Text style={[styles.statValue, { color: "white" }]}>
                   Sales
@@ -226,7 +235,7 @@ export default function CustomDrawerContent(
                   Conversion
                 </Text>
               </View>
-            </View>
+            </View> */}
           </View>
           <Ionicons name="chevron-forward" size={20} color="white" />
         </TouchableOpacity>

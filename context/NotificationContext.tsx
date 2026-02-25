@@ -173,6 +173,7 @@ export const NotificationProvider = ({
       subscription.remove();
     };
   }, []); // ✅ EMPTY DEPENDENCY - SIRF EK BAAR
+  
 
   // 🔥 Initial load - SIRF EK BAAR
   useEffect(() => {
