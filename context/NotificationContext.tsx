@@ -117,7 +117,6 @@ export const NotificationProvider = ({
     }
   };
 
-  // 🔥 WebSocket setup - SIRF EK BAAR
   useEffect(() => {
     mounted.current = true;
 
@@ -150,7 +149,6 @@ export const NotificationProvider = ({
       }
     });
 
-    // ✅ App state change listener - WITH THROTTLE
     const subscription = AppState.addEventListener("change", (nextAppState) => {
       if (
         appState.current.match(/inactive|background/) &&
@@ -239,5 +237,5 @@ export const NotificationProvider = ({
       {children}
     </NotificationContext.Provider>
   );
-  
+
 };
