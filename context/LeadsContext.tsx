@@ -38,6 +38,8 @@ export const LeadsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         sortOrder: "desc",
       });
 
+      
+
       if (leadsResponse.success && leadsResponse.data?.data) {
         setLeadsData(leadsResponse.data.data);
       }
