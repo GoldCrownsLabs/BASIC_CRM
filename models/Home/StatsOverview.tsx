@@ -115,6 +115,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
           </TouchableOpacity>
         </View>
       </View>
+      
 
       <TotalLeadsModal
         visible={modalVisible === "total"}
