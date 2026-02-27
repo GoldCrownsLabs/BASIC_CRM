@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { StatsCard } from "./StatsCard";
@@ -30,6 +30,19 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
 
   const closeModal = () => setModalVisible(null);
 
+  const hotLeadsCount = useMemo(() => {
+    if (!leadStats?.byPriority) return 0;
+
+    const highPriorityLead = leadStats.byPriority.find(
+      (p: any) => p._id === "high",
+    );
+    const count = highPriorityLead?.count || 0;
+
+    return count;
+  }, [leadStats]);
+
+
+
   return (
     <>
       <View style={styles.container}>
@@ -37,7 +50,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
           type="subtitle"
           style={{ marginBottom: 15, color: colors.text }}
         >
-          Overview
+          {/* Overview */}
         </ThemedText>
 
         <View style={styles.row}>
@@ -63,7 +76,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
           >
             <StatsCard
               title="Hot Leads"
-              value={leadStats?.hotLeads || 0}
+              value={hotLeadsCount}
               iconName="flame"
               iconColor="#F44336"
               backgroundColor={colors.card}
@@ -110,7 +123,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
       <HotLeadsModal
         visible={modalVisible === "hot"}
         onClose={closeModal}
-        hotLeadsCount={leadStats?.hotLeads || 0}
+        hotLeadsCount={hotLeadsCount} 
       />
       <ConversionRateModal
         visible={modalVisible === "conversion"}
@@ -138,7 +151,7 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   cardWrapper: {
-    width: "50%", 
+    width: "50%",
     paddingHorizontal: 6,
     marginBottom: 15,
   },

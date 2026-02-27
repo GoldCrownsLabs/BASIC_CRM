@@ -522,7 +522,7 @@ const CalendarPage = () => {
             </View>
           </View>
 
-          <View style={{ flexDirection: "row", gap: 8 }}>
+          {/* <View style={{ flexDirection: "row", gap: 8 }}>
             <TouchableOpacity
               style={{
                 paddingHorizontal: 12,
@@ -540,7 +540,7 @@ const CalendarPage = () => {
                 Filter by Date
               </Text>
             </TouchableOpacity>
-          </View>
+          </View> */}
         </View>
 
         {calendarApi.loading ? (
@@ -688,7 +688,7 @@ const CalendarPage = () => {
   return (
     <>
       <CommonHeader title="Calendar" showSafeArea={true} />
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
         <StatusBar
           barStyle={isDark ? "light-content" : "dark-content"}
           backgroundColor={colors.card}
@@ -753,7 +753,7 @@ const CalendarPage = () => {
           eventTypes={eventTypes}
           loading={calendarApi.loading}
         />
-      </SafeAreaView>
+      </View>
     </>
   );
 };

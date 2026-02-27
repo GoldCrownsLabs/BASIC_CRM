@@ -54,7 +54,7 @@ export const PipelineStats: React.FC<PipelineStatsProps> = ({
             type="title"
             style={{ color: colors.primary, fontSize: 20, fontWeight: "bold" }}
           >
-            {formatCurrency(totalPipelineValue)}
+            {formatCurrency(totalPipelineValue).replace("$", "₹")}
           </ThemedText>
         </View>
         {stats && (

@@ -247,7 +247,7 @@ export default function CustomDrawerContent(
         showsVerticalScrollIndicator={false}
       >
         {/* Recently Accessed */}
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
+        {/* <View style={[styles.section, { backgroundColor: colors.card }]}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             Recently Accessed
           </Text>
@@ -284,10 +284,10 @@ export default function CustomDrawerContent(
               </View>
             </TouchableOpacity>
           ))}
-        </View>
+        </View> */}
 
         {/* Divider */}
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+        {/* <View style={[styles.divider, { backgroundColor: colors.border }]} /> */}
 
         {/* Important Features */}
         <View style={[styles.section, { backgroundColor: colors.card }]}>

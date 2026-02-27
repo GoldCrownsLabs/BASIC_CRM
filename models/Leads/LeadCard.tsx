@@ -98,7 +98,7 @@ export const LeadCard: React.FC<LeadCardProps> = ({
             type="defaultSemiBold"
             style={{ color: colors.primary, fontSize: 16, fontWeight: "bold" }}
           >
-            {formatCurrency(lead.budget || 0)}
+            {formatCurrency(lead.budget || 0).replace("$", "₹")} 
           </ThemedText>
         </View>
       </View>

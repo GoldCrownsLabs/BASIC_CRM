@@ -38,7 +38,7 @@ export const CalendarHeader: React.FC<CalendarHeaderProps> = ({
       style={{
         backgroundColor: colors.card,
         paddingHorizontal: 20,
-        paddingTop: 20,
+        // paddingTop: 20,
         paddingBottom: 16,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
@@ -51,49 +51,7 @@ export const CalendarHeader: React.FC<CalendarHeaderProps> = ({
           alignItems: "center",
           marginBottom: 16,
         }}
-      >
-        <View>
-          <Text
-            style={{
-              fontSize: 32,
-              fontWeight: "900",
-              color: colors.text,
-              letterSpacing: -0.5,
-            }}
-          >
-            Calendar
-          </Text>
-          <Text
-            style={{
-              fontSize: 14,
-              color: colors.textSecondary,
-              marginTop: 4,
-              fontStyle: "italic",
-            }}
-          >
-            {viewMode === "month" ? "Month View" : "Agenda View"}
-          </Text>
-        </View>
-
-        <TouchableOpacity
-          style={{
-            width: 52,
-            height: 52,
-            borderRadius: 26,
-            backgroundColor: colors.primary,
-            justifyContent: "center",
-            alignItems: "center",
-            shadowColor: colors.primary,
-            shadowOffset: { width: 0, height: 6 },
-            shadowOpacity: 0.4,
-            shadowRadius: 12,
-            elevation: 8,
-          }}
-          onPress={onAddEvent}
-        >
-          <Feather name="plus" size={26} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
+      ></View>
 
       <ScrollView
         horizontal

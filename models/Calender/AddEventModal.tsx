@@ -1,4 +1,4 @@
-// components/AddEventModal.tsx में imports update करें:
+// components/AddEventModal.tsx
 import React, { useState, useEffect } from "react";
 import {
   Modal,
@@ -8,11 +8,13 @@ import {
   ScrollView,
   TextInput,
   Alert,
+  Platform,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
-// ✅ Changed import
+// Changed import
 import {
   calendarConfig,
   formatDate,
@@ -20,8 +22,6 @@ import {
   eventTypes as defaultEventTypes,
 } from "@/lib/calendar-config";
 import { CreateEventPayload, EventType } from "@/lib/api/calender.api";
-
-
 
 interface AddEventModalProps {
   visible: boolean;
@@ -43,6 +43,8 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
   loading = false,
 }) => {
   const { colors, isDark } = useAppTheme();
+
+  // 🔥 FIX 1: Better state management
   const [formData, setFormData] = useState<CreateEventPayload>({
     title: "",
     type: "meeting",
@@ -62,16 +64,35 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
   });
 
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [availableEventTypes, setAvailableEventTypes] =
-    useState<string[]>([...defaultEventTypes]);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [tempDate, setTempDate] = useState(new Date());
+  const [tempTime, setTempTime] = useState(new Date());
+  const [availableEventTypes, setAvailableEventTypes] = useState<string[]>([
+    ...defaultEventTypes,
+  ]);
+
+  // 🔥 FIX 2: Initialize dates properly
+  useEffect(() => {
+    if (selectedDate) {
+      const [year, month, day] = selectedDate.split("-").map(Number);
+      const dateObj = new Date(year, month - 1, day);
+      setTempDate(dateObj);
+
+      // Set default time to current time + 1 hour
+      const now = new Date();
+      now.setHours(now.getHours() + 1);
+      now.setMinutes(0);
+      setTempTime(now);
+    }
+  }, [selectedDate]);
 
   useEffect(() => {
     if (propEventTypes && propEventTypes.length > 0) {
-      // ✅ TypeScript error fix
       setAvailableEventTypes(propEventTypes.map((et) => et.name));
     }
   }, [propEventTypes]);
 
+  // 🔥 FIX 3: Update form when modal opens
   useEffect(() => {
     if (visible) {
       setFormData((prev) => ({
@@ -80,6 +101,59 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
       }));
     }
   }, [visible, selectedDate]);
+
+  // 🔥 FIX 4: Date Picker Handler
+  const onDateChange = (event: any, selectedDateObj?: Date) => {
+    if (Platform.OS === "android") {
+      setShowDatePicker(false);
+    }
+
+    if (selectedDateObj) {
+      setTempDate(selectedDateObj);
+
+      // Format date to YYYY-MM-DD
+      const year = selectedDateObj.getFullYear();
+      const month = String(selectedDateObj.getMonth() + 1).padStart(2, "0");
+      const day = String(selectedDateObj.getDate()).padStart(2, "0");
+      const formattedDate = `${year}-${month}-${day}`;
+
+      setFormData((prev) => ({ ...prev, date: formattedDate }));
+    }
+
+    if (Platform.OS === "ios") {
+      // Keep picker open on iOS
+    }
+  };
+
+  // 🔥 FIX 5: Time Picker Handler
+  const onTimeChange = (event: any, selectedTimeObj?: Date) => {
+    if (Platform.OS === "android") {
+      setShowTimePicker(false);
+    }
+
+    if (selectedTimeObj) {
+      setTempTime(selectedTimeObj);
+
+      // Format time to HH:MM
+      const hours = String(selectedTimeObj.getHours()).padStart(2, "0");
+      const minutes = String(selectedTimeObj.getMinutes()).padStart(2, "0");
+      const formattedTime = `${hours}:${minutes}`;
+
+      setFormData((prev) => ({ ...prev, startTime: formattedTime }));
+    }
+
+    if (Platform.OS === "ios") {
+      // Keep picker open on iOS
+    }
+  };
+
+  // 🔥 FIX 6: Smooth Calendar Opening
+  const handleOpenCalendar = () => {
+    onClose(); // Close modal first
+    setTimeout(() => {
+      onOpenCalendar(); // Open calendar after modal closes
+    }, 300);
+  };
 
   const handleSubmit = () => {
     if (!formData.title.trim()) {
@@ -95,22 +169,25 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
     onSubmit(formData);
   };
 
-  const timeOptions = [
-    "08:00",
-    "09:00",
-    "10:00",
-    "11:00",
-    "12:00",
-    "13:00",
-    "14:00",
-    "15:00",
-    "16:00",
-    "17:00",
-    "18:00",
-  ];
+  // Format date for display
+  const displayDate = () => {
+    const [year, month, day] = formData.date.split("-").map(Number);
+    const dateObj = new Date(year, month - 1, day);
+    return dateObj.toLocaleDateString("en-US", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
       <View
         style={{
           flex: 1,
@@ -126,6 +203,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
             maxHeight: "90%",
           }}
         >
+          {/* Header */}
           <View
             style={{
               flexDirection: "row",
@@ -152,6 +230,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
             style={{ paddingHorizontal: 24 }}
             showsVerticalScrollIndicator={false}
           >
+            {/* Event Type */}
             <View style={{ marginBottom: 20 }}>
               <Text
                 style={{
@@ -166,7 +245,6 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={{ flexDirection: "row", gap: 12 }}>
                   {availableEventTypes.map((typeName: string) => {
-                    // ✅ TypeScript error fix
                     const config = eventConfig[typeName] || eventConfig.meeting;
                     return (
                       <TouchableOpacity
@@ -221,6 +299,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
               </ScrollView>
             </View>
 
+            {/* Event Title */}
             <View style={{ marginBottom: 16 }}>
               <Text
                 style={{
@@ -252,7 +331,9 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
               />
             </View>
 
+            {/* Date and Time */}
             <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
+              {/* 🔥 FIX 7: Date Picker Button */}
               <View style={{ flex: 1 }}>
                 <Text
                   style={{
@@ -276,13 +357,10 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
                     justifyContent: "space-between",
                     alignItems: "center",
                   }}
-                  onPress={() => {
-                    onClose();
-                    setTimeout(onOpenCalendar, 300);
-                  }}
+                  onPress={() => setShowDatePicker(true)}
                 >
                   <Text style={{ fontSize: 16, color: colors.text }}>
-                    {formatDate(formData.date)}
+                    {displayDate()}
                   </Text>
                   <Feather
                     name="calendar"
@@ -292,6 +370,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
                 </TouchableOpacity>
               </View>
 
+              {/* 🔥 FIX 8: Time Picker Button */}
               <View style={{ flex: 1 }}>
                 <Text
                   style={{
@@ -315,7 +394,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
                     justifyContent: "space-between",
                     alignItems: "center",
                   }}
-                  onPress={() => setShowTimePicker(!showTimePicker)}
+                  onPress={() => setShowTimePicker(true)}
                 >
                   <Text style={{ fontSize: 16, color: colors.text }}>
                     {formData.startTime}
@@ -329,54 +408,28 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
               </View>
             </View>
 
-            {showTimePicker && (
-              <View
-                style={{
-                  backgroundColor: isDark ? colors.border : "#F9FAFB",
-                  borderRadius: 12,
-                  padding: 16,
-                  marginBottom: 16,
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  gap: 8,
-                }}
-              >
-                {timeOptions.map((time) => (
-                  <TouchableOpacity
-                    key={time}
-                    style={{
-                      paddingHorizontal: 12,
-                      paddingVertical: 8,
-                      borderRadius: 8,
-                      backgroundColor:
-                        formData.startTime === time
-                          ? colors.primary
-                          : colors.card,
-                      borderWidth: 1,
-                      borderColor:
-                        formData.startTime === time
-                          ? colors.primary
-                          : colors.border,
-                    }}
-                    onPress={() => {
-                      setFormData({ ...formData, startTime: time });
-                      setShowTimePicker(false);
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 14,
-                        color:
-                          formData.startTime === time ? "#FFFFFF" : colors.text,
-                      }}
-                    >
-                      {time}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+            {/* 🔥 FIX 9: Date Picker Modal */}
+            {showDatePicker && (
+              <DateTimePicker
+                value={tempDate}
+                mode="date"
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                onChange={onDateChange}
+                minimumDate={new Date(2000, 0, 1)}
+              />
             )}
 
+            {/* 🔥 FIX 10: Time Picker Modal */}
+            {showTimePicker && (
+              <DateTimePicker
+                value={tempTime}
+                mode="time"
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                onChange={onTimeChange}
+              />
+            )}
+
+            {/* End Time */}
             <View style={{ marginBottom: 16 }}>
               <Text
                 style={{
@@ -408,6 +461,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
               />
             </View>
 
+            {/* Contact Name */}
             <View style={{ marginBottom: 16 }}>
               <Text
                 style={{
@@ -417,7 +471,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
                   marginBottom: 8,
                 }}
               >
-                Contact Name *
+                Contact Name
               </Text>
               <TextInput
                 style={{
@@ -430,7 +484,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
                   fontSize: 16,
                   color: colors.text,
                 }}
-                placeholder="Enter contact name"
+                placeholder="Enter contact name (optional)"
                 placeholderTextColor={colors.textSecondary}
                 value={formData.contactName}
                 onChangeText={(text) =>
@@ -439,6 +493,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
               />
             </View>
 
+            {/* Company */}
             <View style={{ marginBottom: 16 }}>
               <Text
                 style={{
@@ -470,6 +525,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
               />
             </View>
 
+            {/* Location */}
             <View style={{ marginBottom: 16 }}>
               <Text
                 style={{
@@ -501,6 +557,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
               />
             </View>
 
+            {/* Priority */}
             <View style={{ marginBottom: 20 }}>
               <Text
                 style={{
@@ -576,6 +633,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
               </View>
             </View>
 
+            {/* Description */}
             <View style={{ marginBottom: 24 }}>
               <Text
                 style={{
@@ -612,6 +670,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
             </View>
           </ScrollView>
 
+          {/* Footer Buttons */}
           <View
             style={{
               flexDirection: "row",

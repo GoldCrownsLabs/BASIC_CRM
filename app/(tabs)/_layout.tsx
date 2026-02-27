@@ -101,7 +101,7 @@ export default function TabLayout() {
             onPress={() => router.push("/(tabs)/profile")}
             style={({ pressed }) => ({
               opacity: pressed ? 0.7 : 1,
-              marginRight: 15,
+              marginRight: 10,
             })}
           >
             <View>

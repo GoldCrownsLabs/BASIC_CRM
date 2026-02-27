@@ -12,8 +12,10 @@ interface StatsSummaryProps {
   };
 }
 
+
 export default function StatsSummary({ stats }: StatsSummaryProps) {
   const { colors } = useAppTheme();
+  console.log("Stats Data:", stats);
 
   return (
     <View

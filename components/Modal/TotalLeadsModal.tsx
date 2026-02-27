@@ -1,5 +1,5 @@
 // components/modals/TotalLeadsModal.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Modal,
@@ -10,6 +10,7 @@ import {
   RefreshControl,
   FlatList,
   Dimensions,
+  Platform,
 } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -45,7 +46,10 @@ export const TotalLeadsModal: React.FC<TotalLeadsModalProps> = ({
     new: 0,
     contacted: 0,
     qualified: 0,
+    proposal: 0,
+    negotiation: 0,
     closed_won: 0,
+    closed_lost: 0,
   });
 
   const statusFilters = [
@@ -84,9 +88,26 @@ export const TotalLeadsModal: React.FC<TotalLeadsModalProps> = ({
     },
   ];
 
+  // Calculate stats from all leads
+  const calculateStatsFromLeads = useCallback((allLeads: Lead[]) => {
+    const newStats = {
+      new: allLeads.filter((l) => l.status === "new").length,
+      contacted: allLeads.filter((l) => l.status === "contacted").length,
+      qualified: allLeads.filter((l) => l.status === "qualified").length,
+      proposal: allLeads.filter((l) => l.status === "proposal").length,
+      negotiation: allLeads.filter((l) => l.status === "negotiation").length,
+      closed_won: allLeads.filter((l) => l.status === "closed_won").length,
+      closed_lost: allLeads.filter((l) => l.status === "closed_lost").length,
+    };
+    setStats(newStats);
+    return newStats;
+  }, []);
+
   const fetchLeads = async (page = 1, status = selectedStatus) => {
     try {
       setLoading(true);
+      console.log(`📥 Fetching leads - Page: ${page}, Status: ${status}`);
+
       const filters: any = {
         page,
         limit: 15,
@@ -97,40 +118,70 @@ export const TotalLeadsModal: React.FC<TotalLeadsModalProps> = ({
       }
 
       const response = await leadsApi.getLeads(filters);
+      console.log("📊 API Response:", response);
 
       if (response.success && response.data?.data) {
         const responseData = response.data;
+        console.log("📄 Pagination:", responseData.pagination);
+
+        const total =
+          responseData.pagination?.total ||
+          responseData.pagination?.totalItems ||
+          0;
+        const limit =
+          responseData.pagination?.itemsPerPage ||
+          responseData.pagination?.limit ||
+          15;
+        const pages =
+          responseData.pagination?.totalPages || Math.ceil(total / limit);
+
+        console.log(`🔢 Total items from API: ${total}, Total pages: ${pages}`);
+
+        setTotalItems(total);
+        setTotalPages(pages);
+        setCurrentPage(page);
 
         if (page === 1) {
+          // First page - replace all leads
+          console.log("📋 Setting first page leads:", responseData.data.length);
           setLeads(responseData.data);
-          // Calculate stats from first page data
-          calculateStats(responseData.data);
+          calculateStatsFromLeads(responseData.data);
         } else {
-          setLeads((prev) => [...prev, ...responseData.data]);
+          // Subsequent pages - append and recalculate stats
+          setLeads((prev) => {
+            const newLeads = [...prev, ...responseData.data];
+            console.log(
+              `📋 Appending page ${page}. Total leads now:`,
+              newLeads.length,
+            );
+            calculateStatsFromLeads(newLeads);
+            return newLeads;
+          });
         }
-
-        const total = responseData.pagination?.total || 0;
-        const limit = responseData.pagination?.limit || 15;
-        setTotalPages(Math.ceil(total / limit));
-        setTotalItems(total);
-        setCurrentPage(page);
       } else {
+        console.log("⚠️ No data in response");
         if (page === 1) {
           setLeads([]);
           setTotalItems(0);
+          setTotalPages(1);
+          setCurrentPage(1);
           setStats({
             new: 0,
             contacted: 0,
             qualified: 0,
+            proposal: 0,
+            negotiation: 0,
             closed_won: 0,
+            closed_lost: 0,
           });
         }
       }
     } catch (error) {
-      console.error("Error fetching leads:", error);
+      console.error("❌ Error fetching leads:", error);
       if (page === 1) {
         setLeads([]);
         setTotalItems(0);
+        setTotalPages(1);
       }
     } finally {
       setLoading(false);
@@ -138,35 +189,42 @@ export const TotalLeadsModal: React.FC<TotalLeadsModalProps> = ({
     }
   };
 
-  const calculateStats = (leadsData: Lead[]) => {
-    const newStats = {
-      new: leadsData.filter((l) => l.status === "new").length,
-      contacted: leadsData.filter((l) => l.status === "contacted").length,
-      qualified: leadsData.filter((l) => l.status === "qualified").length,
-      closed_won: leadsData.filter((l) => l.status === "closed_won").length,
-    };
-    setStats(newStats);
-  };
-
   useEffect(() => {
     if (visible) {
+      console.log("👁️ Modal visible, fetching leads...");
       fetchLeads(1, selectedStatus);
     }
-  }, [visible, selectedStatus]);
+  }, [visible]);
 
-  const handleRefresh = () => {
+  // Log whenever totalItems changes
+  useEffect(() => {
+    console.log(`🚀 TotalLeadsModal rendered with: ${totalItems}`);
+  }, [totalItems]);
+
+  const handleRefresh = useCallback(() => {
+    console.log("🔄 Refreshing...");
     setRefreshing(true);
     setCurrentPage(1);
+    setLeads([]);
     fetchLeads(1, selectedStatus);
-  };
+  }, [selectedStatus]);
 
-  const handleLoadMore = () => {
+  const handleLoadMore = useCallback(() => {
     if (currentPage < totalPages && !loading && !refreshing) {
+      console.log(`⏩ Loading more: page ${currentPage + 1} of ${totalPages}`);
       fetchLeads(currentPage + 1, selectedStatus);
     }
-  };
+  }, [currentPage, totalPages, loading, refreshing, selectedStatus]);
 
-  const getStatusColor = (status: string) => {
+  const handleFilterChange = useCallback((filterId: string) => {
+    console.log("🔍 Filter changed to:", filterId);
+    setSelectedStatus(filterId);
+    setCurrentPage(1);
+    setLeads([]);
+    fetchLeads(1, filterId);
+  }, []);
+
+  const getStatusColor = useCallback((status: string) => {
     const statusColors: Record<string, string> = {
       new: "#3b82f6",
       contacted: "#f59e0b",
@@ -177,9 +235,9 @@ export const TotalLeadsModal: React.FC<TotalLeadsModalProps> = ({
       closed_lost: "#ef4444",
     };
     return statusColors[status] || "#6b7280";
-  };
+  }, []);
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = useCallback((status: string) => {
     const statusIcons: Record<string, string> = {
       new: "fiber-new",
       contacted: "call",
@@ -190,9 +248,9 @@ export const TotalLeadsModal: React.FC<TotalLeadsModalProps> = ({
       closed_lost: "cancel",
     };
     return statusIcons[status] || "help-outline";
-  };
+  }, []);
 
-  const formatDate = (dateString?: string) => {
+  const formatDate = useCallback((dateString?: string) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
     const now = new Date();
@@ -203,154 +261,271 @@ export const TotalLeadsModal: React.FC<TotalLeadsModalProps> = ({
     if (diffDays === 1) return "Yesterday";
     if (diffDays < 7) return `${diffDays} days ago`;
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  };
+  }, []);
 
-  const renderLeadItem = ({ item, index }: { item: Lead; index: number }) => (
-    <Animated.View
-      entering={FadeInDown.delay(index * 50).springify()}
-      layout={Layout.springify()}
-    >
-      <TouchableOpacity
-        style={[
-          styles.leadItem,
-          {
-            backgroundColor: isDark ? colors.card : "#ffffff",
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: isDark ? 0.3 : 0.1,
-            shadowRadius: 8,
-            elevation: 3,
-          },
-        ]}
-        activeOpacity={0.7}
+  // Memoized stats for display
+  const displayStats = useMemo(() => {
+    const statsArray = [
+      {
+        label: "Total",
+        value: totalItems, // ✅ अब यह सही 13 होगा
+        icon: "people",
+        color: "#6366f1",
+      },
+      {
+        label: "New",
+        value: stats.new,
+        icon: "fiber-new",
+        color: "#3b82f6",
+      },
+      {
+        label: "Contacted",
+        value: stats.contacted,
+        icon: "call",
+        color: "#f59e0b",
+      },
+      {
+        label: "Qualified",
+        value: stats.qualified,
+        icon: "check-circle",
+        color: "#10b981",
+      },
+      {
+        label: "Proposal",
+        value: stats.proposal,
+        icon: "description",
+        color: "#8b5cf6",
+      },
+      {
+        label: "Negotiation",
+        value: stats.negotiation,
+        icon: "handshake",
+        color: "#ec4899",
+      },
+      {
+        label: "Closed Won",
+        value: stats.closed_won,
+        icon: "emoji-events",
+        color: "#10b981",
+      },
+      {
+        label: "Closed Lost",
+        value: stats.closed_lost,
+        icon: "cancel",
+        color: "#ef4444",
+      },
+    ];
+    console.log("📊 Display stats:", statsArray);
+    return statsArray;
+  }, [totalItems, stats]);
+
+  const renderLeadItem = useCallback(
+    ({ item, index }: { item: Lead; index: number }) => (
+      <Animated.View
+        entering={FadeInDown.delay(index * 50).springify()}
+        layout={Layout.springify()}
       >
-        <LinearGradient
-          colors={[getStatusColor(item.status) + "10", "transparent"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.leadGradient}
-        />
+        <TouchableOpacity
+          style={[
+            styles.leadItem,
+            {
+              backgroundColor: isDark ? colors.card : "#ffffff",
+              ...Platform.select({
+                ios: {
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: isDark ? 0.3 : 0.1,
+                  shadowRadius: 8,
+                },
+                android: {
+                  elevation: 3,
+                },
+              }),
+            },
+          ]}
+          activeOpacity={0.7}
+        >
+          <LinearGradient
+            colors={[getStatusColor(item.status) + "10", "transparent"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.leadGradient}
+          />
 
-        <View style={styles.leadHeader}>
-          <View style={styles.leadInfo}>
-            <View style={styles.nameContainer}>
-              <View
-                style={[
-                  styles.avatar,
-                  { backgroundColor: getStatusColor(item.status) + "20" },
-                ]}
-              >
-                <ThemedText
+          <View style={styles.leadHeader}>
+            <View style={styles.leadInfo}>
+              <View style={styles.nameContainer}>
+                <View
                   style={[
-                    styles.avatarText,
-                    { color: getStatusColor(item.status) },
+                    styles.avatar,
+                    { backgroundColor: getStatusColor(item.status) + "20" },
                   ]}
                 >
-                  {item.firstName?.[0]}
-                  {item.lastName?.[0]}
-                </ThemedText>
-              </View>
-              <View style={styles.nameEmailContainer}>
-                <ThemedText style={styles.leadName}>
-                  {item.firstName} {item.lastName || ""}
-                </ThemedText>
-                <ThemedText style={styles.leadEmail} numberOfLines={1}>
-                  {item.email}
-                </ThemedText>
+                  <ThemedText
+                    style={[
+                      styles.avatarText,
+                      { color: getStatusColor(item.status) },
+                    ]}
+                  >
+                    {item.firstName?.[0]}
+                    {item.lastName?.[0]}
+                  </ThemedText>
+                </View>
+                <View style={styles.nameEmailContainer}>
+                  <ThemedText style={[styles.leadName, { color: colors.text }]}>
+                    {item.firstName} {item.lastName || ""}
+                  </ThemedText>
+                  <ThemedText
+                    style={[styles.leadEmail, { color: colors.textSecondary }]}
+                    numberOfLines={1}
+                  >
+                    {item.email}
+                  </ThemedText>
+                </View>
               </View>
             </View>
-          </View>
-          <View
-            style={[
-              styles.statusBadge,
-              { backgroundColor: getStatusColor(item.status) + "15" },
-            ]}
-          >
-            <MaterialIcons
-              name={getStatusIcon(item.status) as any}
-              size={14}
-              color={getStatusColor(item.status)}
-            />
-            <ThemedText
-              style={[
-                styles.statusText,
-                { color: getStatusColor(item.status) },
-              ]}
-            >
-              {item.status.replace("_", " ")}
-            </ThemedText>
-          </View>
-        </View>
-
-        <View style={styles.leadDetails}>
-          {item.company && (
-            <View style={styles.detailRow}>
-              <MaterialIcons
-                name="business"
-                size={16}
-                color={colors.textSecondary}
-              />
-              <ThemedText style={styles.detailText}>{item.company}</ThemedText>
-            </View>
-          )}
-          <View style={styles.detailRow}>
-            <MaterialIcons
-              name="event"
-              size={16}
-              color={colors.textSecondary}
-            />
-            <ThemedText style={styles.detailText}>
-              {formatDate(item.createdAt)}
-            </ThemedText>
-          </View>
-        </View>
-
-        {item.priority && (
-          <View style={styles.priorityContainer}>
             <View
               style={[
-                styles.priorityBadge,
-                {
-                  backgroundColor:
-                    item.priority === "high"
-                      ? "#ef444420"
-                      : item.priority === "medium"
-                        ? "#f59e0b20"
-                        : "#10b98120",
-                },
+                styles.statusBadge,
+                { backgroundColor: getStatusColor(item.status) + "15" },
               ]}
             >
               <MaterialIcons
-                name="flag"
-                size={12}
-                color={
-                  item.priority === "high"
-                    ? "#ef4444"
-                    : item.priority === "medium"
-                      ? "#f59e0b"
-                      : "#10b981"
-                }
+                name={getStatusIcon(item.status) as any}
+                size={14}
+                color={getStatusColor(item.status)}
               />
               <ThemedText
                 style={[
-                  styles.priorityText,
-                  {
-                    color:
-                      item.priority === "high"
-                        ? "#ef4444"
-                        : item.priority === "medium"
-                          ? "#f59e0b"
-                          : "#10b981",
-                  },
+                  styles.statusText,
+                  { color: getStatusColor(item.status) },
                 ]}
               >
-                {item.priority} priority
+                {item.status.replace("_", " ")}
               </ThemedText>
             </View>
           </View>
-        )}
-      </TouchableOpacity>
-    </Animated.View>
+
+          <View style={styles.leadDetails}>
+            {item.company && (
+              <View style={styles.detailRow}>
+                <MaterialIcons
+                  name="business"
+                  size={16}
+                  color={colors.textSecondary}
+                />
+                <ThemedText
+                  style={[styles.detailText, { color: colors.textSecondary }]}
+                >
+                  {item.company}
+                </ThemedText>
+              </View>
+            )}
+            <View style={styles.detailRow}>
+              <MaterialIcons
+                name="event"
+                size={16}
+                color={colors.textSecondary}
+              />
+              <ThemedText
+                style={[styles.detailText, { color: colors.textSecondary }]}
+              >
+                {formatDate(item.createdAt)}
+              </ThemedText>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Animated.View>
+    ),
+    [colors, isDark, getStatusColor, getStatusIcon, formatDate],
+  );
+
+  const keyExtractor = useCallback((item: Lead) => item._id, []);
+
+  const renderStatCard = useCallback(
+    (stat: (typeof displayStats)[0], index: number) => (
+      <Animated.View
+        key={stat.label}
+        entering={FadeInRight.delay(index * 100)}
+        style={[
+          styles.statCard,
+          { backgroundColor: colors.card },
+          Platform.select({
+            ios: {
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+            },
+            android: {
+              elevation: 2,
+            },
+          }),
+        ]}
+      >
+        <View
+          style={[
+            styles.statIconContainer,
+            { backgroundColor: stat.color + "15" },
+          ]}
+        >
+          <MaterialIcons name={stat.icon as any} size={24} color={stat.color} />
+        </View>
+        <View>
+          <ThemedText style={[styles.statValue, { color: colors.text }]}>
+            {stat.value}
+          </ThemedText>
+          <ThemedText
+            style={[styles.statLabel, { color: colors.textSecondary }]}
+          >
+            {stat.label}
+          </ThemedText>
+        </View>
+      </Animated.View>
+    ),
+    [colors],
+  );
+
+  const ListEmptyComponent = useCallback(
+    () => (
+      <View style={styles.emptyContainer}>
+        <View
+          style={[styles.emptyIconContainer, { backgroundColor: colors.card }]}
+        >
+          <MaterialIcons
+            name="people-outline"
+            size={48}
+            color={colors.textSecondary}
+          />
+        </View>
+        <ThemedText style={[styles.emptyTitle, { color: colors.text }]}>
+          No leads found
+        </ThemedText>
+        <ThemedText
+          style={[styles.emptySubtitle, { color: colors.textSecondary }]}
+        >
+          {selectedStatus === "all"
+            ? "No leads available at the moment"
+            : `No leads with ${selectedStatus.replace("_", " ")} status`}
+        </ThemedText>
+      </View>
+    ),
+    [colors, selectedStatus],
+  );
+
+  const ListFooterComponent = useCallback(
+    () =>
+      loading && leads.length > 0 ? (
+        <View style={styles.footerLoader}>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <ThemedText
+            style={[styles.footerText, { color: colors.textSecondary }]}
+          >
+            Loading more leads...
+          </ThemedText>
+        </View>
+      ) : null,
+    [loading, leads.length, colors.primary, colors.textSecondary],
   );
 
   return (
@@ -375,21 +550,52 @@ export const TotalLeadsModal: React.FC<TotalLeadsModalProps> = ({
             <View style={styles.modalHeader}>
               <TouchableOpacity
                 onPress={onClose}
-                style={[styles.iconButton, { backgroundColor: colors.card }]}
+                style={[
+                  styles.iconButton,
+                  { backgroundColor: colors.card },
+                  Platform.select({
+                    ios: {
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 2,
+                    },
+                    android: {
+                      elevation: 2,
+                    },
+                  }),
+                ]}
               >
                 <MaterialIcons name="close" size={22} color={colors.text} />
               </TouchableOpacity>
 
               <View style={styles.headerTitleContainer}>
                 <MaterialIcons name="people" size={24} color={colors.primary} />
-                <ThemedText type="subtitle" style={styles.modalTitle}>
-                  All Leads
+                <ThemedText
+                  type="subtitle"
+                  style={[styles.modalTitle, { color: colors.text }]}
+                >
+                  All Leads ({totalItems}) {/* ✅ यहाँ भी total दिखाएं */}
                 </ThemedText>
               </View>
 
               <TouchableOpacity
                 onPress={handleRefresh}
-                style={[styles.iconButton, { backgroundColor: colors.card }]}
+                style={[
+                  styles.iconButton,
+                  { backgroundColor: colors.card },
+                  Platform.select({
+                    ios: {
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 2,
+                    },
+                    android: {
+                      elevation: 2,
+                    },
+                  }),
+                ]}
               >
                 <MaterialIcons
                   name="refresh"
@@ -399,72 +605,14 @@ export const TotalLeadsModal: React.FC<TotalLeadsModalProps> = ({
               </TouchableOpacity>
             </View>
 
-            {/* Stats Cards */}
+            {/* Stats Cards - अब Total: 13 दिखेगा */}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               style={styles.statsContainer}
               contentContainerStyle={styles.statsContent}
             >
-              {[
-                {
-                  label: "Total",
-                  value: totalItems,
-                  icon: "people",
-                  color: "#6366f1",
-                },
-                {
-                  label: "New",
-                  value: stats.new,
-                  icon: "fiber-new",
-                  color: "#3b82f6",
-                },
-                {
-                  label: "Contacted",
-                  value: stats.contacted,
-                  icon: "call",
-                  color: "#f59e0b",
-                },
-                {
-                  label: "Qualified",
-                  value: stats.qualified,
-                  icon: "check-circle",
-                  color: "#10b981",
-                },
-                {
-                  label: "Closed",
-                  value: stats.closed_won,
-                  icon: "emoji-events",
-                  color: "#10b981",
-                },
-              ].map((stat, index) => (
-                <Animated.View
-                  key={stat.label}
-                  entering={FadeInRight.delay(index * 100)}
-                  style={[styles.statCard, { backgroundColor: colors.card }]}
-                >
-                  <View
-                    style={[
-                      styles.statIconContainer,
-                      { backgroundColor: stat.color + "15" },
-                    ]}
-                  >
-                    <MaterialIcons
-                      name={stat.icon as any}
-                      size={20}
-                      color={stat.color}
-                    />
-                  </View>
-                  <View>
-                    <ThemedText style={styles.statValue}>
-                      {stat.value}
-                    </ThemedText>
-                    <ThemedText style={styles.statLabel}>
-                      {stat.label}
-                    </ThemedText>
-                  </View>
-                </Animated.View>
-              ))}
+              {displayStats.map(renderStatCard)}
             </ScrollView>
 
             {/* Filter Chips */}
@@ -474,7 +622,7 @@ export const TotalLeadsModal: React.FC<TotalLeadsModalProps> = ({
               style={styles.filterContainer}
               contentContainerStyle={styles.filterContent}
             >
-              {statusFilters.map((filter, index) => (
+              {statusFilters.map((filter) => (
                 <TouchableOpacity
                   key={filter.id}
                   style={[
@@ -486,11 +634,19 @@ export const TotalLeadsModal: React.FC<TotalLeadsModalProps> = ({
                           : colors.card,
                       borderColor: colors.border,
                     },
+                    Platform.select({
+                      ios: {
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowOpacity: 0.05,
+                        shadowRadius: 2,
+                      },
+                      android: {
+                        elevation: selectedStatus === filter.id ? 2 : 1,
+                      },
+                    }),
                   ]}
-                  onPress={() => {
-                    setSelectedStatus(filter.id);
-                    setCurrentPage(1);
-                  }}
+                  onPress={() => handleFilterChange(filter.id)}
                 >
                   <MaterialIcons
                     name={filter.icon as any}
@@ -520,7 +676,9 @@ export const TotalLeadsModal: React.FC<TotalLeadsModalProps> = ({
           {loading && leads.length === 0 ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={colors.primary} />
-              <ThemedText style={styles.loadingText}>
+              <ThemedText
+                style={[styles.loadingText, { color: colors.textSecondary }]}
+              >
                 Loading leads...
               </ThemedText>
             </View>
@@ -528,53 +686,25 @@ export const TotalLeadsModal: React.FC<TotalLeadsModalProps> = ({
             <FlatList
               data={leads}
               renderItem={renderLeadItem}
-              keyExtractor={(item) => item._id}
+              keyExtractor={keyExtractor}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshing}
                   onRefresh={handleRefresh}
                   colors={[colors.primary]}
                   tintColor={colors.primary}
+                  progressViewOffset={Platform.OS === "android" ? 0 : 20}
                 />
               }
               onEndReached={handleLoadMore}
               onEndReachedThreshold={0.3}
-              ListFooterComponent={
-                loading && leads.length > 0 ? (
-                  <View style={styles.footerLoader}>
-                    <ActivityIndicator size="small" color={colors.primary} />
-                    <ThemedText style={styles.footerText}>
-                      Loading more leads...
-                    </ThemedText>
-                  </View>
-                ) : null
-              }
-              ListEmptyComponent={
-                <View style={styles.emptyContainer}>
-                  <View
-                    style={[
-                      styles.emptyIconContainer,
-                      { backgroundColor: colors.card },
-                    ]}
-                  >
-                    <MaterialIcons
-                      name="people-outline"
-                      size={48}
-                      color={colors.textSecondary}
-                    />
-                  </View>
-                  <ThemedText style={styles.emptyTitle}>
-                    No leads found
-                  </ThemedText>
-                  <ThemedText style={styles.emptySubtitle}>
-                    {selectedStatus === "all"
-                      ? "No leads available at the moment"
-                      : `No leads with ${selectedStatus.replace("_", " ")} status`}
-                  </ThemedText>
-                </View>
-              }
+              ListFooterComponent={ListFooterComponent}
+              ListEmptyComponent={ListEmptyComponent}
               contentContainerStyle={styles.listContent}
               showsVerticalScrollIndicator={false}
+              removeClippedSubviews={Platform.OS === "android"}
+              maxToRenderPerBatch={10}
+              windowSize={5}
             />
           )}
         </View>
@@ -619,6 +749,15 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: "700",
+    ...Platform.select({
+      ios: {
+        lineHeight: 24,
+      },
+      android: {
+        lineHeight: 24,
+        includeFontPadding: false,
+      },
+    }),
   },
   statsContainer: {
     maxHeight: 100,
@@ -633,31 +772,27 @@ const styles = StyleSheet.create({
   statCard: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
+    padding: 16,
     borderRadius: 16,
-    gap: 12,
-    minWidth: 120,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    gap: 16,
+    minWidth: 150,
   },
   statIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
   statValue: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: "700",
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 13,
     opacity: 0.7,
   },
+
   filterContainer: {
     maxHeight: 50,
   },
@@ -677,6 +812,15 @@ const styles = StyleSheet.create({
   filterText: {
     fontSize: 14,
     fontWeight: "500",
+    ...Platform.select({
+      ios: {
+        lineHeight: 18,
+      },
+      android: {
+        lineHeight: 18,
+        includeFontPadding: false,
+      },
+    }),
   },
   loadingContainer: {
     flex: 1,
@@ -731,6 +875,15 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 18,
     fontWeight: "600",
+    ...Platform.select({
+      ios: {
+        lineHeight: 22,
+      },
+      android: {
+        lineHeight: 22,
+        includeFontPadding: false,
+      },
+    }),
   },
   nameEmailContainer: {
     flex: 1,
@@ -739,10 +892,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 2,
+    ...Platform.select({
+      ios: {
+        lineHeight: 20,
+      },
+      android: {
+        lineHeight: 20,
+        includeFontPadding: false,
+      },
+    }),
   },
   leadEmail: {
     fontSize: 13,
     opacity: 0.6,
+    ...Platform.select({
+      ios: {
+        lineHeight: 16,
+      },
+      android: {
+        lineHeight: 16,
+        includeFontPadding: false,
+      },
+    }),
   },
   statusBadge: {
     flexDirection: "row",
@@ -756,6 +927,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
     textTransform: "capitalize",
+    ...Platform.select({
+      ios: {
+        lineHeight: 16,
+      },
+      android: {
+        lineHeight: 16,
+        includeFontPadding: false,
+      },
+    }),
   },
   leadDetails: {
     marginBottom: 12,
@@ -770,6 +950,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     opacity: 0.7,
     flex: 1,
+    ...Platform.select({
+      ios: {
+        lineHeight: 18,
+      },
+      android: {
+        lineHeight: 18,
+        includeFontPadding: false,
+      },
+    }),
   },
   priorityContainer: {
     flexDirection: "row",
@@ -787,6 +976,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
     textTransform: "capitalize",
+    ...Platform.select({
+      ios: {
+        lineHeight: 16,
+      },
+      android: {
+        lineHeight: 16,
+        includeFontPadding: false,
+      },
+    }),
   },
   emptyContainer: {
     alignItems: "center",
@@ -805,11 +1003,29 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     marginBottom: 8,
+    ...Platform.select({
+      ios: {
+        lineHeight: 22,
+      },
+      android: {
+        lineHeight: 22,
+        includeFontPadding: false,
+      },
+    }),
   },
   emptySubtitle: {
     fontSize: 14,
     opacity: 0.6,
     textAlign: "center",
+    ...Platform.select({
+      ios: {
+        lineHeight: 18,
+      },
+      android: {
+        lineHeight: 18,
+        includeFontPadding: false,
+      },
+    }),
   },
   footerLoader: {
     paddingVertical: 20,
@@ -819,6 +1035,15 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 12,
     opacity: 0.5,
+    ...Platform.select({
+      ios: {
+        lineHeight: 16,
+      },
+      android: {
+        lineHeight: 16,
+        includeFontPadding: false,
+      },
+    }),
   },
 });
 

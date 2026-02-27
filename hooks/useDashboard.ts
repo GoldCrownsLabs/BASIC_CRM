@@ -4,8 +4,23 @@ import leadsApi, { LeadStats, LeadsResponse, Lead } from "@/lib/api/leads.api";
 import {
   getGreeting,
   calculateConversionRate,
-  formatCurrency,
+  // formatCurrency,  // ❌ Yahan se import mat karo
 } from "@/utils/dashboard.utils";
+
+// 👇 APNA FORMATTER YAHI BANAO
+const formatIndianCurrency = (amount: number) => {
+  if (!amount) return "₹0";
+
+  // Indian number formatting with Rupee symbol
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0, // Decimal points hatane ke liye
+  }).format(amount);
+
+  // Ya agar simple formatting chahiye:
+  // return `₹${amount.toLocaleString('en-IN')}`;
+};
 
 export const useDashboard = () => {
   const [greeting, setGreeting] = useState("");
@@ -92,6 +107,6 @@ export const useDashboard = () => {
     onRefresh,
     fetchData,
     calculateConversionRate: () => calculateConversionRate(leadStats),
-    formatCurrency,
+    formatCurrency: formatIndianCurrency, // 👈 YAHAN CHANGE KIA - ab ₹ dega
   };
 };

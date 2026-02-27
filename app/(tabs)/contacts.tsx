@@ -5,6 +5,7 @@ import {
   View,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useContacts } from "@/hooks/useContacts";
@@ -83,7 +84,7 @@ export default function ContactsScreen() {
               tintColor={colors.primary}
               colors={[colors.primary]}
               style={{ backgroundColor: colors.background }}
-              progressViewOffset={20} 
+              progressViewOffset={20}
             />
           }
           onScroll={({ nativeEvent }) => {
@@ -99,19 +100,19 @@ export default function ContactsScreen() {
           }}
           scrollEventThrottle={400}
         >
-          {/* Header */}
+          {/* Header - WITHOUT search props */}
           <ContactsHeader
-            searchQuery={searchQuery}
-            onSearchChange={handleSearch}
             selectedFilter={selectedFilter}
             onFilterChange={handleFilter}
             selectedSort={selectedSort}
             onSortChange={handleSort}
             filters={filters}
-            sortOptions={sortOptions}
+            // 👆 Sirf ye 4 props bhejein, searchQuery/handleSearch/sortOptions nahi
           />
+
           {/* Stats Summary */}
           <StatsSummary stats={contactStats} />
+
           {/* Contacts List */}
           <ContactsList
             loading={loading}
@@ -125,6 +126,7 @@ export default function ContactsScreen() {
             onDeleteContact={handleDeleteContact}
             onAddContact={() => setAddContactModalVisible(true)}
           />
+
           {/* Bottom Spacer */}
           <View style={{ height: 80 }} />
         </ScrollView>
@@ -137,7 +139,21 @@ export default function ContactsScreen() {
       <AddContactModal
         visible={addContactModalVisible}
         onClose={() => setAddContactModalVisible(false)}
-        onContactAdded={() => handleContactAdded(loadContacts)}
+        onContactAdded={async () => {
+          try {
+            await loadContacts();
+            await loadStats();
+            setAddContactModalVisible(false);
+            Alert.alert("Success", "Contact added successfully!");
+          } catch (error) {
+            console.error("Error refreshing after contact add:", error);
+            Alert.alert(
+              "Warning",
+              "Contact was added but failed to refresh the list. Please pull down to refresh.",
+            );
+            setAddContactModalVisible(false);
+          }
+        }}
       />
 
       {/* Contact Detail Modal */}

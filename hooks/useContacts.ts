@@ -117,6 +117,7 @@ export const useContacts = () => {
 
   const loadStats = async () => {
     try {
+      // Get total contacts stats
       const statsResponse = await contactAPI.getContactStats();
 
       if ("success" in statsResponse && !statsResponse.success) {
@@ -127,29 +128,137 @@ export const useContacts = () => {
       const stats = statsResponse as contactAPI.StatsResponse;
       const statsData = stats.data;
 
+      // Get tag statistics
       const tagStatsResponse = await contactAPI.getTagStats();
       let vipCount = 0;
       let hotLeadCount = 0;
 
       if ("success" in tagStatsResponse && tagStatsResponse.success) {
         const tagStats = tagStatsResponse as contactAPI.TagStatsResponse;
-        vipCount = tagStats.data.find((tag) => tag.tag === "VIP")?.count || 0;
-        hotLeadCount =
-          tagStats.data.find(
-            (tag) =>
-              tag.tag.toLowerCase().includes("hot") ||
-              tag.tag.toLowerCase().includes("lead"),
-          )?.count || 0;
+
+        // Debug: Log raw tag data
+        console.log("🔍 RAW TAG DATA FROM API:");
+        tagStats.data.forEach((tag) => {
+          console.log(
+            `  Tag: "${tag.tag}" (${typeof tag.tag}), Count: ${tag.count}`,
+          );
+        });
+
+        // Check for VIP tag - exact match first
+        const exactVipTag = tagStats.data.find(
+          (tag) => tag.tag.toLowerCase().trim() === "vip",
+        );
+
+        if (exactVipTag) {
+          vipCount = exactVipTag.count;
+          console.log(
+            `✅ Found exact VIP tag: "${exactVipTag.tag}" with count: ${exactVipTag.count}`,
+          );
+        } else {
+          // Try to find any tag containing "vip"
+          const vipLikeTags = tagStats.data.filter((tag) =>
+            tag.tag.toLowerCase().includes("vip"),
+          );
+          if (vipLikeTags.length > 0) {
+            vipCount = vipLikeTags.reduce((total, tag) => total + tag.count, 0);
+            console.log(
+              `⚠️ Found VIP-like tags:`,
+              vipLikeTags.map((t) => t.tag),
+            );
+          } else {
+            console.log("❌ No VIP tag found");
+          }
+        }
+
+        // Check for Hot Lead tag - try different variations
+        const exactHotLeadTag = tagStats.data.find((tag) => {
+          const tagLower = tag.tag.toLowerCase().trim();
+          return (
+            tagLower === "hot lead" ||
+            tagLower === "hot" ||
+            tagLower === "lead" ||
+            tagLower === "hotlead" ||
+            tagLower === "hot_lead" ||
+            tagLower === "hot-lead"
+          );
+        });
+
+        if (exactHotLeadTag) {
+          hotLeadCount = exactHotLeadTag.count;
+          console.log(
+            `✅ Found exact Hot Lead tag: "${exactHotLeadTag.tag}" with count: ${exactHotLeadTag.count}`,
+          );
+        } else {
+          // Try to find any tags containing "hot" or "lead"
+          const hotLikeTags = tagStats.data.filter((tag) => {
+            const tagLower = tag.tag.toLowerCase();
+            return tagLower.includes("hot") || tagLower.includes("lead");
+          });
+
+          if (hotLikeTags.length > 0) {
+            // For Hot Lead, we want to count contacts that have EITHER "hot" OR "lead" tags
+            // But avoid double-counting if a contact has both tags
+            hotLeadCount = hotLikeTags.reduce(
+              (total, tag) => total + tag.count,
+              0,
+            );
+            console.log(
+              `⚠️ Found Hot/Lead-like tags:`,
+              hotLikeTags.map((t) => `${t.tag} (${t.count})`),
+            );
+          } else {
+            console.log("❌ No Hot Lead tag found");
+          }
+        }
+
+        // Alternative: Calculate from actual contacts if tag stats don't work
+        if (vipCount === 0 || hotLeadCount === 0) {
+          console.log("📊 Calculating stats from contacts array...");
+
+          // Get fresh contacts for accurate calculation
+          const contactsResponse = await contactAPI.getContacts({
+            limit: 100,
+            page: 1,
+          });
+
+          if ("success" in contactsResponse && contactsResponse.success) {
+            const allContacts =
+              (contactsResponse as contactAPI.ContactsResponse).data || [];
+
+            if (vipCount === 0) {
+              vipCount = allContacts.filter((contact) =>
+                contact.tags?.some((tag) => tag.toLowerCase().includes("vip")),
+              ).length;
+              console.log(`✅ Calculated VIP from contacts: ${vipCount}`);
+            }
+
+            if (hotLeadCount === 0) {
+              hotLeadCount = allContacts.filter((contact) =>
+                contact.tags?.some(
+                  (tag) =>
+                    tag.toLowerCase().includes("hot") ||
+                    tag.toLowerCase().includes("lead"),
+                ),
+              ).length;
+              console.log(
+                `✅ Calculated Hot Leads from contacts: ${hotLeadCount}`,
+              );
+            }
+          }
+        }
       }
 
-      setContactStats({
+      const newStats = {
         total: statsData.total || 0,
         active: statsData.recentWeek || 0,
         vip: vipCount,
         hotLeads: hotLeadCount,
-      });
+      };
+
+      console.log("📊 FINAL STATS:", newStats);
+      setContactStats(newStats);
     } catch (error) {
-      console.error("Error loading stats:", error);
+      console.error("❌ Error loading stats:", error);
     }
   };
 
@@ -239,7 +348,7 @@ export const useContacts = () => {
           break;
         case "VIP":
           filtered = filtered.filter((contact) =>
-            contact.tags?.some((tag) => tag.toLowerCase() === "vip"),
+            contact.tags?.some((tag) => tag.toLowerCase().includes("vip")),
           );
           break;
         case "Hot Lead":

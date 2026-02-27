@@ -4,6 +4,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
+  Platform,
 } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -27,7 +28,15 @@ export const RecentLeads: React.FC<RecentLeadsProps> = ({
   getStageLabel,
   getMutedBackground,
 }) => {
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
+
+  // Helper function for consistent opacity
+  const hexToRgba = (hex: string, alpha: number) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
 
   const stageColors: Record<string, string> = {
     New: "#3b82f6",
@@ -58,12 +67,14 @@ export const RecentLeads: React.FC<RecentLeadsProps> = ({
         },
       ]}
     >
-      {/* Header */}
+      {/* Header - Using ThemedText without color override */}
       <View style={styles.header}>
-        <ThemedText style={styles.title}>Top Leads</ThemedText>
+        <ThemedText type="defaultSemiBold" style={[styles.title, { color: colors.text }]}>
+          Top Leads
+        </ThemedText>
         <Link href="/(tabs)/leads" asChild>
           <TouchableOpacity>
-            <ThemedText style={[styles.viewAll, { color: colors.primary }]}>
+            <ThemedText type="default" style={[styles.viewAll, { color: colors.primary }]}>
               View All
             </ThemedText>
           </TouchableOpacity>
@@ -73,9 +84,7 @@ export const RecentLeads: React.FC<RecentLeadsProps> = ({
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color={colors.primary} />
-          <ThemedText
-            style={[styles.loadingText, { color: colors.textSecondary }]}
-          >
+          <ThemedText type="default" style={[styles.loadingText, { color: colors.primary }]}>
             Loading leads...
           </ThemedText>
         </View>
@@ -97,23 +106,34 @@ export const RecentLeads: React.FC<RecentLeadsProps> = ({
                 activeOpacity={0.7}
               >
                 <View style={styles.leadContent}>
-                  {/* Avatar */}
+                  {/* Avatar - using rgba for consistent opacity */}
                   <View
                     style={[
                       styles.avatar,
-                      { backgroundColor: stageColor + "20" },
+                      {
+                        backgroundColor: hexToRgba(stageColor, 0.12),
+                      },
                     ]}
                   >
                     <ThemedText
-                      style={[styles.avatarText, { color: stageColor }]}
+                      style={[
+                        styles.avatarText,
+                        {
+                          color: stageColor,
+                        },
+                      ]}
                     >
                       {lead.firstName?.charAt(0)?.toUpperCase() || "L"}
                     </ThemedText>
                   </View>
 
-                  {/* Lead Info */}
+                  {/* Lead Info - Using ThemedText with appropriate types */}
                   <View style={styles.leadInfo}>
-                    <ThemedText style={styles.leadName} numberOfLines={1}>
+                    <ThemedText
+                      type="defaultSemiBold"
+                      style={[styles.leadName, { color: colors.text }]}
+                      numberOfLines={1}
+                    >
                       {lead.firstName} {lead.lastName || ""}
                     </ThemedText>
 
@@ -126,7 +146,8 @@ export const RecentLeads: React.FC<RecentLeadsProps> = ({
                             color={colors.textSecondary}
                           />
                           <ThemedText
-                            style={styles.detailText}
+                            type="default"
+                            style={[styles.detailText, { color: colors.textSecondary }]}
                             numberOfLines={1}
                           >
                             {lead.company}
@@ -142,7 +163,8 @@ export const RecentLeads: React.FC<RecentLeadsProps> = ({
                             color={colors.textSecondary}
                           />
                           <ThemedText
-                            style={styles.detailText}
+                            type="default"
+                            style={[styles.detailText, { color: colors.textSecondary }]}
                             numberOfLines={1}
                           >
                             {formatPhoneNumber(lead.phone)}
@@ -157,10 +179,11 @@ export const RecentLeads: React.FC<RecentLeadsProps> = ({
                     <View
                       style={[
                         styles.statusBadge,
-                        { backgroundColor: stageColor + "15" },
+                        { backgroundColor: hexToRgba(stageColor, 0.08) },
                       ]}
                     >
                       <ThemedText
+                        type="default"
                         style={[styles.statusText, { color: stageColor }]}
                       >
                         {stageLabel}
@@ -173,7 +196,10 @@ export const RecentLeads: React.FC<RecentLeadsProps> = ({
                         size={12}
                         color={colors.textSecondary}
                       />
-                      <ThemedText style={styles.budgetText}>
+                      <ThemedText
+                        type="defaultSemiBold"
+                        style={[styles.budgetText, { color: colors.textSecondary }]}
+                      >
                         {formatCurrency(lead.budget || 0)}
                       </ThemedText>
                     </View>
@@ -190,9 +216,7 @@ export const RecentLeads: React.FC<RecentLeadsProps> = ({
             size={40}
             color={colors.textSecondary}
           />
-          <ThemedText
-            style={[styles.emptyText, { color: colors.textSecondary }]}
-          >
+          <ThemedText type="default" style={styles.emptyText}>
             No leads found
           </ThemedText>
         </View>
@@ -221,11 +245,9 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: "600",
   },
   viewAll: {
     fontSize: 14,
-    fontWeight: "500",
   },
   loadingContainer: {
     alignItems: "center",
@@ -257,7 +279,7 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: Platform.select({ ios: "500", android: "600" }),
   },
   leadInfo: {
     flex: 1,
@@ -265,7 +287,6 @@ const styles = StyleSheet.create({
   },
   leadName: {
     fontSize: 14,
-    fontWeight: "600",
   },
   detailsRow: {
     gap: 4,
@@ -277,7 +298,6 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 12,
-    opacity: 0.7,
   },
   rightSection: {
     alignItems: "flex-end",
@@ -301,7 +321,6 @@ const styles = StyleSheet.create({
   },
   budgetText: {
     fontSize: 12,
-    fontWeight: "600",
   },
   emptyContainer: {
     alignItems: "center",

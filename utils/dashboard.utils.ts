@@ -5,13 +5,21 @@ export const getGreeting = (): string => {
   else return "Good Evening";
 };
 
+// ✅ FIXED: Rupee mein format karo
 export const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-IN", {
+    // Indian format
     style: "currency",
-    currency: "USD",
+    currency: "INR", // Indian Rupee
     minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   }).format(amount);
 };
+
+// Agar ₹ symbol nahi dikh raha toh yeh try karo:
+// export const formatCurrency = (amount: number): string => {
+//   return `₹${amount.toLocaleString('en-IN')}`;
+// };
 
 export const calculateConversionRate = (leadStats: any): string => {
   if (!leadStats || !leadStats.leadsByStatus) return "0.00";

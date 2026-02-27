@@ -10,6 +10,7 @@ import {
   Dimensions,
   FlatList,
   RefreshControl,
+  Platform,
 } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -189,11 +190,17 @@ export const HotLeadsModal: React.FC<HotLeadsModalProps> = ({
           styles.leadItem,
           {
             backgroundColor: isDark ? colors.card : "#ffffff",
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: isDark ? 0.3 : 0.1,
-            shadowRadius: 8,
-            elevation: 3,
+            ...Platform.select({
+              ios: {
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: isDark ? 0.3 : 0.1,
+                shadowRadius: 8,
+              },
+              android: {
+                elevation: 3,
+              },
+            }),
           },
         ]}
         activeOpacity={0.7}
@@ -221,10 +228,10 @@ export const HotLeadsModal: React.FC<HotLeadsModalProps> = ({
                 />
               </View>
               <View style={styles.nameEmailContainer}>
-                <ThemedText style={styles.leadName}>
+                <ThemedText style={[styles.leadName, { color: colors.text }]}>
                   {item.firstName} {item.lastName || ""}
                 </ThemedText>
-                <ThemedText style={styles.leadEmail} numberOfLines={1}>
+                <ThemedText style={[styles.leadEmail, { color: colors.textSecondary }]} numberOfLines={1}>
                   {item.email}
                 </ThemedText>
               </View>
@@ -260,7 +267,9 @@ export const HotLeadsModal: React.FC<HotLeadsModalProps> = ({
                 size={16}
                 color={colors.textSecondary}
               />
-              <ThemedText style={styles.detailText}>{item.company}</ThemedText>
+              <ThemedText style={[styles.detailText, { color: colors.textSecondary }]}>
+                {item.company}
+              </ThemedText>
             </View>
           )}
           <View style={styles.detailRow}>
@@ -269,7 +278,7 @@ export const HotLeadsModal: React.FC<HotLeadsModalProps> = ({
               size={16}
               color={colors.textSecondary}
             />
-            <ThemedText style={styles.detailText}>
+            <ThemedText style={[styles.detailText, { color: colors.textSecondary }]}>
               {formatDate(item.createdAt)}
             </ThemedText>
           </View>
@@ -280,7 +289,7 @@ export const HotLeadsModal: React.FC<HotLeadsModalProps> = ({
                 size={16}
                 color={colors.textSecondary}
               />
-              <ThemedText style={styles.detailText}>
+              <ThemedText style={[styles.detailText, { color: colors.textSecondary }]}>
                 ${item.budget.toLocaleString()}
               </ThemedText>
             </View>
@@ -337,21 +346,49 @@ export const HotLeadsModal: React.FC<HotLeadsModalProps> = ({
             <View style={styles.modalHeader}>
               <TouchableOpacity
                 onPress={onClose}
-                style={[styles.iconButton, { backgroundColor: colors.card }]}
+                style={[
+                  styles.iconButton,
+                  { backgroundColor: colors.card },
+                  Platform.select({
+                    ios: {
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 2,
+                    },
+                    android: {
+                      elevation: 2,
+                    },
+                  }),
+                ]}
               >
                 <MaterialIcons name="close" size={22} color={colors.text} />
               </TouchableOpacity>
 
               <View style={styles.headerTitleContainer}>
                 <MaterialIcons name="whatshot" size={24} color="#ef4444" />
-                <ThemedText type="subtitle" style={styles.modalTitle}>
+                <ThemedText type="subtitle" style={[styles.modalTitle, { color: colors.text }]}>
                   Hot Leads ({hotLeadsCount})
                 </ThemedText>
               </View>
 
               <TouchableOpacity
                 onPress={handleRefresh}
-                style={[styles.iconButton, { backgroundColor: colors.card }]}
+                style={[
+                  styles.iconButton,
+                  { backgroundColor: colors.card },
+                  Platform.select({
+                    ios: {
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 2,
+                    },
+                    android: {
+                      elevation: 2,
+                    },
+                  }),
+                ]}
               >
                 <MaterialIcons
                   name="refresh"
@@ -406,7 +443,21 @@ export const HotLeadsModal: React.FC<HotLeadsModalProps> = ({
                 <Animated.View
                   key={stat.label}
                   entering={FadeInRight.delay(index * 100)}
-                  style={[styles.statCard, { backgroundColor: colors.card }]}
+                  style={[
+                    styles.statCard,
+                    { backgroundColor: colors.card },
+                    Platform.select({
+                      ios: {
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.1,
+                        shadowRadius: 4,
+                      },
+                      android: {
+                        elevation: 2,
+                      },
+                    }),
+                  ]}
                 >
                   <View
                     style={[
@@ -421,10 +472,10 @@ export const HotLeadsModal: React.FC<HotLeadsModalProps> = ({
                     />
                   </View>
                   <View>
-                    <ThemedText style={styles.statValue}>
+                    <ThemedText style={[styles.statValue, { color: colors.text }]}>
                       {stat.value}
                     </ThemedText>
-                    <ThemedText style={styles.statLabel}>
+                    <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
                       {stat.label}
                     </ThemedText>
                   </View>
@@ -451,6 +502,17 @@ export const HotLeadsModal: React.FC<HotLeadsModalProps> = ({
                           : colors.card,
                       borderColor: colors.border,
                     },
+                    Platform.select({
+                      ios: {
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowOpacity: 0.05,
+                        shadowRadius: 2,
+                      },
+                      android: {
+                        elevation: selectedStatus === filter.id ? 2 : 1,
+                      },
+                    }),
                   ]}
                   onPress={() => setSelectedStatus(filter.id)}
                 >
@@ -482,7 +544,7 @@ export const HotLeadsModal: React.FC<HotLeadsModalProps> = ({
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#ef4444" />
-              <ThemedText style={styles.loadingText}>
+              <ThemedText style={[styles.loadingText, { color: colors.textSecondary }]}>
                 Loading hot leads...
               </ThemedText>
             </View>
@@ -497,14 +559,29 @@ export const HotLeadsModal: React.FC<HotLeadsModalProps> = ({
                   onRefresh={handleRefresh}
                   colors={["#ef4444"]}
                   tintColor="#ef4444"
+                  progressViewOffset={Platform.OS === "android" ? 0 : 20}
                 />
               }
               ListHeaderComponent={
                 chartData.length > 0 ? (
                   <View
-                    style={[styles.chartCard, { backgroundColor: colors.card }]}
+                    style={[
+                      styles.chartCard,
+                      { backgroundColor: colors.card },
+                      Platform.select({
+                        ios: {
+                          shadowColor: "#000",
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.1,
+                          shadowRadius: 4,
+                        },
+                        android: {
+                          elevation: 2,
+                        },
+                      }),
+                    ]}
                   >
-                    <ThemedText style={styles.chartTitle}>
+                    <ThemedText style={[styles.chartTitle, { color: colors.text }]}>
                       Hot Leads by Status
                     </ThemedText>
                     <PieChart
@@ -541,10 +618,10 @@ export const HotLeadsModal: React.FC<HotLeadsModalProps> = ({
                       color={colors.textSecondary}
                     />
                   </View>
-                  <ThemedText style={styles.emptyTitle}>
+                  <ThemedText style={[styles.emptyTitle, { color: colors.text }]}>
                     No hot leads found
                   </ThemedText>
-                  <ThemedText style={styles.emptySubtitle}>
+                  <ThemedText style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
                     {selectedStatus === "all"
                       ? "No high priority leads available"
                       : `No hot leads with ${selectedStatus} status`}
@@ -553,6 +630,9 @@ export const HotLeadsModal: React.FC<HotLeadsModalProps> = ({
               }
               contentContainerStyle={styles.listContent}
               showsVerticalScrollIndicator={false}
+              removeClippedSubviews={Platform.OS === "android"}
+              maxToRenderPerBatch={10}
+              windowSize={5}
             />
           )}
         </View>
@@ -633,14 +713,28 @@ export const ConversionRateModal: React.FC<ConversionRateModalProps> = ({
             <View style={styles.modalHeader}>
               <TouchableOpacity
                 onPress={onClose}
-                style={[styles.iconButton, { backgroundColor: colors.card }]}
+                style={[
+                  styles.iconButton,
+                  { backgroundColor: colors.card },
+                  Platform.select({
+                    ios: {
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 2,
+                    },
+                    android: {
+                      elevation: 2,
+                    },
+                  }),
+                ]}
               >
                 <MaterialIcons name="close" size={22} color={colors.text} />
               </TouchableOpacity>
 
               <View style={styles.headerTitleContainer}>
                 <MaterialIcons name="trending-up" size={24} color="#10b981" />
-                <ThemedText type="subtitle" style={styles.modalTitle}>
+                <ThemedText type="subtitle" style={[styles.modalTitle, { color: colors.text }]}>
                   Conversion Analysis
                 </ThemedText>
               </View>
@@ -652,6 +746,7 @@ export const ConversionRateModal: React.FC<ConversionRateModalProps> = ({
           <ScrollView
             style={styles.content}
             showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.contentContainer}
           >
             <Animated.View entering={FadeInDown.delay(100)}>
               <LinearGradient
@@ -661,6 +756,17 @@ export const ConversionRateModal: React.FC<ConversionRateModalProps> = ({
                 style={[
                   styles.conversionCard,
                   { backgroundColor: colors.card },
+                  Platform.select({
+                    ios: {
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 4,
+                    },
+                    android: {
+                      elevation: 2,
+                    },
+                  }),
                 ]}
               >
                 <View style={styles.conversionHeader}>
@@ -680,7 +786,7 @@ export const ConversionRateModal: React.FC<ConversionRateModalProps> = ({
                     {conversionRate}%
                   </ThemedText>
                 </View>
-                <ThemedText style={styles.conversionSubtext}>
+                <ThemedText style={[styles.conversionSubtext, { color: colors.textSecondary }]}>
                   Overall Conversion Rate
                 </ThemedText>
               </LinearGradient>
@@ -710,7 +816,21 @@ export const ConversionRateModal: React.FC<ConversionRateModalProps> = ({
                 <Animated.View
                   key={stat.label}
                   entering={FadeInDown.delay(200 + index * 100)}
-                  style={[styles.statBox, { backgroundColor: colors.card }]}
+                  style={[
+                    styles.statBox,
+                    { backgroundColor: colors.card },
+                    Platform.select({
+                      ios: {
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.1,
+                        shadowRadius: 4,
+                      },
+                      android: {
+                        elevation: 2,
+                      },
+                    }),
+                  ]}
                 >
                   <View
                     style={[
@@ -727,7 +847,9 @@ export const ConversionRateModal: React.FC<ConversionRateModalProps> = ({
                   <ThemedText style={[styles.statValue, { color: stat.color }]}>
                     {stat.value}
                   </ThemedText>
-                  <ThemedText style={styles.statLabel}>{stat.label}</ThemedText>
+                  <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
+                    {stat.label}
+                  </ThemedText>
                 </Animated.View>
               ))}
             </View>
@@ -735,9 +857,23 @@ export const ConversionRateModal: React.FC<ConversionRateModalProps> = ({
             {statusData.length > 0 && (
               <Animated.View
                 entering={FadeInDown.delay(300)}
-                style={[styles.chartCard, { backgroundColor: colors.card }]}
+                style={[
+                  styles.chartCard,
+                  { backgroundColor: colors.card },
+                  Platform.select({
+                    ios: {
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 4,
+                    },
+                    android: {
+                      elevation: 2,
+                    },
+                  }),
+                ]}
               >
-                <ThemedText style={styles.chartTitle}>
+                <ThemedText style={[styles.chartTitle, { color: colors.text }]}>
                   Lead Status Distribution
                 </ThemedText>
                 <PieChart
@@ -872,21 +1008,49 @@ export const PipelineValueModal: React.FC<PipelineValueModalProps> = ({
             <View style={styles.modalHeader}>
               <TouchableOpacity
                 onPress={onClose}
-                style={[styles.iconButton, { backgroundColor: colors.card }]}
+                style={[
+                  styles.iconButton,
+                  { backgroundColor: colors.card },
+                  Platform.select({
+                    ios: {
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 2,
+                    },
+                    android: {
+                      elevation: 2,
+                    },
+                  }),
+                ]}
               >
                 <MaterialIcons name="close" size={22} color={colors.text} />
               </TouchableOpacity>
 
               <View style={styles.headerTitleContainer}>
                 <MaterialIcons name="attach-money" size={24} color="#10b981" />
-                <ThemedText type="subtitle" style={styles.modalTitle}>
+                <ThemedText type="subtitle" style={[styles.modalTitle, { color: colors.text }]}>
                   Pipeline Value
                 </ThemedText>
               </View>
 
               <TouchableOpacity
                 onPress={fetchPipelineData}
-                style={[styles.iconButton, { backgroundColor: colors.card }]}
+                style={[
+                  styles.iconButton,
+                  { backgroundColor: colors.card },
+                  Platform.select({
+                    ios: {
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 2,
+                    },
+                    android: {
+                      elevation: 2,
+                    },
+                  }),
+                ]}
               >
                 <MaterialIcons
                   name="refresh"
@@ -900,15 +1064,30 @@ export const PipelineValueModal: React.FC<PipelineValueModalProps> = ({
           <ScrollView
             style={styles.content}
             showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.contentContainer}
           >
             <Animated.View entering={FadeInDown.delay(100)}>
               <LinearGradient
                 colors={["#10b98120", "transparent"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={[styles.valueCard, { backgroundColor: colors.card }]}
+                style={[
+                  styles.valueCard,
+                  { backgroundColor: colors.card },
+                  Platform.select({
+                    ios: {
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 4,
+                    },
+                    android: {
+                      elevation: 2,
+                    },
+                  }),
+                ]}
               >
-                <ThemedText style={styles.totalValueLabel}>
+                <ThemedText style={[styles.totalValueLabel, { color: colors.textSecondary }]}>
                   Total Pipeline Value
                 </ThemedText>
                 <ThemedText style={styles.totalValue}>
@@ -920,7 +1099,7 @@ export const PipelineValueModal: React.FC<PipelineValueModalProps> = ({
             {loading ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#10b981" />
-                <ThemedText style={styles.loadingText}>
+                <ThemedText style={[styles.loadingText, { color: colors.textSecondary }]}>
                   Loading pipeline data...
                 </ThemedText>
               </View>
@@ -929,9 +1108,23 @@ export const PipelineValueModal: React.FC<PipelineValueModalProps> = ({
                 {chartData.length > 0 && (
                   <Animated.View
                     entering={FadeInDown.delay(200)}
-                    style={[styles.chartCard, { backgroundColor: colors.card }]}
+                    style={[
+                      styles.chartCard,
+                      { backgroundColor: colors.card },
+                      Platform.select({
+                        ios: {
+                          shadowColor: "#000",
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.1,
+                          shadowRadius: 4,
+                        },
+                        android: {
+                          elevation: 2,
+                        },
+                      }),
+                    ]}
                   >
-                    <ThemedText style={styles.chartTitle}>
+                    <ThemedText style={[styles.chartTitle, { color: colors.text }]}>
                       Value by Stage
                     </ThemedText>
                     <PieChart
@@ -965,6 +1158,17 @@ export const PipelineValueModal: React.FC<PipelineValueModalProps> = ({
                           style={[
                             styles.stageItem,
                             { backgroundColor: colors.card },
+                            Platform.select({
+                              ios: {
+                                shadowColor: "#000",
+                                shadowOffset: { width: 0, height: 2 },
+                                shadowOpacity: 0.1,
+                                shadowRadius: 4,
+                              },
+                              android: {
+                                elevation: 2,
+                              },
+                            }),
                           ]}
                           activeOpacity={0.7}
                         >
@@ -976,10 +1180,10 @@ export const PipelineValueModal: React.FC<PipelineValueModalProps> = ({
                               ]}
                             />
                             <View>
-                              <ThemedText style={styles.stageName}>
+                              <ThemedText style={[styles.stageName, { color: colors.text }]}>
                                 {stage.stage}
                               </ThemedText>
-                              <ThemedText style={styles.stageCount}>
+                              <ThemedText style={[styles.stageCount, { color: colors.textSecondary }]}>
                                 {stage.count} leads
                               </ThemedText>
                             </View>
@@ -1004,10 +1208,10 @@ export const PipelineValueModal: React.FC<PipelineValueModalProps> = ({
                           color={colors.textSecondary}
                         />
                       </View>
-                      <ThemedText style={styles.emptyTitle}>
+                      <ThemedText style={[styles.emptyTitle, { color: colors.text }]}>
                         No pipeline data
                       </ThemedText>
-                      <ThemedText style={styles.emptySubtitle}>
+                      <ThemedText style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
                         Add budgets to leads to see pipeline value
                       </ThemedText>
                     </View>
@@ -1058,10 +1262,21 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: "700",
+    ...Platform.select({
+      ios: {
+        lineHeight: 24,
+      },
+      android: {
+        lineHeight: 24,
+        includeFontPadding: false,
+      },
+    }),
   },
   statsContainer: {
     maxHeight: 100,
     marginBottom: 16,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
   statsContent: {
     paddingHorizontal: 20,
@@ -1074,11 +1289,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     gap: 12,
     minWidth: 120,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
     marginTop: 2,
     marginBottom: 6,
   },
@@ -1100,10 +1310,28 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: "700",
+    ...Platform.select({
+      ios: {
+        lineHeight: 22,
+      },
+      android: {
+        lineHeight: 22,
+        includeFontPadding: false,
+      },
+    }),
   },
   statLabel: {
     fontSize: 12,
     opacity: 0.7,
+    ...Platform.select({
+      ios: {
+        lineHeight: 16,
+      },
+      android: {
+        lineHeight: 16,
+        includeFontPadding: false,
+      },
+    }),
   },
   filterContainer: {
     maxHeight: 50,
@@ -1124,14 +1352,24 @@ const styles = StyleSheet.create({
   filterText: {
     fontSize: 14,
     fontWeight: "500",
+    ...Platform.select({
+      ios: {
+        lineHeight: 18,
+      },
+      android: {
+        lineHeight: 18,
+        includeFontPadding: false,
+      },
+    }),
   },
   content: {
     flex: 1,
+  },
+  contentContainer: {
     padding: 20,
-   
+    paddingBottom: 30,
   },
   loadingContainer: {
-    flex: 1,
     justifyContent: "center",
     alignItems: "center",
     gap: 12,
@@ -1140,6 +1378,15 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 14,
     opacity: 0.7,
+    ...Platform.select({
+      ios: {
+        lineHeight: 18,
+      },
+      android: {
+        lineHeight: 18,
+        includeFontPadding: false,
+      },
+    }),
   },
   listContent: {
     paddingHorizontal: 20,
@@ -1188,10 +1435,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 2,
+    ...Platform.select({
+      ios: {
+        lineHeight: 20,
+      },
+      android: {
+        lineHeight: 20,
+        includeFontPadding: false,
+      },
+    }),
   },
   leadEmail: {
     fontSize: 13,
     opacity: 0.6,
+    ...Platform.select({
+      ios: {
+        lineHeight: 16,
+      },
+      android: {
+        lineHeight: 16,
+        includeFontPadding: false,
+      },
+    }),
   },
   statusBadge: {
     flexDirection: "row",
@@ -1205,6 +1470,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
     textTransform: "capitalize",
+    ...Platform.select({
+      ios: {
+        lineHeight: 16,
+      },
+      android: {
+        lineHeight: 16,
+        includeFontPadding: false,
+      },
+    }),
   },
   leadDetails: {
     marginBottom: 12,
@@ -1219,6 +1493,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     opacity: 0.7,
     flex: 1,
+    ...Platform.select({
+      ios: {
+        lineHeight: 18,
+      },
+      android: {
+        lineHeight: 18,
+        includeFontPadding: false,
+      },
+    }),
   },
   priorityContainer: {
     flexDirection: "row",
@@ -1236,22 +1519,35 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
     textTransform: "capitalize",
+    ...Platform.select({
+      ios: {
+        lineHeight: 16,
+      },
+      android: {
+        lineHeight: 16,
+        includeFontPadding: false,
+      },
+    }),
   },
   chartCard: {
     padding: 16,
     borderRadius: 16,
     marginBottom: 20,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
   chartTitle: {
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 16,
+    ...Platform.select({
+      ios: {
+        lineHeight: 20,
+      },
+      android: {
+        lineHeight: 20,
+        includeFontPadding: false,
+      },
+    }),
   },
   conversionCard: {
     padding: 24,
@@ -1277,10 +1573,28 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     color: "#10b981",
+    ...Platform.select({
+      ios: {
+        lineHeight: 22,
+      },
+      android: {
+        lineHeight: 22,
+        includeFontPadding: false,
+      },
+    }),
   },
   conversionSubtext: {
     fontSize: 16,
     opacity: 0.7,
+    ...Platform.select({
+      ios: {
+        lineHeight: 20,
+      },
+      android: {
+        lineHeight: 20,
+        includeFontPadding: false,
+      },
+    }),
   },
   statsGrid: {
     flexDirection: "row",
@@ -1293,11 +1607,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
   valueCard: {
     padding: 24,
@@ -1310,11 +1619,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     opacity: 0.7,
     marginBottom: 8,
+    ...Platform.select({
+      ios: {
+        lineHeight: 18,
+      },
+      android: {
+        lineHeight: 18,
+        includeFontPadding: false,
+      },
+    }),
   },
   totalValue: {
     fontSize: 18,
     fontWeight: "bold",
     color: "#10b981",
+    ...Platform.select({
+      ios: {
+        lineHeight: 22,
+      },
+      android: {
+        lineHeight: 22,
+        includeFontPadding: false,
+      },
+    }),
   },
   stagesContainer: {
     gap: 12,
@@ -1325,11 +1652,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
   stageHeader: {
     flexDirection: "row",
@@ -1346,15 +1668,42 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textTransform: "capitalize",
     marginBottom: 2,
+    ...Platform.select({
+      ios: {
+        lineHeight: 20,
+      },
+      android: {
+        lineHeight: 20,
+        includeFontPadding: false,
+      },
+    }),
   },
   stageCount: {
     fontSize: 12,
     opacity: 0.6,
+    ...Platform.select({
+      ios: {
+        lineHeight: 16,
+      },
+      android: {
+        lineHeight: 16,
+        includeFontPadding: false,
+      },
+    }),
   },
   stageValue: {
     fontSize: 16,
     fontWeight: "600",
     color: "#10b981",
+    ...Platform.select({
+      ios: {
+        lineHeight: 20,
+      },
+      android: {
+        lineHeight: 20,
+        includeFontPadding: false,
+      },
+    }),
   },
   emptyContainer: {
     alignItems: "center",
@@ -1373,11 +1722,29 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     marginBottom: 8,
+    ...Platform.select({
+      ios: {
+        lineHeight: 22,
+      },
+      android: {
+        lineHeight: 22,
+        includeFontPadding: false,
+      },
+    }),
   },
   emptySubtitle: {
     fontSize: 14,
     opacity: 0.6,
     textAlign: "center",
+    ...Platform.select({
+      ios: {
+        lineHeight: 18,
+      },
+      android: {
+        lineHeight: 18,
+        includeFontPadding: false,
+      },
+    }),
   },
 });
 
