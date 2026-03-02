@@ -63,7 +63,7 @@ function AppContent() {
         <StatusBar
           style={statusBarStyle}
           backgroundColor={colors.background}
-          hidden={showSplash} // Hide status bar during splash
+          hidden={showSplash} 
         />
       </View>
     );
