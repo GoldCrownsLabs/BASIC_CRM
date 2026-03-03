@@ -16,17 +16,24 @@ export const useContacts = () => {
     active: 0,
     vip: 0,
     hotLeads: 0,
+    connected: 0, // 🔥 NEW: Connected contacts count
+    completed: 0, // 🔥 NEW: Completed deals count
+    totalRevenue: 0, // 🔥 NEW: Total revenue
+    conversionRate: 0, // 🔥 NEW: Conversion rate
   });
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [totalContacts, setTotalContacts] = useState(0);
 
+  // 🔥 NEW: Updated filters with pipeline stages
   const filters = [
     "All",
     "Favorites",
     "VIP",
     "Hot Lead",
+    "Connected", // 🔥 NEW
+    "Completed", // 🔥 NEW
     "Website",
     "Referral",
     "Social",
@@ -40,6 +47,8 @@ export const useContacts = () => {
     "Last Contact",
     "Company",
     "Recently Modified",
+    "Deal Value", // 🔥 NEW
+    "Lead Status", // 🔥 NEW
   ];
 
   // Load contacts on mount
@@ -70,10 +79,15 @@ export const useContacts = () => {
               : undefined,
       };
 
+      // 🔥 NEW: Handle pipeline filters
       if (selectedFilter === "VIP") {
         apiParams.tag = "VIP";
       } else if (selectedFilter === "Hot Lead") {
         apiParams.tag = "Hot Lead";
+      } else if (selectedFilter === "Connected") {
+        apiParams.connected = true; // Filter by connected status
+      } else if (selectedFilter === "Completed") {
+        apiParams.completed = true; // Filter by completed status
       }
 
       const response = await contactAPI.getContacts(apiParams);
@@ -115,152 +129,75 @@ export const useContacts = () => {
     }
   };
 
-  const loadStats = async () => {
-    try {
-      // Get total contacts stats
-      const statsResponse = await contactAPI.getContactStats();
+  // 🔥 NEW: Enhanced stats loading with new fields
+ const loadStats = async () => {
+   try {
+     // Get enhanced stats from new backend
+     const statsResponse = await contactAPI.getContactStats();
 
-      if ("success" in statsResponse && !statsResponse.success) {
-        console.error("Failed to load stats:", statsResponse.message);
-        return;
-      }
+     // 🔥 FIX: Check if response is valid without using 'message' property
+     if (!statsResponse || !statsResponse.success) {
+       console.error("Failed to load stats:", statsResponse);
+       return;
+     }
 
-      const stats = statsResponse as contactAPI.StatsResponse;
-      const statsData = stats.data;
+     const statsData = statsResponse.data;
 
-      // Get tag statistics
-      const tagStatsResponse = await contactAPI.getTagStats();
-      let vipCount = 0;
-      let hotLeadCount = 0;
+     // Get tag statistics for VIP and Hot Leads
+     const tagStatsResponse = await contactAPI.getTagStats();
+     let vipCount = 0;
+     let hotLeadCount = 0;
 
-      if ("success" in tagStatsResponse && tagStatsResponse.success) {
-        const tagStats = tagStatsResponse as contactAPI.TagStatsResponse;
+     if (tagStatsResponse && tagStatsResponse.success) {
+       const tagStats = tagStatsResponse;
 
-        // Debug: Log raw tag data
-        console.log("🔍 RAW TAG DATA FROM API:");
-        tagStats.data.forEach((tag) => {
-          console.log(
-            `  Tag: "${tag.tag}" (${typeof tag.tag}), Count: ${tag.count}`,
-          );
-        });
+       // VIP count
+       const exactVipTag = tagStats.data.find(
+         (tag) => tag.tag.toLowerCase().trim() === "vip",
+       );
+       vipCount = exactVipTag?.count || 0;
 
-        // Check for VIP tag - exact match first
-        const exactVipTag = tagStats.data.find(
-          (tag) => tag.tag.toLowerCase().trim() === "vip",
-        );
+       // Alternative: Check for any tag containing "vip"
+       if (vipCount === 0) {
+         const vipLikeTags = tagStats.data.filter((tag) =>
+           tag.tag.toLowerCase().includes("vip"),
+         );
+         vipCount = vipLikeTags.reduce((total, tag) => total + tag.count, 0);
+       }
 
-        if (exactVipTag) {
-          vipCount = exactVipTag.count;
-          console.log(
-            `✅ Found exact VIP tag: "${exactVipTag.tag}" with count: ${exactVipTag.count}`,
-          );
-        } else {
-          // Try to find any tag containing "vip"
-          const vipLikeTags = tagStats.data.filter((tag) =>
-            tag.tag.toLowerCase().includes("vip"),
-          );
-          if (vipLikeTags.length > 0) {
-            vipCount = vipLikeTags.reduce((total, tag) => total + tag.count, 0);
-            console.log(
-              `⚠️ Found VIP-like tags:`,
-              vipLikeTags.map((t) => t.tag),
-            );
-          } else {
-            console.log("❌ No VIP tag found");
-          }
-        }
+       // Hot Lead count - from leadStatus (better approach)
+       if (!hotLeadCount) {
+         // Get contacts with leadStatus = "hot"
+         const contactsResponse = await contactAPI.getContacts({
+           limit: 100,
+           page: 1,
+           leadStatus: "hot", // 🔥 NEW: Filter by lead status
+         });
 
-        // Check for Hot Lead tag - try different variations
-        const exactHotLeadTag = tagStats.data.find((tag) => {
-          const tagLower = tag.tag.toLowerCase().trim();
-          return (
-            tagLower === "hot lead" ||
-            tagLower === "hot" ||
-            tagLower === "lead" ||
-            tagLower === "hotlead" ||
-            tagLower === "hot_lead" ||
-            tagLower === "hot-lead"
-          );
-        });
+         if (contactsResponse && contactsResponse.success) {
+           hotLeadCount = contactsResponse.pagination?.total || 0;
+         }
+       }
+     }
 
-        if (exactHotLeadTag) {
-          hotLeadCount = exactHotLeadTag.count;
-          console.log(
-            `✅ Found exact Hot Lead tag: "${exactHotLeadTag.tag}" with count: ${exactHotLeadTag.count}`,
-          );
-        } else {
-          // Try to find any tags containing "hot" or "lead"
-          const hotLikeTags = tagStats.data.filter((tag) => {
-            const tagLower = tag.tag.toLowerCase();
-            return tagLower.includes("hot") || tagLower.includes("lead");
-          });
+     // 🔥 FIX: Safely access nested properties with optional chaining
+     const newStats = {
+       total: statsData?.overview?.total || 0,
+       active: statsData?.overview?.recentWeek || 0,
+       vip: vipCount,
+       hotLeads: hotLeadCount,
+       connected: statsData?.pipeline?.connected || 0,
+       completed: statsData?.pipeline?.completed || 0,
+       totalRevenue: statsData?.revenue?.total || 0,
+       conversionRate: statsData?.pipeline?.conversionRate || 0,
+     };
 
-          if (hotLikeTags.length > 0) {
-            // For Hot Lead, we want to count contacts that have EITHER "hot" OR "lead" tags
-            // But avoid double-counting if a contact has both tags
-            hotLeadCount = hotLikeTags.reduce(
-              (total, tag) => total + tag.count,
-              0,
-            );
-            console.log(
-              `⚠️ Found Hot/Lead-like tags:`,
-              hotLikeTags.map((t) => `${t.tag} (${t.count})`),
-            );
-          } else {
-            console.log("❌ No Hot Lead tag found");
-          }
-        }
-
-        // Alternative: Calculate from actual contacts if tag stats don't work
-        if (vipCount === 0 || hotLeadCount === 0) {
-          console.log("📊 Calculating stats from contacts array...");
-
-          // Get fresh contacts for accurate calculation
-          const contactsResponse = await contactAPI.getContacts({
-            limit: 100,
-            page: 1,
-          });
-
-          if ("success" in contactsResponse && contactsResponse.success) {
-            const allContacts =
-              (contactsResponse as contactAPI.ContactsResponse).data || [];
-
-            if (vipCount === 0) {
-              vipCount = allContacts.filter((contact) =>
-                contact.tags?.some((tag) => tag.toLowerCase().includes("vip")),
-              ).length;
-              console.log(`✅ Calculated VIP from contacts: ${vipCount}`);
-            }
-
-            if (hotLeadCount === 0) {
-              hotLeadCount = allContacts.filter((contact) =>
-                contact.tags?.some(
-                  (tag) =>
-                    tag.toLowerCase().includes("hot") ||
-                    tag.toLowerCase().includes("lead"),
-                ),
-              ).length;
-              console.log(
-                `✅ Calculated Hot Leads from contacts: ${hotLeadCount}`,
-              );
-            }
-          }
-        }
-      }
-
-      const newStats = {
-        total: statsData.total || 0,
-        active: statsData.recentWeek || 0,
-        vip: vipCount,
-        hotLeads: hotLeadCount,
-      };
-
-      console.log("📊 FINAL STATS:", newStats);
-      setContactStats(newStats);
-    } catch (error) {
-      console.error("❌ Error loading stats:", error);
-    }
-  };
+     console.log("📊 FINAL STATS:", newStats);
+     setContactStats(newStats);
+   } catch (error) {
+     console.error("❌ Error loading stats:", error);
+   }
+ };
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -292,6 +229,7 @@ export const useContacts = () => {
     applyLocalFilteringAndSorting(contacts, searchQuery, selectedFilter, sort);
   };
 
+  // 🔥 NEW: Enhanced sort param with new fields
   const getSortParam = (sort: string): string => {
     switch (sort) {
       case "A-Z":
@@ -304,6 +242,10 @@ export const useContacts = () => {
         return "company";
       case "Recently Modified":
         return "-lastModified";
+      case "Deal Value":
+        return "-dealValue"; // Sort by deal value (highest first)
+      case "Lead Status":
+        return "leadStatus"; // Sort by lead status
       default:
         return "-createdAt";
     }
@@ -313,6 +255,41 @@ export const useContacts = () => {
     return `${contact.firstName}${contact.lastName ? ` ${contact.lastName}` : ""}`;
   };
 
+  // 🔥 NEW: Get status color for UI
+  const getStatusColor = (status: string): string => {
+    const colors: Record<string, string> = {
+      cold: "#9e9e9e",
+      warm: "#ff9800",
+      hot: "#f44336",
+      connected: "#2196f3",
+      completed: "#4caf50",
+    };
+    return colors[status] || "#9e9e9e";
+  };
+
+  // 🔥 NEW: Get status icon
+  const getStatusIcon = (status: string): string => {
+    const icons: Record<string, string> = {
+      cold: "❄️",
+      warm: "🌤️",
+      hot: "🔥",
+      connected: "📞",
+      completed: "✅",
+    };
+    return icons[status] || "📌";
+  };
+
+  // 🔥 NEW: Format currency
+  const formatCurrency = (amount: number, currency: string = "INR"): string => {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount || 0);
+  };
+
+  // 🔥 NEW: Enhanced filtering with new fields
   const applyLocalFilteringAndSorting = (
     contactsList: contactAPI.Contact[],
     search: string,
@@ -321,6 +298,7 @@ export const useContacts = () => {
   ) => {
     let filtered = [...contactsList];
 
+    // Search filter
     if (search && search.trim()) {
       const searchLower = search.toLowerCase();
       filtered = filtered.filter((contact) => {
@@ -329,6 +307,9 @@ export const useContacts = () => {
         const company = contact.company?.toLowerCase() || "";
         const phone = contact.phone || "";
         const notes = contact.notes?.toLowerCase() || "";
+        const leadStatus = contact.leadStatus?.toLowerCase() || "";
+        const connectedNotes = contact.connectedNotes?.toLowerCase() || "";
+        const completedNotes = contact.completedNotes?.toLowerCase() || "";
 
         return (
           fullName.includes(searchLower) ||
@@ -336,11 +317,15 @@ export const useContacts = () => {
           company.includes(searchLower) ||
           phone.includes(searchLower) ||
           notes.includes(searchLower) ||
+          leadStatus.includes(searchLower) ||
+          connectedNotes.includes(searchLower) ||
+          completedNotes.includes(searchLower) ||
           contact.tags?.some((tag) => tag.toLowerCase().includes(searchLower))
         );
       });
     }
 
+    // 🔥 NEW: Enhanced filter logic with pipeline stages
     if (filter !== "All") {
       switch (filter) {
         case "Favorites":
@@ -352,13 +337,13 @@ export const useContacts = () => {
           );
           break;
         case "Hot Lead":
-          filtered = filtered.filter((contact) =>
-            contact.tags?.some(
-              (tag) =>
-                tag.toLowerCase().includes("hot") ||
-                tag.toLowerCase().includes("lead"),
-            ),
-          );
+          filtered = filtered.filter((contact) => contact.leadStatus === "hot");
+          break;
+        case "Connected":
+          filtered = filtered.filter((contact) => contact.connected === true);
+          break;
+        case "Completed":
+          filtered = filtered.filter((contact) => contact.completed === true);
           break;
         case "Website":
         case "Referral":
@@ -371,6 +356,7 @@ export const useContacts = () => {
       }
     }
 
+    // 🔥 NEW: Enhanced sorting with new fields
     filtered.sort((a, b) => {
       switch (sort) {
         case "A-Z":
@@ -397,7 +383,22 @@ export const useContacts = () => {
             b.lastModified || b.updatedAt || b.createdAt,
           ).getTime();
           return bModified - aModified;
-        default:
+        case "Deal Value":
+          const aValue = a.dealValue || 0;
+          const bValue = b.dealValue || 0;
+          return bValue - aValue; // Highest first
+        case "Lead Status":
+          const statusOrder: Record<string, number> = {
+            completed: 5,
+            connected: 4,
+            hot: 3,
+            warm: 2,
+            cold: 1,
+          };
+          const aOrder = statusOrder[a.leadStatus || "cold"] || 0;
+          const bOrder = statusOrder[b.leadStatus || "cold"] || 0;
+          return bOrder - aOrder;
+        default: // Recent
           const aCreated = new Date(a.createdAt).getTime();
           const bCreated = new Date(b.createdAt).getTime();
           return bCreated - aCreated;
@@ -410,6 +411,65 @@ export const useContacts = () => {
   const handleLoadMore = () => {
     if (!loading && hasMore && filteredContacts.length > 0) {
       loadContacts(page + 1);
+    }
+  };
+
+  // 🔥 NEW: Mark contact as connected
+  const markAsConnected = async (contactId: string, notes?: string) => {
+    try {
+      const response = await contactAPI.markAsConnected(contactId, notes);
+      if (response.success) {
+        // Update local state
+        setContacts((prev) =>
+          prev.map((c) => (c._id === contactId ? response.data : c)),
+        );
+        applyLocalFilteringAndSorting(
+          contacts.map((c) => (c._id === contactId ? response.data : c)),
+          searchQuery,
+          selectedFilter,
+          selectedSort,
+        );
+        loadStats(); // Refresh stats
+        Alert.alert("Success", "Contact marked as connected");
+      }
+    } catch (error) {
+      console.error("Error marking as connected:", error);
+      Alert.alert("Error", "Failed to mark contact as connected");
+    }
+  };
+
+  // 🔥 NEW: Mark contact as completed
+  const markAsCompleted = async (
+    contactId: string,
+    dealValue: number,
+    notes?: string,
+  ) => {
+    try {
+      const response = await contactAPI.markAsCompleted(
+        contactId,
+        dealValue,
+        notes,
+      );
+      if (response.success) {
+        // Update local state
+        setContacts((prev) =>
+          prev.map((c) => (c._id === contactId ? response.data : c)),
+        );
+        applyLocalFilteringAndSorting(
+          contacts.map((c) => (c._id === contactId ? response.data : c)),
+          searchQuery,
+          selectedFilter,
+          selectedSort,
+        );
+        loadStats(); // Refresh stats
+        Alert.alert(
+          "Success",
+          `Deal completed for ${formatCurrency(dealValue)}`,
+        );
+      }
+    } catch (error) {
+      console.error("Error marking as completed:", error);
+      Alert.alert("Error", "Failed to mark deal as completed");
     }
   };
 
@@ -437,5 +497,11 @@ export const useContacts = () => {
     applyLocalFilteringAndSorting,
     getFullName,
     getSortParam,
+    // 🔥 NEW: Helper functions
+    getStatusColor,
+    getStatusIcon,
+    formatCurrency,
+    markAsConnected,
+    markAsCompleted,
   };
 };

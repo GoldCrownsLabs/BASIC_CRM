@@ -1,3 +1,4 @@
+// components/Modal/AddressModal.tsx
 import React, { useEffect, useRef } from "react";
 import {
   Modal,
@@ -15,14 +16,15 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 
+// This interface matches the API Address type
 interface Address {
   _id?: string;
-  type: "home" | "work" | "other";
+  addressType: "home" | "work" | "other"; // Changed from 'type' to 'addressType'
   street: string;
   city: string;
   state: string;
   country: string;
-  zipCode: string;
+  zipCode: string; // This is correct
   isDefault: boolean;
 }
 
@@ -50,10 +52,8 @@ const AddressModal: React.FC<AddressModalProps> = ({
   const slideAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  // Smooth animation when modal opens/closes
   useEffect(() => {
     if (visible) {
-      // Open animation
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -69,7 +69,6 @@ const AddressModal: React.FC<AddressModalProps> = ({
         }),
       ]).start();
     } else {
-      // Close animation
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 0,
@@ -85,7 +84,6 @@ const AddressModal: React.FC<AddressModalProps> = ({
     }
   }, [visible]);
 
-  // Handle close with animation
   const handleClose = () => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -103,50 +101,56 @@ const AddressModal: React.FC<AddressModalProps> = ({
     });
   };
 
-  // Memoize type selection to prevent re-renders
-  const renderTypeButton = (type: string) => (
-    <TouchableOpacity
-      key={type}
-      style={[
-        {
-          flex: 1,
-          paddingVertical: 12,
-          borderRadius: 8,
-          alignItems: "center",
-          borderWidth: 1,
-        },
-        address.type === type
-          ? {
-              backgroundColor: colors.primary,
-              borderColor: colors.primary,
-            }
-          : {
-              backgroundColor: colors.background,
-              borderColor: colors.border,
-            },
-      ]}
-      onPress={() => onAddressChange("type", type)}
-    >
-      <Text
-        style={{
-          fontSize: 14,
-          fontWeight: "600",
-          color: address.type === type ? "#FFFFFF" : colors.text,
-        }}
-      >
-        {type.charAt(0).toUpperCase() + type.slice(1)}
-      </Text>
-    </TouchableOpacity>
-  );
+  const renderTypeButton = (typeValue: "home" | "work" | "other") => {
+    const typeLabels = {
+      home: "Home",
+      work: "Work",
+      other: "Other",
+    };
 
-  // Memoize input fields to prevent re-renders
+    return (
+      <TouchableOpacity
+        key={typeValue}
+        style={[
+          {
+            flex: 1,
+            paddingVertical: 12,
+            borderRadius: 8,
+            alignItems: "center",
+            borderWidth: 1,
+          },
+          address.addressType === typeValue
+            ? {
+                backgroundColor: colors.primary,
+                borderColor: colors.primary,
+              }
+            : {
+                backgroundColor: colors.background,
+                borderColor: colors.border,
+              },
+        ]}
+        onPress={() => onAddressChange("addressType", typeValue)}
+      >
+        <Text
+          style={{
+            fontSize: 14,
+            fontWeight: "600",
+            color: address.addressType === typeValue ? "#FFFFFF" : colors.text,
+          }}
+        >
+          {typeLabels[typeValue]}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
   const renderInput = (
     field: keyof Address,
     placeholder: string,
     keyboardType: any = "default",
     isRequired: boolean = true,
   ) => (
-    <View style={{ marginBottom: 16 }}>
+    <View style={{ marginBottom: 16 }} key={field}>
       <Text
         style={{
           fontSize: 14,
@@ -261,7 +265,9 @@ const AddressModal: React.FC<AddressModalProps> = ({
                     Address Type <Text style={{ color: colors.error }}>*</Text>
                   </Text>
                   <View style={{ flexDirection: "row", gap: 12 }}>
-                    {["home", "work", "other"].map(renderTypeButton)}
+                    {renderTypeButton("home")}
+                    {renderTypeButton("work")}
+                    {renderTypeButton("other")}
                   </View>
                 </View>
 

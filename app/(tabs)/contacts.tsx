@@ -23,7 +23,9 @@ export default function ContactsScreen() {
 
   const {
     refreshing,
-    searchQuery,
+    // ✅ Search fields available hain but hum use nahi karenge
+    // searchQuery,      // ← Available but not used
+    // handleSearch,      // ← Available but not used
     selectedFilter,
     selectedSort,
     contacts,
@@ -35,12 +37,16 @@ export default function ContactsScreen() {
     filters,
     sortOptions,
     onRefresh,
-    handleSearch,
     handleFilter,
     handleSort,
     handleLoadMore,
     loadContacts,
     loadStats,
+    getStatusColor,
+    getStatusIcon,
+    formatCurrency,
+    markAsConnected,
+    markAsCompleted,
   } = useContacts();
 
   const {
@@ -62,6 +68,31 @@ export default function ContactsScreen() {
     () => {},
     loadStats,
   );
+
+  // Handle mark as connected
+  const handleMarkAsConnected = async (contactId: string) => {
+    try {
+      await markAsConnected(contactId);
+      await loadContacts(1, true);
+      Alert.alert("Success", "Contact marked as connected");
+    } catch (error) {
+      Alert.alert("Error", "Failed to mark contact as connected");
+    }
+  };
+
+  // Handle mark as completed
+  const handleMarkAsCompleted = async (
+    contactId: string,
+    dealValue: number,
+  ) => {
+    try {
+      await markAsCompleted(contactId, dealValue);
+      await loadContacts(1, true);
+      Alert.alert("Success", `Deal completed for ${formatCurrency(dealValue)}`);
+    } catch (error) {
+      Alert.alert("Error", "Failed to mark deal as completed");
+    }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -100,18 +131,25 @@ export default function ContactsScreen() {
           }}
           scrollEventThrottle={400}
         >
-          {/* Header - WITHOUT search props */}
+          {/* ✅ FIXED: Sirf wahi props jo ContactsHeader accept karta hai */}
           <ContactsHeader
             selectedFilter={selectedFilter}
             onFilterChange={handleFilter}
             selectedSort={selectedSort}
             onSortChange={handleSort}
             filters={filters}
-            // 👆 Sirf ye 4 props bhejein, searchQuery/handleSearch/sortOptions nahi
+            // ❌ NO searchQuery, onSearchChange, sortOptions props
           />
 
           {/* Stats Summary */}
-          <StatsSummary stats={contactStats} />
+          <StatsSummary
+            stats={{
+              ...contactStats,
+              formattedRevenue: contactStats.totalRevenue
+                ? formatCurrency(contactStats.totalRevenue)
+                : "₹0",
+            }}
+          />
 
           {/* Contacts List */}
           <ContactsList
@@ -125,6 +163,11 @@ export default function ContactsScreen() {
             onToggleFavorite={handleToggleFavorite}
             onDeleteContact={handleDeleteContact}
             onAddContact={() => setAddContactModalVisible(true)}
+            onMarkAsConnected={handleMarkAsConnected}
+            onMarkAsCompleted={handleMarkAsCompleted}
+            getStatusColor={getStatusColor}
+            getStatusIcon={getStatusIcon}
+            formatCurrency={formatCurrency}
           />
 
           {/* Bottom Spacer */}
@@ -141,7 +184,7 @@ export default function ContactsScreen() {
         onClose={() => setAddContactModalVisible(false)}
         onContactAdded={async () => {
           try {
-            await loadContacts();
+            await loadContacts(1, true);
             await loadStats();
             setAddContactModalVisible(false);
             Alert.alert("Success", "Contact added successfully!");
@@ -164,6 +207,13 @@ export default function ContactsScreen() {
           onClose={() => setContactDetailModalVisible(false)}
           onToggleFavorite={() => handleToggleFavorite(selectedContact)}
           onContactUpdated={handleContactUpdated}
+          onMarkAsConnected={() => handleMarkAsConnected(selectedContact._id)}
+          onMarkAsCompleted={(dealValue) =>
+            handleMarkAsCompleted(selectedContact._id, dealValue)
+          }
+          getStatusColor={getStatusColor}
+          getStatusIcon={getStatusIcon}
+          formatCurrency={formatCurrency}
         />
       )}
     </View>

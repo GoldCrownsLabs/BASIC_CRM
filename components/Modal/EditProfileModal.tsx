@@ -10,28 +10,24 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Switch,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 
-// Interfaces
 interface ProfileData {
-  firstName?: string;
-  lastName?: string;
+  name?: string;
   email?: string;
   phone?: string;
-  company?: string;
-  position?: string;
-  department?: string;
-  location?: string;
-  bio?: string;
-  avatar?: string;
+  profileImage?: string;
+  theme?: string;
+  newsletterSubscription?: boolean;
 }
 
 interface EditProfileModalProps {
   visible: boolean;
   onClose: () => void;
   profile: ProfileData;
-  onProfileChange: (field: keyof ProfileData, value: string) => void;
+  onProfileChange: (field: keyof ProfileData, value: any) => void;
   onSave: () => void;
   isLoading: boolean;
   isUploadingImage: boolean;
@@ -50,6 +46,21 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
   onImageUpload,
   colors,
 }) => {
+  // Name ko split karo
+  const nameParts = (profile.name || "").split(" ");
+  const firstName = nameParts[0] || "";
+  const lastName = nameParts.slice(1).join(" ") || "";
+
+  const handleFirstNameChange = (text: string) => {
+    const fullName = `${text} ${lastName}`.trim();
+    onProfileChange("name", fullName);
+  };
+
+  const handleLastNameChange = (text: string) => {
+    const fullName = `${firstName} ${text}`.trim();
+    onProfileChange("name", fullName);
+  };
+
   return (
     <Modal
       visible={visible}
@@ -72,9 +83,9 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,
             maxHeight: "90%",
-            flexShrink: 1,
           }}
         >
+          {/* Header */}
           <View
             style={{
               flexDirection: "row",
@@ -101,14 +112,14 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
             style={{ padding: 24 }}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ paddingBottom: 20 }}
-            keyboardDismissMode="on-drag"
           >
+            {/* Profile Image */}
             <View style={{ alignItems: "center", marginBottom: 24 }}>
               <View style={{ position: "relative" }}>
                 <Image
                   source={{
-                    uri: profile.avatar || "https://via.placeholder.com/100",
+                    uri:
+                      profile.profileImage || "https://via.placeholder.com/100",
                   }}
                   style={{
                     width: 100,
@@ -144,6 +155,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
               </View>
             </View>
 
+            {/* Name Fields */}
             <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
               <View style={{ flex: 1 }}>
                 <Text
@@ -167,8 +179,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     fontSize: 16,
                     color: colors.text,
                   }}
-                  value={profile.firstName || ""}
-                  onChangeText={(text) => onProfileChange("firstName", text)}
+                  value={firstName}
+                  onChangeText={handleFirstNameChange}
                   placeholder="Enter first name"
                   placeholderTextColor={colors.textSecondary}
                 />
@@ -196,14 +208,15 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     fontSize: 16,
                     color: colors.text,
                   }}
-                  value={profile.lastName || ""}
-                  onChangeText={(text) => onProfileChange("lastName", text)}
+                  value={lastName}
+                  onChangeText={handleLastNameChange}
                   placeholder="Enter last name"
                   placeholderTextColor={colors.textSecondary}
                 />
               </View>
             </View>
 
+            {/* Email (Read Only) */}
             <View style={{ marginBottom: 16 }}>
               <Text
                 style={{
@@ -224,17 +237,15 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                   paddingHorizontal: 16,
                   paddingVertical: 12,
                   fontSize: 16,
-                  color: colors.text,
+                  color: colors.textSecondary,
                 }}
                 value={profile.email || ""}
-                onChangeText={(text) => onProfileChange("email", text)}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                placeholder="Enter email"
+                editable={false}
                 placeholderTextColor={colors.textSecondary}
               />
             </View>
 
+            {/* Phone */}
             <View style={{ marginBottom: 16 }}>
               <Text
                 style={{
@@ -265,155 +276,34 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
               />
             </View>
 
-            <View style={{ marginBottom: 16 }}>
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "600",
-                  color: colors.text,
-                  marginBottom: 8,
-                }}
-              >
-                Company
+            {/* Newsletter Subscription */}
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 24,
+                padding: 16,
+                backgroundColor: colors.background,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+            >
+              <Text style={{ fontSize: 16, color: colors.text }}>
+                Subscribe to Newsletter
               </Text>
-              <TextInput
-                style={{
-                  backgroundColor: colors.background,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: 8,
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  fontSize: 16,
-                  color: colors.text,
-                }}
-                value={profile.company || ""}
-                onChangeText={(text) => onProfileChange("company", text)}
-                placeholder="Enter company"
-                placeholderTextColor={colors.textSecondary}
+              <Switch
+                value={profile.newsletterSubscription || false}
+                onValueChange={(value) =>
+                  onProfileChange("newsletterSubscription", value)
+                }
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor="#FFFFFF"
               />
             </View>
 
-            <View style={{ marginBottom: 16 }}>
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "600",
-                  color: colors.text,
-                  marginBottom: 8,
-                }}
-              >
-                Position
-              </Text>
-              <TextInput
-                style={{
-                  backgroundColor: colors.background,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: 8,
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  fontSize: 16,
-                  color: colors.text,
-                }}
-                value={profile.position || ""}
-                onChangeText={(text) => onProfileChange("position", text)}
-                placeholder="Enter position"
-                placeholderTextColor={colors.textSecondary}
-              />
-            </View>
-
-            <View style={{ marginBottom: 16 }}>
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "600",
-                  color: colors.text,
-                  marginBottom: 8,
-                }}
-              >
-                Department
-              </Text>
-              <TextInput
-                style={{
-                  backgroundColor: colors.background,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: 8,
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  fontSize: 16,
-                  color: colors.text,
-                }}
-                value={profile.department || ""}
-                onChangeText={(text) => onProfileChange("department", text)}
-                placeholder="Enter department"
-                placeholderTextColor={colors.textSecondary}
-              />
-            </View>
-
-            <View style={{ marginBottom: 16 }}>
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "600",
-                  color: colors.text,
-                  marginBottom: 8,
-                }}
-              >
-                Location
-              </Text>
-              <TextInput
-                style={{
-                  backgroundColor: colors.background,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: 8,
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  fontSize: 16,
-                  color: colors.text,
-                }}
-                value={profile.location || ""}
-                onChangeText={(text) => onProfileChange("location", text)}
-                placeholder="Enter location"
-                placeholderTextColor={colors.textSecondary}
-              />
-            </View>
-
-            <View style={{ marginBottom: 24 }}>
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "600",
-                  color: colors.text,
-                  marginBottom: 8,
-                }}
-              >
-                Bio
-              </Text>
-              <TextInput
-                style={{
-                  backgroundColor: colors.background,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: 8,
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  fontSize: 16,
-                  color: colors.text,
-                  height: 100,
-                  textAlignVertical: "top",
-                }}
-                value={profile.bio || ""}
-                onChangeText={(text) => onProfileChange("bio", text)}
-                multiline
-                numberOfLines={4}
-                placeholder="Enter bio"
-                placeholderTextColor={colors.textSecondary}
-              />
-            </View>
-
+            {/* Action Buttons */}
             <View style={{ flexDirection: "row", gap: 12 }}>
               <TouchableOpacity
                 style={{

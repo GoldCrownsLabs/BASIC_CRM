@@ -13,7 +13,6 @@ import {
   Dimensions,
   ActivityIndicator,
   Animated,
-  findNodeHandle,
 } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -38,7 +37,7 @@ export default function AddContactModal({
   const [loading, setLoading] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
-  const scrollViewContentRef = useRef<View>(null); // Add this ref for the content
+  const scrollViewContentRef = useRef<View>(null);
   const inputRefs = useRef<{ [key: string]: TextInput }>({});
   const keyboardShowListener = useRef<any>(null);
   const keyboardHideListener = useRef<any>(null);
@@ -51,7 +50,9 @@ export default function AddContactModal({
     phone: "",
     company: "",
     jobTitle: "",
-    tags: [] as string[],
+    // FIXED: Two separate sections
+    leadStatus: "cold" as "cold" | "warm" | "hot", // Section 1: Lead Status
+    tags: [] as string[], // Section 2: Regular tags (VIP, Client, etc.)
     notes: "",
     source: "other" as contactAPI.Contact["source"],
     isFavorite: false,
@@ -60,11 +61,17 @@ export default function AddContactModal({
   const [tempTag, setTempTag] = useState("");
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
 
+  // Debug logs
+  useEffect(() => {
+    console.log("📌 Current tags:", newContact.tags);
+    console.log("🔥 Current leadStatus:", newContact.leadStatus);
+  }, [newContact.tags, newContact.leadStatus]);
+
   // Handle keyboard show/hide with animation
   useEffect(() => {
     keyboardShowListener.current = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
-      (e) => {
+      () => {
         setKeyboardVisible(true);
         Animated.spring(modalTranslateY, {
           toValue: -50,
@@ -105,6 +112,7 @@ export default function AddContactModal({
         phone: "",
         company: "",
         jobTitle: "",
+        leadStatus: "cold",
         tags: [],
         notes: "",
         source: "other",
@@ -153,65 +161,62 @@ export default function AddContactModal({
     return true;
   };
 
-  const handleAddContact = async () => {
-    if (!validateForm()) return;
-
-    setLoading(true);
-    Keyboard.dismiss();
-    try {
-      const contactData: contactAPI.ContactPayload = {
-        firstName: newContact.firstName.trim(),
-        lastName: newContact.lastName.trim() || undefined,
-        email: newContact.email.trim() || undefined,
-        phone: newContact.phone.trim() || undefined,
-        company: newContact.company.trim() || undefined,
-        jobTitle: newContact.jobTitle.trim() || undefined,
-        notes: newContact.notes.trim() || undefined,
-        source: newContact.source,
-        isFavorite: newContact.isFavorite,
-        tags: newContact.tags.length > 0 ? newContact.tags : undefined,
-      };
-
-      const response = await contactAPI.createContact(contactData);
-
-      if ("success" in response && !response.success) {
-        Alert.alert("Error", response.message || "Failed to add contact");
-        setLoading(false);
-        return;
-      }
-
-      await onContactAdded();
-    } catch (error: any) {
-      console.error("Error adding contact:", error);
-      Alert.alert("Error", error.message || "Failed to add contact");
-      setLoading(false);
-    }
-  };
-
   const handleTextChange = (
     field: keyof typeof newContact,
-    value: string | contactAPI.Contact["source"] | boolean | string[],
+    value:
+      | string
+      | contactAPI.Contact["source"]
+      | boolean
+      | string[]
+      | "cold"
+      | "warm"
+      | "hot",
   ) => {
-    setNewContact({ ...newContact, [field]: value });
+    setNewContact((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   };
 
+  // Handle tag addition (for regular tags only)
   const handleAddTag = () => {
     if (!tempTag.trim()) return;
 
     const tag = tempTag.trim();
-    if (!newContact.tags.includes(tag)) {
-      setNewContact({
-        ...newContact,
-        tags: [...newContact.tags, tag],
-      });
-    }
+    console.log("➕ Adding tag:", tag);
+
+    setNewContact((prev) => {
+      if (!prev.tags.includes(tag)) {
+        return {
+          ...prev,
+          tags: [...prev.tags, tag],
+        };
+      }
+      return prev;
+    });
     setTempTag("");
   };
 
+  // Handle tag removal
   const handleRemoveTag = (tagToRemove: string) => {
-    setNewContact({
-      ...newContact,
-      tags: newContact.tags.filter((tag) => tag !== tagToRemove),
+    console.log("➖ Removing tag:", tagToRemove);
+    setNewContact((prev) => ({
+      ...prev,
+      tags: prev.tags.filter((tag) => tag !== tagToRemove),
+    }));
+  };
+
+  // Handle tag suggestion click
+  const handleTagSuggestionPress = (tag: string) => {
+    console.log("💡 Adding tag from suggestion:", tag);
+    setNewContact((prev) => {
+      if (!prev.tags.includes(tag)) {
+        return {
+          ...prev,
+          tags: [...prev.tags, tag],
+        };
+      }
+      return prev;
     });
   };
 
@@ -219,10 +224,8 @@ export default function AddContactModal({
     inputRefs.current[nextField]?.focus();
   };
 
-  // FIXED: Simplified scrollToInput function without measureLayout
   const scrollToInput = (fieldName: string) => {
     setTimeout(() => {
-      // Simple scroll to approximate position based on input index
       const inputOrder = [
         "firstName",
         "lastName",
@@ -236,7 +239,6 @@ export default function AddContactModal({
 
       const index = inputOrder.indexOf(fieldName);
       if (index !== -1) {
-        // Rough estimate: each input group is about 80px height
         const estimatedY = index * 80;
         scrollViewRef.current?.scrollTo({
           y: Math.max(0, estimatedY - 100),
@@ -246,12 +248,10 @@ export default function AddContactModal({
     }, 100);
   };
 
-  // FIXED: Simplified handleInputFocus function
   const handleInputFocus = (fieldName: string) => {
     setFocusedInput(fieldName);
 
     setTimeout(() => {
-      // Simple scroll to approximate position
       const inputOrder = [
         "firstName",
         "lastName",
@@ -265,7 +265,6 @@ export default function AddContactModal({
 
       const index = inputOrder.indexOf(fieldName);
       if (index !== -1) {
-        // Rough estimate: each input group is about 80px height
         const estimatedY = index * 80;
         scrollViewRef.current?.scrollTo({
           y: Math.max(0, estimatedY - 120),
@@ -286,7 +285,101 @@ export default function AddContactModal({
     { value: "other", label: "Other" },
   ];
 
-  const tagSuggestions = ["VIP", "Hot Lead", "Client", "Prospect", "Partner"];
+  // FIXED: Lead Status Options - Section 1
+  const leadStatusOptions: {
+    value: "cold" | "warm" | "hot";
+    label: string;
+    color: string;
+  }[] = [
+    { value: "cold", label: "Cold", color: "#94A3B8" },
+    { value: "warm", label: "Warm", color: "#F59E0B" },
+    { value: "hot", label: "Hot", color: "#EF4444" },
+  ];
+
+  // FIXED: Tag Suggestions - Section 2 (Regular tags only, no lead status tags)
+  const tagSuggestions = ["VIP", "Client", "Prospect", "Partner", "Regular"];
+
+  const handleAddContact = async () => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+    Keyboard.dismiss();
+
+    try {
+      // Filter out empty tags
+      const tags = newContact.tags.filter((tag) => tag.trim() !== "");
+
+      console.log("🏷️ Final tags being sent:", tags);
+      console.log("🔥 Final leadStatus being sent:", newContact.leadStatus);
+
+      const contactData = {
+        firstName: newContact.firstName.trim(),
+        lastName: newContact.lastName.trim() || undefined,
+        email: newContact.email.trim() || undefined,
+        phone: newContact.phone.trim() || undefined,
+        company: newContact.company.trim() || undefined,
+        jobTitle: newContact.jobTitle.trim() || undefined,
+        notes: newContact.notes.trim() || undefined,
+        source: newContact.source,
+        isFavorite: newContact.isFavorite,
+        // FIXED: Two separate fields
+        leadStatus: newContact.leadStatus, // Section 1
+        tags: tags.length > 0 ? tags : undefined, // Section 2
+
+        // Default values
+        address: undefined,
+        lastContacted: undefined,
+        connected: false,
+        completed: false,
+        dealValue: 0,
+        dealCurrency: "INR" as const,
+        connectedNotes: "",
+        completedNotes: "",
+      };
+
+      console.log("📤 Sending payload:", JSON.stringify(contactData, null, 2));
+
+      const response = await contactAPI.createContact(contactData);
+
+      console.log("✅ API Response:", response);
+
+      if (response && typeof response === "object") {
+        if ("success" in response && !response.success) {
+          Alert.alert("Error", response.message || "Failed to add contact");
+          setLoading(false);
+          return;
+        }
+      }
+
+      await onContactAdded();
+      onClose();
+    } catch (error: any) {
+      console.error("❌ Error adding contact:", error);
+
+      let errorMessage = "Failed to add contact";
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      Alert.alert(
+        "Error",
+        `${errorMessage}\n\nStatus: ${error.response?.status || error.status || 500}`,
+        [
+          { text: "OK" },
+          {
+            text: "Retry",
+            onPress: () => handleAddContact(),
+          },
+        ],
+      );
+
+      setLoading(false);
+    }
+  };
 
   return (
     <Modal
@@ -302,7 +395,6 @@ export default function AddContactModal({
       statusBarTranslucent={true}
     >
       <View style={styles.container}>
-        {/* Background Overlay with fade animation */}
         <Animated.View
           style={[
             styles.overlay,
@@ -332,7 +424,7 @@ export default function AddContactModal({
               },
             ]}
           >
-            {/* Modal Header - Fixed at top */}
+            {/* Modal Header */}
             <View
               style={[
                 styles.modalHeader,
@@ -360,7 +452,6 @@ export default function AddContactModal({
               </TouchableOpacity>
             </View>
 
-            {/* Scrollable Content */}
             <ScrollView
               ref={scrollViewRef}
               style={styles.scrollView}
@@ -369,7 +460,6 @@ export default function AddContactModal({
               keyboardDismissMode="interactive"
               scrollEventThrottle={16}
             >
-              {/* Add a View ref for the content if needed, but not required */}
               <View ref={scrollViewContentRef} style={styles.scrollContent}>
                 {/* First Name */}
                 <View style={styles.formGroup}>
@@ -560,50 +650,50 @@ export default function AddContactModal({
                     onChangeText={(text) => handleTextChange("jobTitle", text)}
                     editable={!loading}
                     returnKeyType="next"
-                    onSubmitEditing={() => {
-                      if (tempTag || newContact.tags.length > 0) {
-                        focusNextField("tagInput");
-                      } else {
-                        focusNextField("notes");
-                      }
-                    }}
+                    onSubmitEditing={() => focusNextField("tagInput")}
                     onFocus={() => handleInputFocus("jobTitle")}
                     blurOnSubmit={false}
                   />
                 </View>
 
-                {/* Source Selection */}
+                {/* SECTION 1: Lead Status - Hot/Warm/Cold */}
                 <View style={styles.formGroup}>
                   <ThemedText style={[styles.label, { color: colors.text }]}>
-                    Source
+                    Lead Status
                   </ThemedText>
                   <View style={styles.sourceContainer}>
-                    {sourceOptions.map((option) => (
+                    {leadStatusOptions.map((option) => (
                       <TouchableOpacity
                         key={option.value}
                         style={[
                           styles.sourceButton,
                           {
                             backgroundColor:
-                              newContact.source === option.value
-                                ? colors.primary + "20"
+                              newContact.leadStatus === option.value
+                                ? option.color + "20"
                                 : colors.background,
                             borderColor:
-                              newContact.source === option.value
-                                ? colors.primary
+                              newContact.leadStatus === option.value
+                                ? option.color
                                 : colors.border,
                           },
                         ]}
-                        onPress={() => handleTextChange("source", option.value)}
+                        onPress={() =>
+                          handleTextChange("leadStatus", option.value)
+                        }
                         disabled={loading}
                       >
                         <ThemedText
                           style={{
                             color:
-                              newContact.source === option.value
-                                ? colors.primary
+                              newContact.leadStatus === option.value
+                                ? option.color
                                 : colors.text,
                             fontSize: 13,
+                            fontWeight:
+                              newContact.leadStatus === option.value
+                                ? "600"
+                                : "400",
                           }}
                         >
                           {option.label}
@@ -613,10 +703,10 @@ export default function AddContactModal({
                   </View>
                 </View>
 
-                {/* Tags */}
+                {/* SECTION 2: Regular Tags - VIP, Client, etc. */}
                 <View style={styles.formGroup}>
                   <ThemedText style={[styles.label, { color: colors.text }]}>
-                    Tags
+                    Tags (VIP, Client, etc.)
                   </ThemedText>
 
                   <View style={styles.tagInputContainer}>
@@ -667,11 +757,7 @@ export default function AddContactModal({
                             borderColor: colors.border,
                           },
                         ]}
-                        onPress={() => {
-                          if (!newContact.tags.includes(tag)) {
-                            handleTextChange("tags", [...newContact.tags, tag]);
-                          }
-                        }}
+                        onPress={() => handleTagSuggestionPress(tag)}
                         disabled={loading}
                       >
                         <ThemedText
@@ -724,6 +810,47 @@ export default function AddContactModal({
                       ))}
                     </View>
                   )}
+                </View>
+
+                {/* Source Selection */}
+                <View style={styles.formGroup}>
+                  <ThemedText style={[styles.label, { color: colors.text }]}>
+                    Source
+                  </ThemedText>
+                  <View style={styles.sourceContainer}>
+                    {sourceOptions.map((option) => (
+                      <TouchableOpacity
+                        key={option.value}
+                        style={[
+                          styles.sourceButton,
+                          {
+                            backgroundColor:
+                              newContact.source === option.value
+                                ? colors.primary + "20"
+                                : colors.background,
+                            borderColor:
+                              newContact.source === option.value
+                                ? colors.primary
+                                : colors.border,
+                          },
+                        ]}
+                        onPress={() => handleTextChange("source", option.value)}
+                        disabled={loading}
+                      >
+                        <ThemedText
+                          style={{
+                            color:
+                              newContact.source === option.value
+                                ? colors.primary
+                                : colors.text,
+                            fontSize: 13,
+                          }}
+                        >
+                          {option.label}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </View>
 
                 {/* Notes */}

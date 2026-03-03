@@ -1,12 +1,14 @@
+// models/Profile/AddressCard.tsx
 import React from "react";
 import { View, TouchableOpacity } from "react-native";
 import { Text } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
+import { Address } from "@/lib/api/profile.api";
 
 interface AddressCardProps {
-  address: any;
-  onEdit: (address: any) => void;
+  address: Address;
+  onEdit: (address: Address) => void;
   onDelete: (addressId: string) => void;
   onSetDefault: (addressId: string) => void;
 }
@@ -19,14 +21,28 @@ export const AddressCard: React.FC<AddressCardProps> = ({
 }) => {
   const { colors } = useAppTheme();
 
+  // Safe formatter for any value
   const formatData = (value: any, fallback: string = "N/A") => {
     if (!value || value === "" || value === undefined || value === null) {
       return fallback;
     }
-    return value;
+    return String(value);
   };
 
-  const getAddressIcon = (type: string) => {
+  // Safe address type getter with default
+  const getAddressType = (): string => {
+    return address?.addressType || "home";
+  };
+
+  // Safe address type label
+  const getAddressTypeLabel = (): string => {
+    const type = getAddressType();
+    return type.charAt(0).toUpperCase() + type.slice(1);
+  };
+
+  // Get icon based on address type
+  const getAddressIcon = (): "home" | "briefcase" | "map-pin" => {
+    const type = getAddressType();
     switch (type) {
       case "home":
         return "home";
@@ -37,6 +53,23 @@ export const AddressCard: React.FC<AddressCardProps> = ({
     }
   };
 
+  // Safe getter for display fields
+  const getStreet = () => formatData(address?.street);
+  const getCity = () => formatData(address?.city);
+  const getState = () => formatData(address?.state);
+  const getCountry = () => formatData(address?.country);
+  const getZipCode = () => formatData(address?.zipCode);
+
+  // Check if address is default
+  const isDefault = address?.isDefault || false;
+
+  // Get address ID safely - using _id (not id)
+  const getAddressId = (): string => {
+    return address?._id || ""; // ✅ FIXED: Use _id instead of id
+  };
+
+  if (!address) return null;
+
   return (
     <View
       style={{
@@ -44,8 +77,8 @@ export const AddressCard: React.FC<AddressCardProps> = ({
         borderRadius: 16,
         padding: 20,
         marginBottom: 16,
-        borderWidth: 1,
-        borderColor: colors.border,
+        borderWidth: isDefault ? 2 : 1,
+        borderColor: isDefault ? colors.primary : colors.border,
       }}
     >
       <View
@@ -68,11 +101,7 @@ export const AddressCard: React.FC<AddressCardProps> = ({
               marginRight: 12,
             }}
           >
-            <Feather
-              name={getAddressIcon(address.type)}
-              size={20}
-              color={colors.primary}
-            />
+            <Feather name={getAddressIcon()} size={20} color={colors.primary} />
           </View>
           <View>
             <Text
@@ -82,10 +111,9 @@ export const AddressCard: React.FC<AddressCardProps> = ({
                 color: colors.text,
               }}
             >
-              {address.type.charAt(0).toUpperCase() + address.type.slice(1)}{" "}
-              Address
+              {getAddressTypeLabel()} Address
             </Text>
-            {address.isDefault && (
+            {isDefault && (
               <View
                 style={{
                   alignSelf: "flex-start",
@@ -103,7 +131,7 @@ export const AddressCard: React.FC<AddressCardProps> = ({
                     color: colors.success,
                   }}
                 >
-                  Default
+                  DEFAULT
                 </Text>
               </View>
             )}
@@ -114,12 +142,13 @@ export const AddressCard: React.FC<AddressCardProps> = ({
           <TouchableOpacity onPress={() => onEdit(address)}>
             <Feather name="edit-2" size={18} color={colors.primary} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => onDelete(address._id)}>
+          <TouchableOpacity onPress={() => onDelete(getAddressId())}>
             <Feather name="trash-2" size={18} color={colors.error} />
           </TouchableOpacity>
         </View>
       </View>
 
+      {/* Street Address */}
       <Text
         style={{
           fontSize: 14,
@@ -127,8 +156,10 @@ export const AddressCard: React.FC<AddressCardProps> = ({
           marginBottom: 4,
         }}
       >
-        {formatData(address.street)}
+        {getStreet()}
       </Text>
+
+      {/* City, State, Zip */}
       <Text
         style={{
           fontSize: 14,
@@ -136,9 +167,16 @@ export const AddressCard: React.FC<AddressCardProps> = ({
           marginBottom: 4,
         }}
       >
-        {formatData(address.city)}, {formatData(address.state)}{" "}
-        {formatData(address.postalCode)}
+        {getCity()}
+        {getCity() !== "N/A" && (getState() !== "N/A" || getZipCode() !== "N/A")
+          ? ", "
+          : ""}
+        {getState()}
+        {getState() !== "N/A" && getZipCode() !== "N/A" ? " " : ""}
+        {getZipCode()}
       </Text>
+
+      {/* Country */}
       <Text
         style={{
           fontSize: 14,
@@ -146,10 +184,11 @@ export const AddressCard: React.FC<AddressCardProps> = ({
           marginBottom: 12,
         }}
       >
-        {formatData(address.country)}
+        {getCountry()}
       </Text>
 
-      {!address.isDefault && (
+      {/* Set Default Button */}
+      {!isDefault && (
         <TouchableOpacity
           style={{
             paddingVertical: 8,
@@ -159,7 +198,7 @@ export const AddressCard: React.FC<AddressCardProps> = ({
             borderColor: colors.border,
             alignItems: "center",
           }}
-          onPress={() => onSetDefault(address._id)}
+          onPress={() => onSetDefault(getAddressId())}
         >
           <Text
             style={{
