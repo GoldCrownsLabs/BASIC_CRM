@@ -4,8 +4,9 @@ import { View, TouchableOpacity, Animated, StyleSheet } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
+import { LinearGradient } from "expo-linear-gradient";
 
-import { useNotifications } from "@/hooks/useNotifications"; // ✅ Naya hook
+import { useNotifications } from "@/hooks/useNotifications";
 import { NotificationModal } from "../Notifications/Notification-modal";
 
 interface WelcomeHeaderProps {
@@ -19,29 +20,24 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
   userName,
   fadeAnim,
 }) => {
-  const { colors } = useAppTheme();
+  const { colors, theme } = useAppTheme();
   const [modalVisible, setModalVisible] = useState(false);
   const [pulseAnim] = useState(new Animated.Value(1));
   const [hasNewNotification, setHasNewNotification] = useState(false);
   const prevCountRef = useRef(0);
 
-  // ✅ Use custom hook - refreshCount ko refresh mein badal diya
   const { unreadCount, loading, refresh } = useNotifications();
 
-  // Create interpolated value for translateY
   const translateY = fadeAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [20, 0],
   });
 
-  // Detect new notifications
   useEffect(() => {
     if (unreadCount > prevCountRef.current) {
-      // New notification arrived
       setHasNewNotification(true);
       triggerNotificationAnimation();
 
-      // Reset after 3 seconds
       setTimeout(() => {
         setHasNewNotification(false);
       }, 3000);
@@ -49,7 +45,6 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
     prevCountRef.current = unreadCount;
   }, [unreadCount]);
 
-  // Trigger animation for new notifications
   const triggerNotificationAnimation = () => {
     Animated.sequence([
       Animated.timing(pulseAnim, {
@@ -75,7 +70,6 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
     ]).start();
   };
 
-  // Continuous subtle pulse for unread notifications
   useEffect(() => {
     if (unreadCount > 0) {
       const pulse = Animated.loop(
@@ -99,15 +93,13 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
 
   const handleModalClose = () => {
     setModalVisible(false);
-    // Refresh count after modal closes
     setTimeout(() => {
-      refresh(); // ✅ refreshCount → refresh
+      refresh();
     }, 300);
   };
 
   const handleNotificationPress = () => {
-    // Refresh before opening
-    refresh(); // ✅ refreshCount → refresh
+    refresh();
     setModalVisible(true);
   };
 
@@ -123,6 +115,18 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
           },
         ]}
       >
+        {/* Gradient Overlay for better look */}
+        <LinearGradient
+          colors={
+            theme === "dark"
+              ? ["rgba(98,0,234,0.1)", "transparent"]
+              : ["rgba(98,0,234,0.05)", "transparent"]
+          }
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.gradientOverlay}
+        />
+
         <View style={styles.contentContainer}>
           <View style={styles.textContainer}>
             <ThemedText
@@ -130,19 +134,29 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
             >
               {greeting}
             </ThemedText>
+
             <ThemedText style={[styles.userName, { color: colors.text }]}>
               {userName?.split(" ")[0] || "User"}
             </ThemedText>
-            <View style={styles.dateContainer}>
+
+            <View
+              style={[
+                styles.dateContainer,
+                {
+                  backgroundColor:
+                    theme === "dark"
+                      ? "rgba(255,255,255,0.1)"
+                      : "rgba(98,0,234,0.1)",
+                },
+              ]}
+            >
               <Ionicons
                 name="calendar-outline"
                 size={14}
-                color={colors.textSecondary}
+                color={colors.primary}
                 style={styles.calendarIcon}
               />
-              <ThemedText
-                style={[styles.dateText, { color: colors.textSecondary }]}
-              >
+              <ThemedText style={[styles.dateText, { color: colors.primary }]}>
                 {new Date().toLocaleDateString("en-US", {
                   weekday: "long",
                   month: "short",
@@ -161,7 +175,9 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
                 backgroundColor:
                   unreadCount > 0
                     ? colors.primary + "20"
-                    : colors.primary + "10",
+                    : theme === "dark"
+                      ? "rgba(255,255,255,0.1)"
+                      : colors.primary + "10",
                 borderColor:
                   unreadCount > 0 ? colors.primary + "40" : "transparent",
               },
@@ -169,7 +185,7 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
           >
             <Ionicons
               name={unreadCount > 0 ? "notifications" : "notifications-outline"}
-              size={22}
+              size={24}
               color={unreadCount > 0 ? colors.primary : colors.textSecondary}
             />
 
@@ -180,11 +196,11 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
                   styles.badgeContainer,
                   {
                     backgroundColor: hasNewNotification
-                      ? colors.error
+                      ? colors.error || "#FF3B30"
                       : colors.primary,
                     transform: [{ scale: pulseAnim }],
                     shadowColor: hasNewNotification
-                      ? colors.error
+                      ? colors.error || "#FF3B30"
                       : colors.primary,
                   },
                 ]}
@@ -213,47 +229,62 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
               />
             )}
 
-            {/* Empty State */}
+            {/* Empty State Dot */}
             {unreadCount === 0 && !loading && (
-              <View
-                style={[
-                  styles.emptyDot,
-                  { backgroundColor: colors.textSecondary + "40" },
-                ]}
-              />
+              <View style={[styles.emptyDot, { backgroundColor: "#4CD964" }]} />
             )}
           </TouchableOpacity>
         </View>
 
         {/* Status Bar */}
-        <View style={styles.statusContainer}>
+        <View
+          style={[
+            styles.statusContainer,
+            {
+              borderTopColor:
+                theme === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
+            },
+          ]}
+        >
           <View style={styles.statusItem}>
             <Ionicons
-              name="notifications"
-              size={14}
-              color={unreadCount > 0 ? colors.primary : colors.textSecondary}
+              name={
+                unreadCount > 0 ? "notifications-circle" : "checkmark-circle"
+              }
+              size={16}
+              color={unreadCount > 0 ? colors.primary : "#4CD964"}
             />
             <ThemedText
               style={[
                 styles.statusText,
                 {
-                  color:
-                    unreadCount > 0 ? colors.primary : colors.textSecondary,
-                  fontWeight: unreadCount > 0 ? "600" : "400",
+                  color: unreadCount > 0 ? colors.primary : "#4CD964",
+                  fontWeight: unreadCount > 0 ? "600" : "500",
                 },
               ]}
             >
-              {unreadCount === 0 ? "All caught up" : `${unreadCount} unread`}
+              {unreadCount === 0 ? "✨ All caught up" : `${unreadCount} unread`}
             </ThemedText>
           </View>
 
-          {/* ✅ Refresh button bhi update kiya */}
-          <TouchableOpacity onPress={refresh} style={styles.refreshButton}>
-            <Ionicons name="refresh" size={14} color={colors.textSecondary} />
+          <TouchableOpacity
+            onPress={refresh}
+            style={[
+              styles.refreshButton,
+              {
+                backgroundColor:
+                  theme === "dark"
+                    ? "rgba(255,255,255,0.1)"
+                    : "rgba(98,0,234,0.1)",
+              },
+            ]}
+          >
+            <Ionicons name="refresh" size={14} color={colors.primary} />
           </TouchableOpacity>
         </View>
       </Animated.View>
 
+      {/* Notification Modal - Exactly as original */}
       <NotificationModal visible={modalVisible} onClose={handleModalClose} />
     </>
   );
@@ -273,6 +304,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 5,
+    overflow: "hidden",
+    position: "relative",
+  },
+  gradientOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "100%",
+    borderRadius: 24,
   },
   contentContainer: {
     flexDirection: "row",
@@ -287,38 +328,49 @@ const styles = StyleSheet.create({
   greetingText: {
     fontSize: 14,
     marginBottom: 4,
-    fontWeight: "500",
+    fontWeight: "600",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
   },
   userName: {
-    fontSize: 24,
-    fontWeight: "700",
-    marginBottom: 8,
+    fontSize: 26,
+    fontWeight: "800",
+    marginBottom: 10,
     letterSpacing: 0.5,
   },
   dateContainer: {
     flexDirection: "row",
     alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    alignSelf: "flex-start",
   },
   calendarIcon: {
     marginRight: 6,
   },
   dateText: {
     fontSize: 13,
-    fontWeight: "500",
+    fontWeight: "600",
   },
   notificationButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1.5,
     position: "relative",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   badgeContainer: {
     position: "absolute",
-    top: 6,
-    right: 6,
+    top: 4,
+    right: 4,
     minWidth: 22,
     height: 22,
     borderRadius: 11,
@@ -330,21 +382,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 4,
   },
   badgeText: {
     color: "#FFFFFF",
     fontSize: 11,
     fontWeight: "800",
     textAlign: "center",
-  },
-  badgeGlow: {
-    position: "absolute",
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "#FFFFFF",
-    zIndex: -1,
   },
   loadingIndicator: {
     position: "absolute",
@@ -357,11 +401,13 @@ const styles = StyleSheet.create({
   },
   emptyDot: {
     position: "absolute",
-    top: 10,
+    bottom: 10,
     right: 10,
     width: 10,
     height: 10,
     borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: "#FFFFFF",
   },
   statusContainer: {
     flexDirection: "row",
@@ -369,29 +415,32 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.05)",
   },
   statusItem: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.03)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
   statusText: {
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: 13,
     marginLeft: 6,
   },
   refreshButton: {
-    padding: 4,
+    padding: 8,
+    borderRadius: 20,
   },
   newNotificationDot: {
     position: "absolute",
     top: -2,
     right: -2,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#FF0000",
-    borderWidth: 1,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#FF3B30",
+    borderWidth: 1.5,
     borderColor: "#FFFFFF",
   },
 });
