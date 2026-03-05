@@ -12,7 +12,7 @@ export default function Index() {
 
   useEffect(() => {
     initializeApp();
-  }, []);
+  }, []);    
 
   const initializeApp = async () => {
     // Check if user is logged in
