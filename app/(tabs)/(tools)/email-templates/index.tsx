@@ -180,7 +180,7 @@ export default function EmailTemplatesPage() {
         )}
       </View>
 
-      <StatsBar stats={stats} />
+      {/* <StatsBar stats={stats} /> */}
 
       <TemplateDetailModal
         visible={showTemplateModal}

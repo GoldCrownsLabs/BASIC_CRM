@@ -22,6 +22,17 @@ import {
   templateVariables,
 } from "@/components/email-templates/constants";
 
+// 👇 Interface for the return type we want
+interface SendResult {
+  success: boolean;
+  error?: string;
+  summary: {
+    successfullySent: number;
+    failed: number;
+    total: number;
+  };
+}
+
 export const useTemplates = () => {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,7 +78,7 @@ export const useTemplates = () => {
   const loadTemplates = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await getAllTemplates("email"); // ✅ Backend सिर्फ user के templates देगा
+      const response = await getAllTemplates("email");
 
       if (response.success && response.data) {
         const frontendTemplates = response.data.map(mapBackendToFrontend);
@@ -87,18 +98,18 @@ export const useTemplates = () => {
     }
   }, [mapBackendToFrontend]);
 
-  // ============ FIXED: Create new template ============
+  // Create new template
   const createNewTemplate = useCallback(
     async (formData: NewTemplateForm) => {
       try {
         setLoading(true);
 
-        // ✅ STEP 1: Check which variables are used in content
+        // Check which variables are used in content
         const usedDisplayVariables = templateVariables.filter((v) =>
           formData.content.includes(v),
         );
 
-        // ✅ STEP 2: Remove curly braces for backend
+        // Remove curly braces for backend
         const variablesForBackend = usedDisplayVariables.map((v) =>
           v.replace(/[{}]/g, ""),
         );
@@ -113,7 +124,7 @@ export const useTemplates = () => {
           type: "email",
           subject: formData.subject,
           content: formData.content,
-          variables: variablesForBackend, // ✅ Correct format: ["name", "company"]
+          variables: variablesForBackend,
         });
 
         if (response.success) {
@@ -133,9 +144,9 @@ export const useTemplates = () => {
     [loadTemplates],
   );
 
-  // Send template to leads
+  // 👇 FINAL FIXED: Send template to leads - NO results property
   const sendTemplate = useCallback(
-    async (templateId: string, leadIds: string[]) => {
+    async (templateId: string, leadIds: string[]): Promise<SendResult> => {
       try {
         const response = await sendTemplateToLeads(templateId, {
           leadIds,
@@ -143,21 +154,45 @@ export const useTemplates = () => {
         });
 
         if (response.success) {
-          Alert.alert(
-            "Success",
-            `Email sent to ${response.summary.successfullySent} leads!`,
-          );
+          // Update stats
           setStats((prev) => ({
             ...prev,
             remainingToday:
-              prev.remainingToday - response.summary.successfullySent,
+              prev.remainingToday - (response.summary?.successfullySent || 0),
           }));
-          return true;
+
+          // Return success response - NO results property
+          return {
+            success: true,
+            summary: {
+              successfullySent: response.summary?.successfullySent || 0,
+              failed: response.summary?.failed || 0,
+              total: leadIds.length,
+            },
+          };
         }
-        return false;
+
+        // Return failure response
+        return {
+          success: false,
+          error: response.message || "Failed to send emails",
+          summary: {
+            successfullySent: 0,
+            failed: leadIds.length,
+            total: leadIds.length,
+          },
+        };
       } catch (error: any) {
-        Alert.alert("Error", error.message || "Failed to send email");
-        return false;
+        console.error("❌ Send template error:", error);
+        return {
+          success: false,
+          error: error.message || "Failed to send emails",
+          summary: {
+            successfullySent: 0,
+            failed: leadIds.length,
+            total: leadIds.length,
+          },
+        };
       }
     },
     [],
@@ -259,7 +294,7 @@ export const useTemplates = () => {
     previewTemplateContent,
     onRefresh,
   };
-};;
+};
 
 // Helper function
 const getCategoryFromSubject = (subject: string): string => {
