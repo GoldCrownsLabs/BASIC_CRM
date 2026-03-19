@@ -1,3 +1,4 @@
+// app/(tabs)/index.tsx
 import React, { useState, useEffect } from "react";
 import { ScrollView, RefreshControl, View } from "react-native";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -15,12 +16,22 @@ import { fetchActivities, Activity } from "@/lib/api/activities.api";
 import { MeetingReminder } from "@/models/Home/MeetingReminder";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+// ✅ Import both banners and services
 import BannerSession from "@/models/Home/BannerSession";
+
+import { planService, Plan } from "@/lib/api/plan";
+import PlansBanner from "@/models/Home/PlanBanner";
 
 export default function DashboardScreen() {
   const { user } = useAuthStore();
   const { colors, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
+
+  // ✅ States for subscription and plans
+  const [hasSubscription, setHasSubscription] = useState(false);
+  const [checkingSubscription, setCheckingSubscription] = useState(true);
+  const [plans, setPlans] = useState<Plan[]>([]);
 
   const {
     greeting,
@@ -37,12 +48,36 @@ export default function DashboardScreen() {
 
   // State for meetings
   const [upcomingMeetings, setUpcomingMeetings] = useState<Activity[]>([]);
-  const [showMeetingAlert, setShowMeetingAlert] = useState(false);
-  const [alertMeeting, setAlertMeeting] = useState<Activity | null>(null);
   const [fetchingMeetings, setFetchingMeetings] = useState(false);
 
   const getMutedBackground = () => {
     return isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)";
+  };
+
+  // ✅ Check subscription status and load plans
+  const loadData = async () => {
+    try {
+      setCheckingSubscription(true);
+
+      // Check if user has active subscription
+      const hasSub = await planService.checkActiveSubscription();
+      setHasSubscription(hasSub);
+
+      // Load all available plans
+      const response = await planService.getPlans();
+      setPlans(response.data || []);
+
+      console.log("📊 Dashboard Data:", {
+        hasSubscription: hasSub,
+        plansCount: response.data?.length || 0,
+        leadsCount: recentLeads?.length || 0,
+      });
+    } catch (error) {
+      console.error("Error loading subscription data:", error);
+      setHasSubscription(false);
+    } finally {
+      setCheckingSubscription(false);
+    }
   };
 
   // Fetch upcoming meetings
@@ -52,7 +87,6 @@ export default function DashboardScreen() {
       const today = new Date();
       const todayString = today.toISOString().split("T")[0];
 
-      // Fetch meetings for next 7 days
       const response = await fetchActivities({
         type: "meeting",
         startDate: todayString,
@@ -71,66 +105,16 @@ export default function DashboardScreen() {
     }
   };
 
-  // Handle meeting press
-  const handleMeetingPress = (meeting: Activity) => {
-    // Navigate to activity details or show modal
-    console.log("Meeting pressed:", meeting);
-    // You can implement navigation here
-  };
-
-  // Handle join meeting
-  const handleJoinMeeting = (meeting: Activity) => {
-    setShowMeetingAlert(false);
-    console.log("Join meeting:", meeting);
-    // Implement join meeting logic
-  };
-
-  // Check for meetings that are starting soon
-  const checkUpcomingMeetings = () => {
-    if (!upcomingMeetings.length) return;
-
-    const now = new Date();
-
-    upcomingMeetings.forEach((meeting) => {
-      try {
-        const meetingTime = new Date(meeting.date);
-        if (meeting.time) {
-          const [hours, minutes] = meeting.time.split(":");
-          meetingTime.setHours(parseInt(hours), parseInt(minutes));
-        }
-
-        const diffMs = meetingTime.getTime() - now.getTime();
-        const diffMins = Math.floor(diffMs / (1000 * 60));
-
-        // Show alert 15 minutes before meeting
-        if (diffMins > 0 && diffMins <= 15 && !showMeetingAlert) {
-          setAlertMeeting(meeting);
-          setShowMeetingAlert(true);
-        }
-      } catch (error) {
-        console.error("Error checking meeting time:", error);
-      }
-    });
-  };
-
   // Initial fetch
   useEffect(() => {
+    loadData();
     fetchUpcomingMeetings();
   }, []);
 
-  // Check for upcoming meetings periodically
-  useEffect(() => {
-    if (upcomingMeetings.length === 0) return;
-
-    checkUpcomingMeetings();
-    const interval = setInterval(checkUpcomingMeetings, 60000); // Check every minute
-
-    return () => clearInterval(interval);
-  }, [upcomingMeetings]);
-
-  // Refresh meetings when dashboard refreshes
+  // Refresh on pull
   useEffect(() => {
     if (!refreshing) {
+      loadData();
       fetchUpcomingMeetings();
     }
   }, [refreshing]);
@@ -140,25 +124,24 @@ export default function DashboardScreen() {
       style={{
         flex: 1,
         backgroundColor: colors.background,
-        paddingTop: 0, // ✅ Remove top padding
+        paddingTop: 0,
       }}
     >
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingTop: 0, // ✅ Remove top padding from scrollview
-          paddingBottom: 20 + insets.bottom, // ✅ Add bottom safe area
+          paddingTop: 0,
+          paddingBottom: 20 + insets.bottom,
         }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing || fetchingMeetings}
+            refreshing={refreshing || fetchingMeetings || checkingSubscription}
             onRefresh={onRefresh}
             tintColor={colors.primary}
             colors={[colors.primary]}
-            // ✅ Adjust refresh control position
             style={{ backgroundColor: colors.background }}
-            progressViewOffset={20} // Adjust this value as needed
+            progressViewOffset={20}
           />
         }
       >
@@ -169,9 +152,13 @@ export default function DashboardScreen() {
           fadeAnim={fadeAnim}
         />
 
-        {/* Banner Session Ad */}
+        {/* 🎯 PLANS BANNER - Only if NO subscription */}
+        {!hasSubscription && !checkingSubscription && plans.length > 0 && (
+          <PlansBanner plans={plans} />
+        )}
 
-        <BannerSession />
+        {/* 🎯 LEADS BANNER - Only if HAS subscription (ALWAYS show) */}
+        {hasSubscription && !checkingSubscription && <BannerSession />}
 
         {/* Meeting Reminder */}
         <MeetingReminder
@@ -179,9 +166,7 @@ export default function DashboardScreen() {
           colors={colors}
           isDark={isDark}
           onMeetingPress={(meeting) => {
-            // Navigate to activity details or show modal
             console.log("Meeting pressed:", meeting);
-            // Or navigate to activities page
             router.push("/(tabs)/(tools)/activities");
           }}
         />
@@ -208,7 +193,7 @@ export default function DashboardScreen() {
         />
 
         {/* Performance Metrics */}
-        <PerformanceMetrics leadStats={leadStats} />
+        <PerformanceMetrics />
 
         {/* Sync Status */}
         <SyncStatus />

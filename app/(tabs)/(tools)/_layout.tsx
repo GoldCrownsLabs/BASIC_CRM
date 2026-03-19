@@ -5,7 +5,7 @@ export default function ToolsLayout() {
   return (
     <Stack
       screenOptions={{
-        headerShown: false, // header already tabs me hai
+        headerShown: false, 
       }}
     />
   );

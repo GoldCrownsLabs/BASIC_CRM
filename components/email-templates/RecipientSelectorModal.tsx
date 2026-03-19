@@ -128,6 +128,16 @@ export const RecipientSelectorModal: React.FC<Props> = ({
   const [previewRecipient, setPreviewRecipient] =
     useState<SelectedRecipient | null>(null);
   const [sending, setSending] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      setSending(false);
+      setPreviewVisible(false);
+      setPreviewRecipient(null);
+    };
+  }, []);
 
   // ==================== HELPER FUNCTIONS ====================
 
@@ -233,6 +243,10 @@ export const RecipientSelectorModal: React.FC<Props> = ({
     if (visible) {
       loadRecipients(1, true);
       setSelectedRecipients([]);
+      setPreviewVisible(false);
+      setPreviewRecipient(null);
+      setSending(false);
+      setRetryCount(0);
     }
   }, [visible, activeTab, searchQuery]);
 
@@ -297,6 +311,7 @@ export const RecipientSelectorModal: React.FC<Props> = ({
   };
 
   const toggleRecipient = (recipient: SelectedRecipient) => {
+    if (sending) return; // Don't allow selection while sending
     setSelectedRecipients((prev) => {
       const exists = prev.find((r) => r._id === recipient._id);
       if (exists) {
@@ -319,23 +334,85 @@ export const RecipientSelectorModal: React.FC<Props> = ({
 
     setPreviewRecipient(selectedRecipients[0]);
     setPreviewVisible(true);
+    setRetryCount(0);
   };
 
   const handleSendAll = async () => {
     try {
       setSending(true);
-      await onSendEmails(selectedRecipients, template);
+
+      // Add a timeout to prevent infinite loading
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Request timeout. Please try again.")),
+          30000,
+        ),
+      );
+
+      // Race between API call and timeout
+      await Promise.race([
+        onSendEmails(selectedRecipients, template),
+        timeoutPromise,
+      ]);
+
+      // Success - close everything
       Alert.alert(
         "Success",
         `Emails sent to ${selectedRecipients.length} recipient(s) successfully`,
       );
+
+      // Close preview first, then close main modal
       setPreviewVisible(false);
-      onClose();
-    } catch (error) {
+      setPreviewRecipient(null);
+      setSelectedRecipients([]);
+      setRetryCount(0);
+
+      // Small delay to ensure smooth transition
+      setTimeout(() => {
+        setSending(false);
+        onClose();
+      }, 500);
+    } catch (error: any) {
       console.error("Error sending emails:", error);
-      Alert.alert("Error", "Failed to send emails");
-    } finally {
+
       setSending(false);
+      setRetryCount((prev) => prev + 1);
+
+      // Show error but keep UI interactive
+      Alert.alert(
+        "Error",
+        error?.message || "Failed to send emails. Please try again.",
+        [
+          {
+            text: "Try Again",
+            onPress: () => {
+              // Keep preview open for retry
+              setPreviewVisible(true);
+            },
+          },
+          {
+            text: "Cancel",
+            style: "cancel",
+            onPress: () => {
+              setPreviewVisible(false);
+              setPreviewRecipient(null);
+            },
+          },
+        ],
+      );
+    }
+  };
+
+  const handleClosePreview = () => {
+    if (!sending) {
+      setPreviewVisible(false);
+      setPreviewRecipient(null);
+    }
+  };
+
+  const handleMainModalClose = () => {
+    if (!sending && !previewVisible) {
+      onClose();
     }
   };
 
@@ -356,6 +433,7 @@ export const RecipientSelectorModal: React.FC<Props> = ({
           borderBottomWidth: 1,
           borderBottomColor: colors.border,
           backgroundColor: selected ? colors.primary + "10" : colors.card,
+          opacity: sending ? 0.5 : 1,
         }}
         onPress={() =>
           toggleRecipient({
@@ -370,6 +448,7 @@ export const RecipientSelectorModal: React.FC<Props> = ({
             lastName: item.lastName,
           })
         }
+        disabled={sending}
       >
         <View style={{ position: "relative" }}>
           <View
@@ -463,6 +542,7 @@ export const RecipientSelectorModal: React.FC<Props> = ({
           borderBottomWidth: 1,
           borderBottomColor: colors.border,
           backgroundColor: selected ? "#ff980010" : colors.card,
+          opacity: sending ? 0.5 : 1,
         }}
         onPress={() =>
           toggleRecipient({
@@ -479,6 +559,7 @@ export const RecipientSelectorModal: React.FC<Props> = ({
             lastName,
           })
         }
+        disabled={sending}
       >
         <View style={{ position: "relative" }}>
           <View
@@ -670,7 +751,12 @@ export const RecipientSelectorModal: React.FC<Props> = ({
     };
 
     return (
-      <Modal visible={previewVisible} transparent animationType="slide">
+      <Modal
+        visible={previewVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={handleClosePreview}
+      >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContainer, { maxHeight: "80%" }]}>
             <View
@@ -683,8 +769,12 @@ export const RecipientSelectorModal: React.FC<Props> = ({
               ]}
             >
               <Text style={styles.modalTitle}>Preview Email</Text>
-              <TouchableOpacity onPress={() => setPreviewVisible(false)}>
-                <Feather name="x" size={24} color={colors.text} />
+              <TouchableOpacity onPress={handleClosePreview} disabled={sending}>
+                <Feather
+                  name="x"
+                  size={24}
+                  color={sending ? colors.textSecondary : colors.text}
+                />
               </TouchableOpacity>
             </View>
 
@@ -887,6 +977,14 @@ export const RecipientSelectorModal: React.FC<Props> = ({
                   </View>
                 </View>
               )}
+
+              {retryCount > 0 && !sending && (
+                <View style={{ marginBottom: 20, alignItems: "center" }}>
+                  <Text style={{ color: colors.warning, fontSize: 12 }}>
+                    Retry attempt {retryCount}
+                  </Text>
+                </View>
+              )}
             </ScrollView>
 
             <View
@@ -908,13 +1006,14 @@ export const RecipientSelectorModal: React.FC<Props> = ({
                   paddingVertical: 14,
                   borderRadius: 12,
                   alignItems: "center",
+                  opacity: sending ? 0.5 : 1,
                 }}
-                onPress={() => setPreviewVisible(false)}
+                onPress={handleClosePreview}
                 disabled={sending}
               >
                 <Text
                   style={{
-                    color: colors.text,
+                    color: sending ? colors.textSecondary : colors.text,
                     fontSize: 16,
                     fontWeight: "600",
                   }}
@@ -931,19 +1030,32 @@ export const RecipientSelectorModal: React.FC<Props> = ({
                   borderRadius: 12,
                   alignItems: "center",
                   opacity: sending ? 0.7 : 1,
+                  flexDirection: "row",
+                  justifyContent: "center",
+                  gap: 8,
                 }}
                 onPress={handleSendAll}
                 disabled={sending}
               >
                 {sending ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                  <>
+                    <ActivityIndicator size="small" color="#fff" />
+                    <Text
+                      style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}
+                    >
+                      Sending...
+                    </Text>
+                  </>
                 ) : (
-                  <Text
-                    style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}
-                  >
-                    Send to {selectedRecipients.length} Recipient
-                    {selectedRecipients.length > 1 ? "s" : ""}
-                  </Text>
+                  <>
+                    <Feather name="send" size={20} color="#fff" />
+                    <Text
+                      style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}
+                    >
+                      Send to {selectedRecipients.length} Recipient
+                      {selectedRecipients.length > 1 ? "s" : ""}
+                    </Text>
+                  </>
                 )}
               </TouchableOpacity>
             </View>
@@ -956,232 +1068,296 @@ export const RecipientSelectorModal: React.FC<Props> = ({
   // ==================== MAIN RENDER ====================
 
   return (
-    <>
-      <Modal visible={visible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContainer, { height: "90%" }]}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={handleMainModalClose}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={[styles.modalContainer, { height: "90%" }]}>
+          {/* Loading Overlay */}
+          {sending && (
             <View
-              style={[
-                styles.modalHeader,
-                {
-                  borderBottomWidth: 1,
-                  borderBottomColor: colors.border,
-                },
-              ]}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: "rgba(0,0,0,0.5)",
+                justifyContent: "center",
+                alignItems: "center",
+                zIndex: 1000,
+              }}
             >
-              <View>
-                <Text style={styles.modalTitle}>Select Recipients</Text>
-                {selectedRecipients.length > 0 && (
-                  <Text
-                    style={{
-                      color: colors.primary,
-                      fontSize: 13,
-                      marginTop: 2,
-                    }}
-                  >
-                    {selectedRecipients.length} selected
-                  </Text>
-                )}
-              </View>
-              <TouchableOpacity onPress={onClose}>
-                <Feather name="x" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={{ flexDirection: "row", padding: 16, gap: 12 }}>
-              <TouchableOpacity
-                style={{
-                  flex: 1,
-                  paddingVertical: 10,
-                  borderRadius: 8,
-                  backgroundColor:
-                    activeTab === "contacts" ? colors.primary : "transparent",
-                  borderWidth: 1,
-                  borderColor:
-                    activeTab === "contacts" ? colors.primary : colors.border,
-                  alignItems: "center",
-                }}
-                onPress={() => setActiveTab("contacts")}
-              >
-                <Text
-                  style={{
-                    color: activeTab === "contacts" ? "#fff" : colors.text,
-                    fontWeight: "600",
-                  }}
-                >
-                  Contacts ({contacts.length})
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={{
-                  flex: 1,
-                  paddingVertical: 10,
-                  borderRadius: 8,
-                  backgroundColor:
-                    activeTab === "leads" ? colors.primary : "transparent",
-                  borderWidth: 1,
-                  borderColor:
-                    activeTab === "leads" ? colors.primary : colors.border,
-                  alignItems: "center",
-                }}
-                onPress={() => setActiveTab("leads")}
-              >
-                <Text
-                  style={{
-                    color: activeTab === "leads" ? "#fff" : colors.text,
-                    fontWeight: "600",
-                  }}
-                >
-                  Leads ({leads.length})
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
               <View
                 style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  backgroundColor: isDark ? colors.card : "#f5f5f5",
-                  borderRadius: 8,
-                  paddingHorizontal: 12,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                }}
-              >
-                <Feather name="search" size={18} color={colors.textSecondary} />
-                <TextInput
-                  style={{
-                    flex: 1,
-                    paddingVertical: 10,
-                    paddingHorizontal: 8,
-                    color: colors.text,
-                  }}
-                  placeholder={`Search ${activeTab}...`}
-                  placeholderTextColor={colors.textSecondary}
-                  value={searchQuery}
-                  onChangeText={handleSearch}
-                />
-                {searchQuery ? (
-                  <TouchableOpacity onPress={() => handleSearch("")}>
-                    <Feather name="x" size={18} color={colors.textSecondary} />
-                  </TouchableOpacity>
-                ) : null}
-              </View>
-            </View>
-
-            {activeTab === "contacts" ? (
-              <FlatList
-                data={contacts}
-                renderItem={renderContactItem}
-                keyExtractor={(item: Contact): string =>
-                  item._id || `contact-${Date.now()}-${Math.random()}`
-                }
-                onEndReached={handleLoadMore}
-                onEndReachedThreshold={0.5}
-                ListEmptyComponent={
-                  loading ? (
-                    <View style={{ padding: 40, alignItems: "center" }}>
-                      <ActivityIndicator size="large" color={colors.primary} />
-                    </View>
-                  ) : (
-                    <View style={{ padding: 40, alignItems: "center" }}>
-                      <Feather
-                        name="users"
-                        size={48}
-                        color={colors.textSecondary}
-                      />
-                      <Text
-                        style={{ color: colors.textSecondary, marginTop: 12 }}
-                      >
-                        No contacts found
-                      </Text>
-                    </View>
-                  )
-                }
-                ListFooterComponent={
-                  loading && contacts.length > 0 ? (
-                    <View style={{ padding: 20 }}>
-                      <ActivityIndicator size="small" color={colors.primary} />
-                    </View>
-                  ) : null
-                }
-              />
-            ) : (
-              <FlatList
-                data={leads}
-                renderItem={renderLeadItem}
-                keyExtractor={(item: Lead): string =>
-                  item._id || `lead-${Date.now()}-${Math.random()}`
-                }
-                onEndReached={handleLoadMore}
-                onEndReachedThreshold={0.5}
-                ListEmptyComponent={
-                  loading ? (
-                    <View style={{ padding: 40, alignItems: "center" }}>
-                      <ActivityIndicator size="large" color={colors.primary} />
-                    </View>
-                  ) : (
-                    <View style={{ padding: 40, alignItems: "center" }}>
-                      <Feather
-                        name="trending-up"
-                        size={48}
-                        color={colors.textSecondary}
-                      />
-                      <Text
-                        style={{ color: colors.textSecondary, marginTop: 12 }}
-                      >
-                        No leads found
-                      </Text>
-                    </View>
-                  )
-                }
-                ListFooterComponent={
-                  loading && leads.length > 0 ? (
-                    <View style={{ padding: 20 }}>
-                      <ActivityIndicator size="small" color={colors.primary} />
-                    </View>
-                  ) : null
-                }
-              />
-            )}
-
-            {selectedRecipients.length > 0 && (
-              <View
-                style={{
-                  padding: 16,
-                  borderTopWidth: 1,
-                  borderTopColor: colors.border,
                   backgroundColor: colors.card,
+                  padding: 24,
+                  borderRadius: 16,
+                  alignItems: "center",
+                  elevation: 5,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 4,
                 }}
               >
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: colors.primary,
-                    paddingVertical: 14,
-                    borderRadius: 12,
-                    alignItems: "center",
-                    flexDirection: "row",
-                    justifyContent: "center",
-                    gap: 8,
-                  }}
-                  onPress={handleContinue}
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text
+                  style={{ color: colors.text, marginTop: 16, fontSize: 16 }}
                 >
-                  <Feather name="eye" size={20} color="#fff" />
-                  <Text
-                    style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}
-                  >
-                    Preview & Send ({selectedRecipients.length})
-                  </Text>
-                </TouchableOpacity>
+                  Sending emails...
+                </Text>
+                <Text
+                  style={{
+                    color: colors.textSecondary,
+                    marginTop: 4,
+                    fontSize: 14,
+                  }}
+                >
+                  {selectedRecipients.length} recipient(s)
+                </Text>
               </View>
-            )}
-          </View>
-        </View>
-      </Modal>
+            </View>
+          )}
 
-      {previewRecipient && <PreviewModal />}
-    </>
+          <View
+            style={[
+              styles.modalHeader,
+              {
+                borderBottomWidth: 1,
+                borderBottomColor: colors.border,
+              },
+            ]}
+          >
+            <View>
+              <Text style={styles.modalTitle}>Select Recipients</Text>
+              {selectedRecipients.length > 0 && (
+                <Text
+                  style={{
+                    color: colors.primary,
+                    fontSize: 13,
+                    marginTop: 2,
+                  }}
+                >
+                  {selectedRecipients.length} selected
+                </Text>
+              )}
+            </View>
+            <TouchableOpacity onPress={handleMainModalClose} disabled={sending}>
+              <Feather
+                name="x"
+                size={24}
+                color={sending ? colors.textSecondary : colors.text}
+              />
+            </TouchableOpacity>
+          </View>
+
+          <View style={{ flexDirection: "row", padding: 16, gap: 12 }}>
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                paddingVertical: 10,
+                borderRadius: 8,
+                backgroundColor:
+                  activeTab === "contacts" ? colors.primary : "transparent",
+                borderWidth: 1,
+                borderColor:
+                  activeTab === "contacts" ? colors.primary : colors.border,
+                alignItems: "center",
+              }}
+              onPress={() => !sending && setActiveTab("contacts")}
+              disabled={sending}
+            >
+              <Text
+                style={{
+                  color: activeTab === "contacts" ? "#fff" : colors.text,
+                  fontWeight: "600",
+                }}
+              >
+                Contacts ({contacts.length})
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                paddingVertical: 10,
+                borderRadius: 8,
+                backgroundColor:
+                  activeTab === "leads" ? colors.primary : "transparent",
+                borderWidth: 1,
+                borderColor:
+                  activeTab === "leads" ? colors.primary : colors.border,
+                alignItems: "center",
+              }}
+              onPress={() => !sending && setActiveTab("leads")}
+              disabled={sending}
+            >
+              <Text
+                style={{
+                  color: activeTab === "leads" ? "#fff" : colors.text,
+                  fontWeight: "600",
+                }}
+              >
+                Leads ({leads.length})
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: isDark ? colors.card : "#f5f5f5",
+                borderRadius: 8,
+                paddingHorizontal: 12,
+                borderWidth: 1,
+                borderColor: colors.border,
+                opacity: sending ? 0.5 : 1,
+              }}
+            >
+              <Feather name="search" size={18} color={colors.textSecondary} />
+              <TextInput
+                style={{
+                  flex: 1,
+                  paddingVertical: 10,
+                  paddingHorizontal: 8,
+                  color: colors.text,
+                }}
+                placeholder={`Search ${activeTab}...`}
+                placeholderTextColor={colors.textSecondary}
+                value={searchQuery}
+                onChangeText={handleSearch}
+                editable={!sending}
+              />
+              {searchQuery ? (
+                <TouchableOpacity
+                  onPress={() => handleSearch("")}
+                  disabled={sending}
+                >
+                  <Feather name="x" size={18} color={colors.textSecondary} />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          </View>
+
+          {activeTab === "contacts" ? (
+            <FlatList
+              data={contacts}
+              renderItem={renderContactItem}
+              keyExtractor={(item: Contact): string =>
+                item._id || `contact-${Date.now()}-${Math.random()}`
+              }
+              onEndReached={handleLoadMore}
+              onEndReachedThreshold={0.5}
+              scrollEnabled={!sending}
+              ListEmptyComponent={
+                loading ? (
+                  <View style={{ padding: 40, alignItems: "center" }}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                  </View>
+                ) : (
+                  <View style={{ padding: 40, alignItems: "center" }}>
+                    <Feather
+                      name="users"
+                      size={48}
+                      color={colors.textSecondary}
+                    />
+                    <Text
+                      style={{ color: colors.textSecondary, marginTop: 12 }}
+                    >
+                      No contacts found
+                    </Text>
+                  </View>
+                )
+              }
+              ListFooterComponent={
+                loading && contacts.length > 0 ? (
+                  <View style={{ padding: 20 }}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  </View>
+                ) : null
+              }
+            />
+          ) : (
+            <FlatList
+              data={leads}
+              renderItem={renderLeadItem}
+              keyExtractor={(item: Lead): string =>
+                item._id || `lead-${Date.now()}-${Math.random()}`
+              }
+              onEndReached={handleLoadMore}
+              onEndReachedThreshold={0.5}
+              scrollEnabled={!sending}
+              ListEmptyComponent={
+                loading ? (
+                  <View style={{ padding: 40, alignItems: "center" }}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                  </View>
+                ) : (
+                  <View style={{ padding: 40, alignItems: "center" }}>
+                    <Feather
+                      name="trending-up"
+                      size={48}
+                      color={colors.textSecondary}
+                    />
+                    <Text
+                      style={{ color: colors.textSecondary, marginTop: 12 }}
+                    >
+                      No leads found
+                    </Text>
+                  </View>
+                )
+              }
+              ListFooterComponent={
+                loading && leads.length > 0 ? (
+                  <View style={{ padding: 20 }}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  </View>
+                ) : null
+              }
+            />
+          )}
+
+          {selectedRecipients.length > 0 && !sending && (
+            <View
+              style={{
+                padding: 16,
+                borderTopWidth: 1,
+                borderTopColor: colors.border,
+                backgroundColor: colors.card,
+              }}
+            >
+              <TouchableOpacity
+                style={{
+                  backgroundColor: colors.primary,
+                  paddingVertical: 14,
+                  borderRadius: 12,
+                  alignItems: "center",
+                  flexDirection: "row",
+                  justifyContent: "center",
+                  gap: 8,
+                }}
+                onPress={handleContinue}
+              >
+                <Feather name="eye" size={20} color="#fff" />
+                <Text
+                  style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}
+                >
+                  Preview & Send ({selectedRecipients.length})
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* Preview Modal */}
+        {previewRecipient && <PreviewModal />}
+      </View>
+    </Modal>
   );
 };

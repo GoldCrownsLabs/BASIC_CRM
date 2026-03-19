@@ -48,7 +48,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
       <View style={styles.container}>
         <ThemedText
           type="subtitle"
-          style={{ marginBottom: 15, color: colors.text }}
+          style={{ marginBottom: 0, color: colors.text }}
         >
           {/* Overview */}
         </ThemedText>

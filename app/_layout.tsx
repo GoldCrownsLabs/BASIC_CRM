@@ -63,7 +63,7 @@ function AppContent() {
         <StatusBar
           style={statusBarStyle}
           backgroundColor={colors.background}
-          hidden={showSplash} 
+          hidden={showSplash}
         />
       </View>
     );
@@ -81,7 +81,6 @@ function AppContent() {
             drawerStyle: {
               backgroundColor: "transparent",
             },
-            // For header styling if shown
             headerStyle: {
               backgroundColor: colors.card,
             },
@@ -97,6 +96,32 @@ function AppContent() {
             options={{
               title: "Home",
               drawerLabel: "Dashboard",
+            }}
+          />
+
+          {/* ✅ PAYMENT SCREENS - Add these */}
+          {/* <Drawer.Screen
+            name="plans"
+            options={{
+              title: "Subscription Plans",
+              drawerLabel: "Plans",
+            }}
+          /> */}
+
+          <Drawer.Screen
+            name="checkout"
+            options={{
+              title: "Checkout",
+              drawerLabel: "Checkout",
+              drawerItemStyle: { display: "none" }, // Hide from drawer
+            }}
+          />
+
+          <Drawer.Screen
+            name="subscription"
+            options={{
+              title: "My Subscriptions",
+              drawerLabel: "Subscriptions",
             }}
           />
 
@@ -135,16 +160,8 @@ function AppContent() {
               title: "Modal",
             }}
           />
-
-          {/* <Drawer.Screen
-            name="profile/index"
-            options={{
-              drawerLabel: 'Profile',
-              title: 'Profile',
-            }}
-          /> */}
         </Drawer>
-        {/* ✅ Dynamic StatusBar - Time/Battery opposite colors */}
+        {/* ✅ Dynamic StatusBar */}
         <StatusBar style={statusBarStyle} backgroundColor={colors.background} />
       </View>
     </NavigationThemeProvider>

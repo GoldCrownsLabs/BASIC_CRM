@@ -54,7 +54,6 @@ export default function TabLayout() {
           backgroundColor: colors.card,
           borderTopColor: colors.border,
         },
-        
         headerStyle: {
           backgroundColor: colors.card,
           elevation: 0,
@@ -63,7 +62,6 @@ export default function TabLayout() {
           borderBottomColor: colors.border,
         },
         headerTitle: () => null,
-
         headerLeft: () => (
           <View
             style={{
@@ -95,7 +93,6 @@ export default function TabLayout() {
             </View>
           </View>
         ),
-
         headerRight: () => (
           <Pressable
             onPress={() => router.push("/(tabs)/profile")}
@@ -143,7 +140,7 @@ export default function TabLayout() {
         ),
       }}
     >
-      {/* ✅ VISIBLE TABS */}
+      {/* VISIBLE TABS */}
       <Tabs.Screen
         name="index"
         options={{
@@ -214,7 +211,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* HIDDEN TABS */}
+      {/* HIDDEN SCREENS - No tab bar visible */}
       <Tabs.Screen
         name="(tools)"
         options={{
