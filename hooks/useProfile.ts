@@ -1,4 +1,5 @@
-// hooks/useProfile.ts
+// hooks/useProfile.ts - Complete Fixed Version
+
 import { useState, useEffect, useCallback } from "react";
 import { Alert, Platform } from "react-native";
 import { useAuthStore } from "@/store/auth.store";
@@ -74,7 +75,7 @@ export const useProfile = () => {
     };
   };
 
-  // Helper: Convert to auth store format
+  // Helper: Convert to auth store format (only used when needed)
   const toAuthStoreUser = (userData: ProfileState): AuthStoreUser => {
     return {
       id: userData.id,
@@ -96,7 +97,7 @@ export const useProfile = () => {
     };
   };
 
-  // Fetch profile
+  // Fetch profile - FIXED: No setUser call
   const fetchProfile = useCallback(async (): Promise<void> => {
     try {
       setRefreshing(true);
@@ -105,8 +106,9 @@ export const useProfile = () => {
 
       setProfile(profileWithId);
 
-      const authUserData = toAuthStoreUser(profileWithId);
-      setUser(authUserData);
+      // ❌ REMOVED setUser call - This was causing the redirect
+      // const authUserData = toAuthStoreUser(profileWithId);
+      // setUser(authUserData);
     } catch (error) {
       console.error("Error fetching profile:", error);
 
@@ -134,7 +136,7 @@ export const useProfile = () => {
     } finally {
       setRefreshing(false);
     }
-  }, [authUser, setUser]);
+  }, [authUser]); // ✅ Removed setUser from dependencies
 
   // Fetch addresses
   const fetchAddresses = useCallback(async (): Promise<void> => {
@@ -216,7 +218,7 @@ export const useProfile = () => {
     }
   }, [profile]);
 
-  // Update profile
+  // Update profile - FIXED: No setUser call
   const updateProfile = useCallback(
     async (
       data: Partial<UserProfile>,
@@ -228,8 +230,9 @@ export const useProfile = () => {
 
         setProfile(profileWithId);
 
-        const authUserData = toAuthStoreUser(profileWithId);
-        setUser(authUserData);
+        // ❌ REMOVED setUser call - This was causing the redirect
+        // const authUserData = toAuthStoreUser(profileWithId);
+        // setUser(authUserData);
 
         return { success: true, user: profileWithId };
       } catch (error: any) {
@@ -242,7 +245,7 @@ export const useProfile = () => {
         setLoading(false);
       }
     },
-    [setUser],
+    [], // ✅ Removed setUser from dependencies
   );
 
   // Change password

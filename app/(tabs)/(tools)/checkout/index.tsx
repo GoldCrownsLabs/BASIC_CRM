@@ -363,7 +363,7 @@ export default function CheckoutScreen() {
                   Price
                 </Text>
                 <Text style={[styles.finalPrice, { color: colors.primary }]}>
-                  {plan.formattedPrice}
+                  {plan.price}
                 </Text>
               </View>
             )}

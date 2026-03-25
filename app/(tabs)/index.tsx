@@ -1,6 +1,13 @@
-// app/(tabs)/index.tsx
+// app/(tabs)/index.tsx - Updated with proper navigation
+
 import React, { useState, useEffect } from "react";
-import { ScrollView, RefreshControl, View } from "react-native";
+import {
+  ScrollView,
+  RefreshControl,
+  View,
+  ActivityIndicator,
+  Text,
+} from "react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useAuthStore } from "@/store/auth.store";
 import { useDashboard } from "@/hooks/useDashboard";
@@ -14,21 +21,22 @@ import { SyncStatus } from "@/models/Home/SyncStatus";
 
 import { fetchActivities, Activity } from "@/lib/api/activities.api";
 import { MeetingReminder } from "@/models/Home/MeetingReminder";
-import { router } from "expo-router";
+import { router, usePathname } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-// ✅ Import both banners and services
 import BannerSession from "@/models/Home/BannerSession";
-
 import { planService, Plan } from "@/lib/api/plan";
 import PlansBanner from "@/models/Home/PlanBanner";
+import WelcomeScreen from "./(tools)/welcome";
+
 
 export default function DashboardScreen() {
   const { user } = useAuthStore();
   const { colors, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
+  const pathname = usePathname();
 
-  // ✅ States for subscription and plans
+  // States for subscription and plans
   const [hasSubscription, setHasSubscription] = useState(false);
   const [checkingSubscription, setCheckingSubscription] = useState(true);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -54,7 +62,7 @@ export default function DashboardScreen() {
     return isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)";
   };
 
-  // ✅ Check subscription status and load plans
+  // Check subscription status and load plans
   const loadData = async () => {
     try {
       setCheckingSubscription(true);
@@ -119,6 +127,76 @@ export default function DashboardScreen() {
     }
   }, [refreshing]);
 
+  // Show loading while checking subscription
+  if (checkingSubscription) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: colors.background,
+        }}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ marginTop: 12, color: colors.textSecondary }}>
+          Loading...
+        </Text>
+      </View>
+    );
+  }
+
+  // ✅ If NO subscription, show welcome banner inside dashboard (not redirect)
+  if (!hasSubscription) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: colors.background,
+          paddingTop: 0,
+        }}
+      >
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{
+            paddingTop: 0,
+            paddingBottom: 20 + insets.bottom,
+          }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing || fetchingMeetings}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+              style={{ backgroundColor: colors.background }}
+              progressViewOffset={20}
+            />
+          }
+        >
+          {/* Welcome Header */}
+          {/* <WelcomeHeader
+            greeting={greeting}
+            userName={user?.name || "User"}
+            fadeAnim={fadeAnim}
+          /> */}
+
+          {/* 🎯 WELCOME BANNER - Show full welcome screen as component */}
+          <WelcomeScreen
+            isInline={true}
+            onPlanSelect={() => {
+              router.push("/(tabs)/(tools)/plans");
+            }}
+          />
+
+          {/* Bottom Spacer */}
+          <View style={{ height: 20 }} />
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // If HAS subscription, show actual dashboard
   return (
     <View
       style={{
@@ -136,7 +214,7 @@ export default function DashboardScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing || fetchingMeetings || checkingSubscription}
+            refreshing={refreshing || fetchingMeetings}
             onRefresh={onRefresh}
             tintColor={colors.primary}
             colors={[colors.primary]}
@@ -145,6 +223,11 @@ export default function DashboardScreen() {
           />
         }
       >
+        {/* <WelcomeHeader
+          greeting={greeting}
+          userName={user?.name || "User"}
+          fadeAnim={fadeAnim}
+        /> */}
         {/* Welcome Header */}
         <WelcomeHeader
           greeting={greeting}
@@ -152,13 +235,8 @@ export default function DashboardScreen() {
           fadeAnim={fadeAnim}
         />
 
-        {/* 🎯 PLANS BANNER - Only if NO subscription */}
-        {!hasSubscription && !checkingSubscription && plans.length > 0 && (
-          <PlansBanner plans={plans} />
-        )}
-
-        {/* 🎯 LEADS BANNER - Only if HAS subscription (ALWAYS show) */}
-        {hasSubscription && !checkingSubscription && <BannerSession />}
+        {/* LEADS BANNER - Only when HAS subscription */}
+        <BannerSession />
 
         {/* Meeting Reminder */}
         <MeetingReminder
