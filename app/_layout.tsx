@@ -14,6 +14,7 @@ import { ThemeProvider as NavigationThemeProvider } from "@react-navigation/nati
 import { LeadsProvider } from "@/context/LeadsContext";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { NotificationProvider } from "@/context/NotificationContext";
+import { SupportProvider } from "@/context/SupportContext";
 
 // Separate component that uses the theme
 function AppContent() {
@@ -173,9 +174,11 @@ export default function RootLayout() {
     <AppThemeProvider>
       <SafeAreaProvider>
         <LeadsProvider>
-          <NotificationProvider>
-            <AppContent />
-          </NotificationProvider>
+          <SupportProvider>
+            <NotificationProvider>
+              <AppContent />
+            </NotificationProvider>
+          </SupportProvider>
         </LeadsProvider>
       </SafeAreaProvider>
     </AppThemeProvider>

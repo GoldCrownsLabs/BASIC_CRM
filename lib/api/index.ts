@@ -51,25 +51,25 @@ type CustomAxiosRequestConfig = AxiosRequestConfig;
 // ==================== AXIOS INSTANCE ====================
 
 // Localhost URL (change as needed)
-// const api = axios.create({
-//   baseURL: "http://192.168.1.4:5000/api/",
-//   timeout: 30000,
-//   headers: {
-//     "Content-Type": "application/json",
-//     Accept: "application/json",
-//   },
-// });
-
-
-
 const api = axios.create({
-  baseURL: "https://basic-crm-backend-p5tb.onrender.com/api/",
+  baseURL: "http://192.168.1.14:5000/api/",
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
   },
 });
+
+
+
+// const api = axios.create({
+//   baseURL: "https://basic-crm-backend-p5tb.onrender.com/api/",
+//   timeout: 30000,
+//   headers: {
+//     "Content-Type": "application/json",
+//     Accept: "application/json",
+//   },
+// });
 
 
 // ==================== TOKEN MANAGEMENT ===================
