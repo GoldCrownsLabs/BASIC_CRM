@@ -2,6 +2,8 @@ import PrivacyPolicyModal from "@/components/Terms&Conditions/PrivacyPolicyModal
 import TermsAndConditionsModal from "@/components/Terms&Conditions/TermsAndConditionsModal";
 import TermsPrivacyFooter from "@/components/Terms&Conditions/TermsPrivacyFooter";
 
+
+
 import { useAuthStore } from "@/store/auth.store";
 import { router } from "expo-router";
 import { useState, useEffect } from "react";
@@ -20,6 +22,8 @@ import {
   Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSocialLogin } from "@/hooks/SocialMedia/useSocialLogin";
+import { SocialLoginButtons } from "@/components/common/SocialLoginButtons";
 
 const { width, height } = Dimensions.get("window");
 
@@ -31,7 +35,15 @@ export default function LoginScreen() {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [isFocusedEmail, setIsFocusedEmail] = useState(false);
   const [isFocusedPassword, setIsFocusedPassword] = useState(false);
+
   const { login, isLoading, error, clearError } = useAuthStore();
+  const {
+    handleGoogleLogin,
+    handleFacebookLogin,
+    isGoogleLoading,
+    isFacebookLoading,
+    isAnySocialLoading,
+  } = useSocialLogin();
 
   useEffect(() => {
     clearError();
@@ -64,26 +76,12 @@ export default function LoginScreen() {
     }
   };
 
-  // Dummy handlers for social login
-  const handleGoogleLogin = async () => {
-    try {
-      Alert.alert("Google Login", "Google login will be implemented soon!");
-    } catch (error) {
-      Alert.alert("Google Login Error", "Failed to login with Google");
-    }
-  };
-
-  const handleFacebookLogin = async () => {
-    try {
-      Alert.alert("Facebook Login", "Facebook login will be implemented soon!");
-    } catch (error) {
-      Alert.alert("Facebook Login Error", "Failed to login with Facebook");
-    }
-  };
-
   const dismissKeyboard = () => {
     Keyboard.dismiss();
   };
+
+  // Check if any loading state is active
+  const isAnyLoading = isLoading || isAnySocialLoading;
 
   return (
     <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
@@ -211,7 +209,7 @@ export default function LoginScreen() {
                         paddingVertical: 16,
                         fontSize: 16,
                         color: "#1F2937",
-                        opacity: isLoading ? 0.7 : 1,
+                        opacity: isAnyLoading ? 0.7 : 1,
                       }}
                       placeholder="you@example.com"
                       placeholderTextColor="#9CA3AF"
@@ -221,7 +219,7 @@ export default function LoginScreen() {
                       onBlur={() => setIsFocusedEmail(false)}
                       autoCapitalize="none"
                       keyboardType="email-address"
-                      editable={!isLoading}
+                      editable={!isAnyLoading}
                       returnKeyType="next"
                       textContentType="username"
                       autoComplete="email"
@@ -260,7 +258,7 @@ export default function LoginScreen() {
                         paddingVertical: 16,
                         fontSize: 16,
                         color: "#1F2937",
-                        opacity: isLoading ? 0.7 : 1,
+                        opacity: isAnyLoading ? 0.7 : 1,
                       }}
                       placeholder="Enter your password"
                       placeholderTextColor="#9CA3AF"
@@ -269,7 +267,7 @@ export default function LoginScreen() {
                       onFocus={() => setIsFocusedPassword(true)}
                       onBlur={() => setIsFocusedPassword(false)}
                       secureTextEntry
-                      editable={!isLoading}
+                      editable={!isAnyLoading}
                       returnKeyType="done"
                       onSubmitEditing={handleLogin}
                       textContentType="password"
@@ -291,6 +289,7 @@ export default function LoginScreen() {
                       "Password reset will be implemented soon!",
                     );
                   }}
+                  disabled={isAnyLoading}
                 >
                   <Text
                     style={{
@@ -307,11 +306,11 @@ export default function LoginScreen() {
                 <TouchableOpacity
                   activeOpacity={0.9}
                   onPress={handleLogin}
-                  disabled={isLoading}
+                  disabled={isAnyLoading}
                 >
                   <LinearGradient
                     colors={
-                      isLoading
+                      isAnyLoading
                         ? ["#90CAF9", "#64B5F6"]
                         : ["#2196F3", "#1976D2"]
                     }
@@ -322,7 +321,7 @@ export default function LoginScreen() {
                       borderRadius: 16,
                       alignItems: "center",
                       justifyContent: "center",
-                      opacity: isLoading ? 0.8 : 1,
+                      opacity: isAnyLoading ? 0.8 : 1,
                       shadowColor: "#2196F3",
                       shadowOffset: { width: 0, height: 4 },
                       shadowOpacity: 0.3,
@@ -380,82 +379,14 @@ export default function LoginScreen() {
                   />
                 </View>
 
-                {/* Social Login Buttons */}
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    gap: 16,
-                  }}
-                >
-                  {/* Google Login Button */}
-                  <TouchableOpacity
-                    style={{
-                      flex: 1,
-                      backgroundColor: "#FFFFFF",
-                      paddingVertical: 14,
-                      borderRadius: 16,
-                      alignItems: "center",
-                      flexDirection: "row",
-                      justifyContent: "center",
-                      borderWidth: 1,
-                      borderColor: "#E5E7EB",
-                      shadowColor: "#000",
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.05,
-                      shadowRadius: 4,
-                      elevation: 2,
-                    }}
-                    onPress={handleGoogleLogin}
-                    disabled={isLoading}
-                  >
-                    <View style={{ width: 24, height: 24, marginRight: 12 }}>
-                      <Text style={{ fontSize: 20 }}>G</Text>
-                    </View>
-                    <Text
-                      style={{
-                        color: "#374151",
-                        fontSize: 15,
-                        fontWeight: "600",
-                      }}
-                    >
-                      Google
-                    </Text>
-                  </TouchableOpacity>
-
-                  {/* Facebook Login Button */}
-                  <TouchableOpacity
-                    style={{
-                      flex: 1,
-                      backgroundColor: "#1877F2",
-                      paddingVertical: 14,
-                      borderRadius: 16,
-                      alignItems: "center",
-                      flexDirection: "row",
-                      justifyContent: "center",
-                      shadowColor: "#1877F2",
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.2,
-                      shadowRadius: 8,
-                      elevation: 3,
-                    }}
-                    onPress={handleFacebookLogin}
-                    disabled={isLoading}
-                  >
-                    <View style={{ width: 24, height: 24, marginRight: 12 }}>
-                      <Text style={{ fontSize: 20, color: "white" }}>f</Text>
-                    </View>
-                    <Text
-                      style={{
-                        color: "white",
-                        fontSize: 15,
-                        fontWeight: "600",
-                      }}
-                    >
-                      Facebook
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                {/* Social Login Buttons - Using the new component */}
+                <SocialLoginButtons
+                  onGooglePress={handleGoogleLogin}
+                  onFacebookPress={handleFacebookLogin}
+                  isGoogleLoading={isGoogleLoading}
+                  isFacebookLoading={isFacebookLoading}
+                  disabled={isLoading}
+                />
 
                 {/* Sign Up Link */}
                 <View
@@ -476,9 +407,9 @@ export default function LoginScreen() {
                   </Text>
                   <TouchableOpacity
                     onPress={() =>
-                      !isLoading && router.push("/(auth)/register")
+                      !isAnyLoading && router.push("/(auth)/register")
                     }
-                    disabled={isLoading}
+                    disabled={isAnyLoading}
                   >
                     <Text
                       style={{
@@ -513,7 +444,7 @@ export default function LoginScreen() {
       </KeyboardAvoidingView>
 
       {/* Loading Overlay */}
-      {isLoading && (
+      {isAnyLoading && (
         <View
           style={{
             position: "absolute",
@@ -550,7 +481,9 @@ export default function LoginScreen() {
                 fontWeight: "500",
               }}
             >
-              Signing in...
+              {isGoogleLoading || isFacebookLoading
+                ? "Signing in..."
+                : "Signing in..."}
             </Text>
           </View>
         </View>

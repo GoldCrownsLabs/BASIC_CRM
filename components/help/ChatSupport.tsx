@@ -21,6 +21,7 @@ import { getSocket, authenticateSocket } from "@/socket/chatSocket";
 import { chatApi } from "@/lib/api/chat.api";
 import { apiService } from "@/lib/api";
 import type { Socket } from "socket.io-client";
+import { ScrollView } from "react-native-gesture-handler";
 
 interface Message {
   messageId: string;
@@ -311,9 +312,9 @@ export default function ChatScreen({
       }
       
       // Scroll to bottom
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+if (!inputRef.current?.isFocused()) {
+  inputRef.current?.focus();
+}
       
       console.log("✅ Chat history loading completed successfully");
       return true;
@@ -460,9 +461,7 @@ export default function ChatScreen({
         formattedMessages.forEach(msg => processedMessageIds.current.add(msg.messageId));
       }
       
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+     
     });
 
     socketInstance.on("new_message", (data: { message: Message; sessionId: string }) => {
@@ -505,9 +504,7 @@ export default function ChatScreen({
         ];
       });
 
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+   
 
       if (data.message.sender === "admin" && data.message.messageId) {
         if (socketRef.current && sessionId) {
@@ -636,17 +633,7 @@ export default function ChatScreen({
     console.log("📤 Message sent:", messageText);
     setInput("");
 
-    setTimeout(() => {
-      inputRef.current?.focus();
-    }, 100);
-
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 100);
-
-    setTimeout(() => {
-      setIsSending(false);
-    }, 3000);
+  
   }, [input, sessionId, isSending]);
 
   const handleTyping = useCallback(
@@ -828,19 +815,26 @@ export default function ChatScreen({
           </View>
         ) : (
           <FlatList
+            keyboardShouldPersistTaps="handled"
             ref={flatListRef}
             data={messages}
             keyExtractor={(item) => item.messageId}
             renderItem={renderMessage}
             contentContainerStyle={styles.messagesList}
             showsVerticalScrollIndicator={false}
-            onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
-            onLayout={() => flatListRef.current?.scrollToEnd()}
+            onContentSizeChange={() => {
+              if (!isSending) {
+                flatListRef.current?.scrollToEnd({ animated: true });
+              }
+            }}
+            // onLayout={() => flatListRef.current?.scrollToEnd()}
             ListHeaderComponent={
               isLoadingHistory && messages.length === 0 ? (
                 <View style={styles.historyLoadingContainer}>
                   <ActivityIndicator size="small" color="#25D366" />
-                  <Text style={styles.historyLoadingText}>Loading messages...</Text>
+                  <Text style={styles.historyLoadingText}>
+                    Loading messages...
+                  </Text>
                 </View>
               ) : null
             }

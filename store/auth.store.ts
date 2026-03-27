@@ -1,3 +1,4 @@
+// store/auth.store.ts - Remove loginWithGoogle method from here
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { create } from "zustand";
@@ -32,11 +33,14 @@ interface User {
 }
 
 interface AuthState {
+  // State
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+
+  // Existing methods
   login: (email: string, password: string) => Promise<boolean>;
   register: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
@@ -44,34 +48,34 @@ interface AuthState {
   clearError: () => void;
   setLoading: (loading: boolean) => void;
   refreshToken: () => Promise<boolean>;
-  // ✅ ADDED: Missing functions
-  setToken: (token: string) => void;
+  setToken: (token: string | null) => void;
   setUser: (user: User | null) => void;
+  setAuthenticated: (status: boolean) => void;
+  setError: (error: string | null) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
+      // Initial state
       user: null,
       token: null,
       isAuthenticated: false,
       isLoading: false,
       error: null,
 
+      // ==================== EXISTING METHODS ====================
+
       login: async (email: string, password: string) => {
         try {
           set({ isLoading: true, error: null });
           console.log("🔐 AuthStore: Attempting login...");
 
-          // Use apiService.login() for login
           const response = await apiService.login(email, password);
-
-          console.log("AuthStore Login response:", response);
 
           if (response.success && response.data) {
             const { user, token } = response.data;
 
-            // Update state
             set({
               user,
               token,
@@ -80,9 +84,7 @@ export const useAuthStore = create<AuthState>()(
               error: null,
             });
 
-            // Ensure token is saved in apiService too
             await apiService.setAuthToken(token);
-
             console.log("✅ AuthStore: Login successful");
             return true;
           } else {
@@ -94,12 +96,10 @@ export const useAuthStore = create<AuthState>()(
           }
         } catch (error: any) {
           console.error("❌ AuthStore: Login error:", error);
-
           set({
             isLoading: false,
             error: error.message || "Login failed",
           });
-
           return false;
         }
       },
@@ -108,21 +108,15 @@ export const useAuthStore = create<AuthState>()(
         try {
           set({ isLoading: true, error: null });
 
-          // Use apiService.post() with _skipAuth config
           const response = await apiService.post(
             "/auth/register",
             { name, email, password },
             { _skipAuth: true },
           );
 
-          console.log("Register response:", response);
-
           if (response.success && response.data) {
             const { user, token } = response.data;
-
-            // Store token using apiService
             await apiService.setAuthToken(token);
-
             set({
               user,
               token,
@@ -130,8 +124,6 @@ export const useAuthStore = create<AuthState>()(
               isLoading: false,
               error: null,
             });
-
-            console.log("Registration successful");
             return true;
           } else {
             set({
@@ -142,12 +134,10 @@ export const useAuthStore = create<AuthState>()(
           }
         } catch (error: any) {
           console.error("Registration error:", error);
-
           set({
             isLoading: false,
             error: error.message || "Registration failed. Please try again.",
           });
-
           return false;
         }
       },
@@ -155,11 +145,7 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         try {
           set({ isLoading: true });
-
-          // Clear auth tokens
           await apiService.clearAuthToken();
-
-          // Clear state
           set({
             user: null,
             token: null,
@@ -167,10 +153,7 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
             error: null,
           });
-
-          // Navigate to login
           router.replace("/(auth)/login");
-
           console.log("Logout successful");
         } catch (error) {
           console.error("Logout error:", error);
@@ -186,7 +169,6 @@ export const useAuthStore = create<AuthState>()(
             token &&
             (await apiService.isAuthenticated())
           );
-
           set({ isAuthenticated });
           return isAuthenticated;
         } catch (error) {
@@ -209,12 +191,7 @@ export const useAuthStore = create<AuthState>()(
           if (response.success && response.data?.token) {
             const newToken = response.data.token;
             await apiService.setAuthToken(newToken);
-
-            set({
-              token: newToken,
-              user: response.data.user || get().user,
-            });
-
+            set({ token: newToken, user: response.data.user || get().user });
             return true;
           }
           return false;
@@ -224,18 +201,14 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      // ✅ ADDED: setToken function
-      setToken: (token: string) => {
+      setToken: (token: string | null) => {
         set({ token });
-        // Also update the apiService token
-        apiService.setAuthToken(token);
+        if (token) apiService.setAuthToken(token);
       },
 
-      // ✅ ADDED: setUser function
-      setUser: (user: User | null) => {
-        set({ user });
-      },
-
+      setUser: (user: User | null) => set({ user }),
+      setAuthenticated: (status: boolean) => set({ isAuthenticated: status }),
+      setError: (error: string | null) => set({ error }),
       clearError: () => set({ error: null }),
       setLoading: (loading: boolean) => set({ isLoading: loading }),
     }),
@@ -245,6 +218,7 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({
         user: state.user,
         token: state.token,
+        isAuthenticated: state.isAuthenticated,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
@@ -254,7 +228,7 @@ export const useAuthStore = create<AuthState>()(
     },
   ),
 );
-// Initialize auth
+
 export const initializeAuth = async () => {
   const { checkAuth } = useAuthStore.getState();
   return await checkAuth();

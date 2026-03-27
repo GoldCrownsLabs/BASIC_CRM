@@ -70,103 +70,70 @@ function AppContent() {
     );
   }
 
-  return (
-    <NavigationThemeProvider value={navigationTheme}>
-      <View style={{ flex: 1, backgroundColor: colors.background }}>
-        <Drawer
-          drawerContent={(props) => <CustomDrawerContent {...props} />}
-          screenOptions={{
-            headerShown: false,
-            drawerPosition: "left",
-            swipeEnabled: true,
-            drawerStyle: {
-              backgroundColor: "transparent",
-            },
-            headerStyle: {
-              backgroundColor: colors.card,
-            },
-            headerTintColor: colors.text,
-            headerTitleStyle: {
-              color: colors.text,
-            },
-          }}
-        >
-          {/* MAIN APP (Bottom Tabs) */}
-          <Drawer.Screen
-            name="(tabs)"
-            options={{
-              title: "Home",
-              drawerLabel: "Dashboard",
-            }}
-          />
+ return (
+   <NavigationThemeProvider value={navigationTheme}>
+     <View style={{ flex: 1, backgroundColor: colors.background }}>
+       <Drawer
+         drawerContent={(props) => <CustomDrawerContent {...props} />}
+         screenOptions={{
+           headerShown: false,
+           drawerPosition: "left",
+           swipeEnabled: true,
+           drawerStyle: {
+             backgroundColor: "transparent",
+           },
+         }}
+       >
+         {/* MAIN APP */}
+         <Drawer.Screen
+           name="(tabs)"
+           options={{ title: "Home", drawerLabel: "Dashboard" }}
+         />
 
-          {/* ✅ PAYMENT SCREENS - Add these */}
-          {/* <Drawer.Screen
-            name="plans"
-            options={{
-              title: "Subscription Plans",
-              drawerLabel: "Plans",
-            }}
-          /> */}
+         {/* ✅ ADD THIS - Auth Callback (Hidden) */}
+         <Drawer.Screen
+           name="auth-callback"
+           options={{
+             drawerItemStyle: { display: "none" },
+             title: "Authenticating...",
+           }}
+         />
 
-          <Drawer.Screen
-            name="checkout"
-            options={{
-              title: "Checkout",
-              drawerLabel: "Checkout",
-              drawerItemStyle: { display: "none" }, // Hide from drawer
-            }}
-          />
+         {/* Payment Screens */}
+         <Drawer.Screen
+           name="checkout"
+           options={{ drawerItemStyle: { display: "none" } }}
+         />
+         <Drawer.Screen
+           name="subscription"
+           options={{ title: "My Subscriptions", drawerLabel: "Subscriptions" }}
+         />
 
-          <Drawer.Screen
-            name="subscription"
-            options={{
-              title: "My Subscriptions",
-              drawerLabel: "Subscriptions",
-            }}
-          />
+         {/* Auth Screens */}
+         <Drawer.Screen
+           name="(auth)/login"
+           options={{ drawerItemStyle: { display: "none" } }}
+         />
+         <Drawer.Screen
+           name="(auth)/register"
+           options={{ drawerItemStyle: { display: "none" } }}
+         />
 
-          {/* Individual auth screens */}
-          <Drawer.Screen
-            name="(auth)/login"
-            options={{
-              drawerLabel: "Login",
-              title: "Login",
-              drawerItemStyle: { display: "none" },
-            }}
-          />
+         {/* Other Routes */}
+         <Drawer.Screen
+           name="index"
+           options={{ drawerItemStyle: { display: "none" } }}
+         />
+         <Drawer.Screen
+           name="modal"
+           options={{ drawerLabel: "Modal", title: "Modal" }}
+         />
+       </Drawer>
 
-          <Drawer.Screen
-            name="(auth)/register"
-            options={{
-              drawerLabel: "Register",
-              title: "Register",
-              drawerItemStyle: { display: "none" },
-            }}
-          />
-
-          {/* ROOT INDEX (HIDDEN) */}
-          <Drawer.Screen
-            name="index"
-            options={{
-              drawerItemStyle: { display: "none" },
-            }}
-          />
-
-          {/* OTHER ROUTES */}
-          <Drawer.Screen
-            name="modal"
-            options={{
-              drawerLabel: "Modal",
-              title: "Modal",
-            }}
-          />
-        </Drawer>
-        {/* ✅ Dynamic StatusBar */}
-        <StatusBar style={statusBarStyle} backgroundColor={colors.background} />
-      </View>
-    </NavigationThemeProvider>
-  );
+       <StatusBar style={statusBarStyle} backgroundColor={colors.background} />
+     </View>
+   </NavigationThemeProvider>
+ );
 }
 
 export default function RootLayout() {
