@@ -1,60 +1,69 @@
 // app/auth-callback.tsx
-import { useEffect, useState } from "react";
-import { router } from "expo-router";
-import { View, ActivityIndicator, Text } from "react-native";
+import { useEffect } from "react";
+import { router, useGlobalSearchParams } from "expo-router";
+import { View, ActivityIndicator, Text, Alert } from "react-native";
 import { useAuthStore } from "@/store/auth.store";
+import googleAuthApi from "@/lib/api/googleAuth.api";
 
 export default function AuthCallback() {
-  const { completeGoogleLogin, isLoading } = useAuthStore();
-  const [error, setError] = useState<string | null>(null);
+  const params = useGlobalSearchParams();
+  const { setUser, setToken, setAuthenticated } = useAuthStore();
 
   useEffect(() => {
-    const completeLogin = async () => {
+    const handleCallback = async () => {
       try {
-        console.log("Completing Google login...");
+        console.log("📱 Auth callback received:", params);
 
-        // Google login complete karo
-        const success = await completeGoogleLogin({});
+        const { access_token, error } = params;
 
-        if (success) {
-          console.log("Login successful, redirecting to dashboard...");
-          // ✅ Seedha dashboard pe le jao
-          router.replace("/(tabs)");
-        } else {
-          setError("Login failed. Please try again.");
-          setTimeout(() => {
-            router.replace("/(auth)/login");
-          }, 2000);
-        }
-      } catch (err: any) {
-        console.error("Callback error:", err);
-        setError(err.message || "Authentication failed");
-        setTimeout(() => {
+        if (error) {
+          console.error("❌ Auth error:", error);
+          Alert.alert("Login Failed", "Google login failed");
           router.replace("/(auth)/login");
-        }, 2000);
+          return;
+        }
+
+        if (access_token) {
+          // Get user info from Google
+          const userInfoResponse = await fetch(
+            "https://www.googleapis.com/oauth2/v3/userinfo",
+            {
+              headers: { Authorization: `Bearer ${access_token}` },
+            },
+          );
+
+          const userData = await userInfoResponse.json();
+
+          // Send to backend
+          const result = await googleAuthApi.googleLogin({
+            email: userData.email,
+            name: userData.name,
+            googleId: userData.sub,
+            avatar: userData.picture,
+            accessToken: access_token as string,
+          });
+
+          if (result.success && result.token && result.user) {
+            setUser(result.user);
+            setToken(result.token);
+            setAuthenticated(true);
+            router.replace("/(tabs)");
+          } else {
+            Alert.alert("Error", result.error || "Login failed");
+            router.replace("/(auth)/login");
+          }
+        } else {
+          router.replace("/(auth)/login");
+        }
+      } catch (error) {
+        console.error("Callback error:", error);
+        Alert.alert("Error", "Failed to complete login");
+        router.replace("/(auth)/login");
       }
     };
 
-    completeLogin();
+    handleCallback();
   }, []);
-
-  if (error) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "#fff",
-        }}
-      >
-        <Text style={{ color: "#DC2626", fontSize: 16, marginBottom: 10 }}>
-          ❌ {error}
-        </Text>
-        <Text style={{ color: "#666" }}>Redirecting to login...</Text>
-      </View>
-    );
-  }
 
   return (
     <View
@@ -66,9 +75,7 @@ export default function AuthCallback() {
       }}
     >
       <ActivityIndicator size="large" color="#2196F3" />
-      <Text style={{ marginTop: 20, color: "#666", fontSize: 16 }}>
-        {isLoading ? "Signing you in..." : "Processing..."}
-      </Text>
+      <Text style={{ marginTop: 20, color: "#666" }}>Completing login...</Text>
     </View>
   );
 }

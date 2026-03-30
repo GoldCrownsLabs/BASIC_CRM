@@ -1,3 +1,4 @@
+// components/common/SocialLoginButtons.tsx
 import { FontAwesome } from "@expo/vector-icons";
 import React from "react";
 import {
@@ -8,6 +9,7 @@ import {
   StyleSheet,
 } from "react-native";
 
+// Define the props interface
 interface SocialLoginButtonsProps {
   onGooglePress: () => void;
   onFacebookPress: () => void;
@@ -39,7 +41,7 @@ export const SocialLoginButtons: React.FC<SocialLoginButtonsProps> = ({
             <View style={styles.iconContainer}>
               <FontAwesome name="google" size={20} color="#DB4437" />
             </View>
-            <Text style={styles.googleButtonText}>Google</Text>
+            <Text style={styles.googleButtonText}>Continue with Google</Text>
           </>
         )}
       </TouchableOpacity>
@@ -58,7 +60,9 @@ export const SocialLoginButtons: React.FC<SocialLoginButtonsProps> = ({
             <View style={styles.iconContainer}>
               <FontAwesome name="facebook" size={20} color="#fff" />
             </View>
-            <Text style={styles.facebookButtonText}>Facebook</Text>
+            <Text style={styles.facebookButtonText}>
+              Continue with Facebook
+            </Text>
           </>
         )}
       </TouchableOpacity>
@@ -68,12 +72,10 @@ export const SocialLoginButtons: React.FC<SocialLoginButtonsProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 16,
+    flexDirection: "column",
+    gap: 12,
   },
   button: {
-    flex: 1,
     paddingVertical: 14,
     borderRadius: 16,
     alignItems: "center",

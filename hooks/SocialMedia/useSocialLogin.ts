@@ -1,9 +1,8 @@
 // hooks/SocialMedia/useSocialLogin.ts
-import { Alert } from "react-native";
-import { useState } from "react";
 import { useAuthStore } from "@/store/auth.store";
-import { useGoogleAuth } from "./useGoogleAuth";
-
+import { useState } from "react";
+import { Alert } from "react-native";
+import { useGoogleAuth } from "../useGoogleAuth";
 
 export const useSocialLogin = () => {
   const [isFacebookLoading, setIsFacebookLoading] = useState(false);

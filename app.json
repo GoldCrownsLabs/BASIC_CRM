@@ -48,9 +48,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": "71e02547-d422-4686-8016-d82fd9de9dac"
+        "projectId": "71e02547-d422-4686-8016-d82fd9de9dac" 
       },
-      "GOOGLE_ANDROID_CLIENT_ID": "784248295671-urp4r866ss6mivtv2jc9nfb5pinqa5cc.apps.googleusercontent.com"
+      "GOOGLE_ANDROID_CLIENT_ID": "784248295671-mjvvpcajaljhoathbmpqntn0a1m91227.apps.googleusercontent.com" // ✅ ONLY THIS CHANGED
     }
   }
 }

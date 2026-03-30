@@ -2,28 +2,17 @@ import PrivacyPolicyModal from "@/components/Terms&Conditions/PrivacyPolicyModal
 import TermsAndConditionsModal from "@/components/Terms&Conditions/TermsAndConditionsModal";
 import TermsPrivacyFooter from "@/components/Terms&Conditions/TermsPrivacyFooter";
 
-
-
-import { useAuthStore } from "@/store/auth.store";
-import { router } from "expo-router";
-import { useState, useEffect } from "react";
-import {
-  Alert,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
-  ActivityIndicator,
-  Dimensions,
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { useSocialLogin } from "@/hooks/SocialMedia/useSocialLogin";
 import { SocialLoginButtons } from "@/components/common/SocialLoginButtons";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
+import { useAuthStore } from "@/store/auth.store";
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Alert, Dimensions, Keyboard, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
+
+
+// ✅ Import the new Google auth hook
+
 
 const { width, height } = Dimensions.get("window");
 
@@ -37,13 +26,23 @@ export default function LoginScreen() {
   const [isFocusedPassword, setIsFocusedPassword] = useState(false);
 
   const { login, isLoading, error, clearError } = useAuthStore();
-  const {
-    handleGoogleLogin,
-    handleFacebookLogin,
-    isGoogleLoading,
-    isFacebookLoading,
-    isAnySocialLoading,
-  } = useSocialLogin();
+
+  // ✅ Replace useSocialLogin with useGoogleAuth
+  const { loginWithGoogle, isLoading: isGoogleLoading } = useGoogleAuth();
+
+  // ❌ Remove these lines
+  // const {
+  //   handleGoogleLogin,
+  //   handleFacebookLogin,
+  //   isGoogleLoading,
+  //   isFacebookLoading,
+  //   isAnySocialLoading,
+  // } = useSocialLogin();
+
+  // ✅ Simple Facebook handler (can be expanded later)
+  const handleFacebookLogin = () => {
+    Alert.alert("Coming Soon", "Facebook login will be available soon!");
+  };
 
   useEffect(() => {
     clearError();
@@ -80,8 +79,8 @@ export default function LoginScreen() {
     Keyboard.dismiss();
   };
 
-  // Check if any loading state is active
-  const isAnyLoading = isLoading || isAnySocialLoading;
+  // ✅ Update loading state - remove isFacebookLoading
+  const isAnyLoading = isLoading || isGoogleLoading;
 
   return (
     <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
@@ -379,12 +378,12 @@ export default function LoginScreen() {
                   />
                 </View>
 
-                {/* Social Login Buttons - Using the new component */}
+                {/* ✅ Updated Social Login Buttons */}
                 <SocialLoginButtons
-                  onGooglePress={handleGoogleLogin}
-                  onFacebookPress={handleFacebookLogin}
-                  isGoogleLoading={isGoogleLoading}
-                  isFacebookLoading={isFacebookLoading}
+                  onGooglePress={loginWithGoogle} // ✅ Use new Google handler
+                  onFacebookPress={handleFacebookLogin} // ✅ Simple handler
+                  isGoogleLoading={isGoogleLoading} // ✅ From useGoogleAuth
+                  isFacebookLoading={false} // ✅ No Facebook loading yet
                   disabled={isLoading}
                 />
 
@@ -481,9 +480,7 @@ export default function LoginScreen() {
                 fontWeight: "500",
               }}
             >
-              {isGoogleLoading || isFacebookLoading
-                ? "Signing in..."
-                : "Signing in..."}
+              {isGoogleLoading ? "Signing in with Google..." : "Signing in..."}
             </Text>
           </View>
         </View>

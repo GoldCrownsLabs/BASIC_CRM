@@ -1,9 +1,10 @@
-// store/auth.store.ts - Remove loginWithGoogle method from here
+// store/auth.store.ts
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { apiService } from "@/lib/api";
+
 
 interface User {
   id: string;
@@ -11,16 +12,16 @@ interface User {
   name?: string;
   avatar?: string;
   profileImage?: string;
-  lastLogin?: string;
+  lastLogin?: string | Date; // ✅ Allow both string and Date
   isActive?: boolean;
   role?: string;
-  createdAt?: string;
+  createdAt?: string | Date; // ✅ Allow both string and Date
   emailVerified?: boolean;
   newsletterSubscription?: boolean;
   theme?: string;
   addresses?: any[];
-  lastSync?: string;
-  updatedAt?: string;
+  lastSync?: string | Date; // ✅ Allow both string and Date
+  updatedAt?: string | Date; // ✅ Allow both string and Date
   phone?: string;
   company?: string;
   position?: string;
@@ -29,9 +30,8 @@ interface User {
   bio?: string;
   _id?: string;
   status?: string;
-  joinDate?: string;
+  joinDate?: string | Date; // ✅ Allow both string and Date
 }
-
 interface AuthState {
   // State
   user: User | null;
@@ -40,7 +40,7 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
 
-  // Existing methods
+  // Auth methods
   login: (email: string, password: string) => Promise<boolean>;
   register: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
@@ -48,6 +48,8 @@ interface AuthState {
   clearError: () => void;
   setLoading: (loading: boolean) => void;
   refreshToken: () => Promise<boolean>;
+
+  // Setters
   setToken: (token: string | null) => void;
   setUser: (user: User | null) => void;
   setAuthenticated: (status: boolean) => void;
@@ -64,7 +66,7 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
       error: null,
 
-      // ==================== EXISTING METHODS ====================
+      // ==================== AUTH METHODS ====================
 
       login: async (email: string, password: string) => {
         try {
@@ -201,15 +203,21 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
+      // ==================== SETTERS ====================
+
       setToken: (token: string | null) => {
         set({ token });
         if (token) apiService.setAuthToken(token);
       },
 
       setUser: (user: User | null) => set({ user }),
+
       setAuthenticated: (status: boolean) => set({ isAuthenticated: status }),
+
       setError: (error: string | null) => set({ error }),
+
       clearError: () => set({ error: null }),
+
       setLoading: (loading: boolean) => set({ isLoading: loading }),
     }),
     {
