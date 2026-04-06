@@ -59,6 +59,7 @@ export const useGoogleAuth = () => {
             access_token,
             response.params.refresh_token,
           );
+          
 
           await googleAuthApi.storeGoogleUserData(formattedData);
 
