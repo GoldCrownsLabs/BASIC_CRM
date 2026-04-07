@@ -9,7 +9,6 @@ import {
   StyleSheet,
 } from "react-native";
 
-// Define the props interface
 interface SocialLoginButtonsProps {
   onGooglePress: () => void;
   onFacebookPress: () => void;

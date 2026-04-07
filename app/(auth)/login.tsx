@@ -1,18 +1,28 @@
+// app/(auth)/login.tsx
 import PrivacyPolicyModal from "@/components/Terms&Conditions/PrivacyPolicyModal";
 import TermsAndConditionsModal from "@/components/Terms&Conditions/TermsAndConditionsModal";
 import TermsPrivacyFooter from "@/components/Terms&Conditions/TermsPrivacyFooter";
-
 import { SocialLoginButtons } from "@/components/common/SocialLoginButtons";
+import { useFacebookAuth } from "@/hooks/SocialMedia/useFacebookAuth";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { useAuthStore } from "@/store/auth.store";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Dimensions, Keyboard, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
-
-
-// ✅ Import the new Google auth hook
-
+import {
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
 
 const { width, height } = Dimensions.get("window");
 
@@ -27,22 +37,9 @@ export default function LoginScreen() {
 
   const { login, isLoading, error, clearError } = useAuthStore();
 
-  // ✅ Replace useSocialLogin with useGoogleAuth
+  // Use both auth hooks
   const { loginWithGoogle, isLoading: isGoogleLoading } = useGoogleAuth();
-
-  // ❌ Remove these lines
-  // const {
-  //   handleGoogleLogin,
-  //   handleFacebookLogin,
-  //   isGoogleLoading,
-  //   isFacebookLoading,
-  //   isAnySocialLoading,
-  // } = useSocialLogin();
-
-  // ✅ Simple Facebook handler (can be expanded later)
-  const handleFacebookLogin = () => {
-    Alert.alert("Coming Soon", "Facebook login will be available soon!");
-  };
+  const { loginWithFacebook, isLoading: isFacebookLoading } = useFacebookAuth();
 
   useEffect(() => {
     clearError();
@@ -79,8 +76,8 @@ export default function LoginScreen() {
     Keyboard.dismiss();
   };
 
-  // ✅ Update loading state - remove isFacebookLoading
-  const isAnyLoading = isLoading || isGoogleLoading;
+  // Update loading state to include Facebook loading
+  const isAnyLoading = isLoading || isGoogleLoading || isFacebookLoading;
 
   return (
     <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
@@ -198,7 +195,6 @@ export default function LoginScreen() {
                       borderWidth: 1.5,
                       borderColor: isFocusedEmail ? "#2196F3" : "#E5E7EB",
                       paddingHorizontal: 16,
-                      transitionDuration: "200ms",
                     }}
                   >
                     <Text style={{ fontSize: 18, marginRight: 12 }}>📧</Text>
@@ -378,12 +374,12 @@ export default function LoginScreen() {
                   />
                 </View>
 
-                {/* ✅ Updated Social Login Buttons */}
+                {/* Social Login Buttons */}
                 <SocialLoginButtons
-                  onGooglePress={loginWithGoogle} // ✅ Use new Google handler
-                  onFacebookPress={handleFacebookLogin} // ✅ Simple handler
-                  isGoogleLoading={isGoogleLoading} // ✅ From useGoogleAuth
-                  isFacebookLoading={false} // ✅ No Facebook loading yet
+                  onGooglePress={loginWithGoogle}
+                  onFacebookPress={loginWithFacebook}
+                  isGoogleLoading={isGoogleLoading}
+                  isFacebookLoading={isFacebookLoading}
                   disabled={isLoading}
                 />
 
@@ -442,7 +438,7 @@ export default function LoginScreen() {
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
 
-      {/* Loading Overlay */}
+      {/* Loading Overlay - Fixed backdropFilter issue */}
       {isAnyLoading && (
         <View
           style={{
@@ -454,7 +450,6 @@ export default function LoginScreen() {
             justifyContent: "center",
             alignItems: "center",
             backgroundColor: "rgba(0,0,0,0.5)",
-            backdropFilter: "blur(4px)",
           }}
         >
           <View
@@ -480,7 +475,11 @@ export default function LoginScreen() {
                 fontWeight: "500",
               }}
             >
-              {isGoogleLoading ? "Signing in with Google..." : "Signing in..."}
+              {isGoogleLoading
+                ? "Signing in with Google..."
+                : isFacebookLoading
+                  ? "Signing in with Facebook..."
+                  : "Signing in..."}
             </Text>
           </View>
         </View>

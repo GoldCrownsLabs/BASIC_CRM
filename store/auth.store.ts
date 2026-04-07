@@ -5,23 +5,22 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { apiService } from "@/lib/api";
 
-
 interface User {
   id: string;
   email: string;
   name?: string;
   avatar?: string;
   profileImage?: string;
-  lastLogin?: string | Date; // ✅ Allow both string and Date
+  lastLogin?: string | Date;
   isActive?: boolean;
   role?: string;
-  createdAt?: string | Date; // ✅ Allow both string and Date
+  createdAt?: string | Date;
   emailVerified?: boolean;
   newsletterSubscription?: boolean;
   theme?: string;
   addresses?: any[];
-  lastSync?: string | Date; // ✅ Allow both string and Date
-  updatedAt?: string | Date; // ✅ Allow both string and Date
+  lastSync?: string | Date;
+  updatedAt?: string | Date;
   phone?: string;
   company?: string;
   position?: string;
@@ -30,8 +29,21 @@ interface User {
   bio?: string;
   _id?: string;
   status?: string;
-  joinDate?: string | Date; // ✅ Allow both string and Date
+  joinDate?: string | Date;
+  provider?: "email" | "google" | "facebook";
+  facebookId?: string;
+  googleId?: string;
 }
+
+interface SocialLoginData {
+  id: string;
+  email: string;
+  name: string;
+  picture?: string;
+  accessToken: string;
+  provider: "google" | "facebook";
+}
+
 interface AuthState {
   // State
   user: User | null;
@@ -43,6 +55,10 @@ interface AuthState {
   // Auth methods
   login: (email: string, password: string) => Promise<boolean>;
   register: (name: string, email: string, password: string) => Promise<boolean>;
+  socialLogin: (
+    userData: SocialLoginData,
+    provider: "google" | "facebook",
+  ) => Promise<boolean>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<boolean>;
   clearError: () => void;
@@ -135,10 +151,145 @@ export const useAuthStore = create<AuthState>()(
             return false;
           }
         } catch (error: any) {
-          console.error("Registration error:", error);
+          console.error("❌ Registration error:", error);
           set({
             isLoading: false,
             error: error.message || "Registration failed. Please try again.",
+          });
+          return false;
+        }
+      },
+
+      socialLogin: async (
+        userData: SocialLoginData,
+        provider: "google" | "facebook",
+      ) => {
+        try {
+          set({ isLoading: true, error: null });
+          console.log(`🔐 AuthStore: Attempting ${provider} login...`);
+
+          // Prepare data for backend
+          const backendData = {
+            provider,
+            providerId: userData.id,
+            email: userData.email,
+            name: userData.name,
+            picture: userData.picture,
+            accessToken: userData.accessToken,
+          };
+
+          // First attempt: Try to login existing user
+          const response = await apiService.post(
+            "/auth/social-login",
+            backendData,
+            {
+              _skipAuth: true,
+            },
+          );
+
+          if (response.success && response.data) {
+            const { user, token } = response.data;
+
+            // Add provider info to user object
+            const userWithProvider = {
+              ...user,
+              provider,
+              [`${provider}Id`]: userData.id,
+            };
+
+            set({
+              user: userWithProvider,
+              token,
+              isAuthenticated: true,
+              isLoading: false,
+              error: null,
+            });
+
+            await apiService.setAuthToken(token);
+            console.log(`✅ AuthStore: ${provider} login successful`);
+            return true;
+          } else {
+            throw new Error(response.message || `${provider} login failed`);
+          }
+        } catch (error: any) {
+          console.error(`❌ AuthStore: ${provider} login error:`, error);
+
+          // If user doesn't exist, try to create a new account
+          if (
+            error.message?.includes("User not found") ||
+            error.status === 404 ||
+            error.message?.includes("User doesn't exist") ||
+            error.message?.includes("Couldn't find your account")
+          ) {
+            console.log(
+              `📝 User not found, creating new ${provider} account...`,
+            );
+
+            try {
+              // Attempt to register the user
+              const registerResponse = await apiService.post(
+                "/auth/social-register",
+                {
+                  provider,
+                  providerId: userData.id,
+                  email: userData.email,
+                  name: userData.name,
+                  picture: userData.picture,
+                  accessToken: userData.accessToken,
+                },
+                {
+                  _skipAuth: true,
+                },
+              );
+
+              if (registerResponse.success && registerResponse.data) {
+                const { user, token } = registerResponse.data;
+
+                const userWithProvider = {
+                  ...user,
+                  provider,
+                  [`${provider}Id`]: userData.id,
+                };
+
+                set({
+                  user: userWithProvider,
+                  token,
+                  isAuthenticated: true,
+                  isLoading: false,
+                  error: null,
+                });
+
+                await apiService.setAuthToken(token);
+                console.log(
+                  `✅ AuthStore: ${provider} account created and logged in`,
+                );
+                return true;
+              } else {
+                throw new Error(
+                  registerResponse.message ||
+                    `Failed to create ${provider} account`,
+                );
+              }
+            } catch (registerError: any) {
+              console.error(
+                `❌ AuthStore: ${provider} account creation error:`,
+                registerError,
+              );
+              set({
+                isLoading: false,
+                error:
+                  registerError.message ||
+                  `Failed to create ${provider} account. Please try again.`,
+              });
+              return false;
+            }
+          }
+
+          // Handle other errors
+          set({
+            isLoading: false,
+            error:
+              error.message || `${provider} login failed. Please try again.`,
           });
           return false;
         }
@@ -156,9 +307,9 @@ export const useAuthStore = create<AuthState>()(
             error: null,
           });
           router.replace("/(auth)/login");
-          console.log("Logout successful");
+          console.log("✅ Logout successful");
         } catch (error) {
-          console.error("Logout error:", error);
+          console.error("❌ Logout error:", error);
           set({ isLoading: false });
         }
       },
@@ -174,7 +325,7 @@ export const useAuthStore = create<AuthState>()(
           set({ isAuthenticated });
           return isAuthenticated;
         } catch (error) {
-          console.error("Auth check error:", error);
+          console.error("❌ Auth check error:", error);
           return false;
         }
       },
@@ -198,7 +349,7 @@ export const useAuthStore = create<AuthState>()(
           }
           return false;
         } catch (error) {
-          console.error("Token refresh failed:", error);
+          console.error("❌ Token refresh failed:", error);
           return false;
         }
       },

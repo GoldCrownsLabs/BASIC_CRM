@@ -1,4 +1,4 @@
-// hooks/useGoogleAuth.ts
+// hooks/useGoogleAuth.ts (Simplified version)
 import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
 import { makeRedirectUri } from "expo-auth-session";
@@ -6,16 +6,13 @@ import { useState, useEffect, useMemo } from "react";
 import { Alert } from "react-native";
 import { router } from "expo-router";
 import { useAuthStore } from "@/store/auth.store";
-import googleAuthApi, { formatGoogleUserData } from "@/lib/api/googleAuth.api";
-import { normalizeUserDates } from "@/lib/utils/dateUtils";
 
 WebBrowser.maybeCompleteAuthSession();
 
 export const useGoogleAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const { setUser, setToken, setAuthenticated } = useAuthStore();
+  const { socialLogin } = useAuthStore();
 
-  // ✅ Sirf itna - Expo auth proxy automatically handle karega
   const redirectUri = useMemo(() => {
     return makeRedirectUri();
   }, []);
@@ -54,28 +51,24 @@ export const useGoogleAuth = () => {
           const userData = await userInfoResponse.json();
           console.log("✅ Google user data received:", userData.email);
 
-          const formattedData = formatGoogleUserData(
-            userData,
-            access_token,
-            response.params.refresh_token,
-          );
-          
+          // Prepare data for social login
+          const socialLoginData = {
+            id: userData.sub,
+            email: userData.email,
+            name: userData.name,
+            picture: userData.picture,
+            accessToken: access_token,
+            provider: "google" as const,
+          };
 
-          await googleAuthApi.storeGoogleUserData(formattedData);
+          // Use the unified social login method
+          const success = await socialLogin(socialLoginData, "google");
 
-          const result = await googleAuthApi.googleLogin(formattedData);
-
-          if (result.success && result.token && result.user) {
-            const normalizedUser = normalizeUserDates(result.user);
-
-            setUser(normalizedUser);
-            setToken(result.token);
-            setAuthenticated(true);
-
+          if (success) {
             console.log("✅ Google login successful");
             router.replace("/(tabs)");
           } else {
-            Alert.alert("Login Failed", result.error || "Google login failed");
+            Alert.alert("Login Failed", "Could not authenticate with Google");
           }
         } catch (error: any) {
           console.error("❌ Google auth error:", error);
@@ -94,6 +87,11 @@ export const useGoogleAuth = () => {
   }, [response]);
 
   const loginWithGoogle = async () => {
+    if (!request) {
+      Alert.alert("Error", "Google login is not initialized");
+      return;
+    }
+
     try {
       await promptAsync();
     } catch (error) {
