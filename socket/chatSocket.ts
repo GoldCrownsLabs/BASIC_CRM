@@ -10,7 +10,7 @@ export const getSocket = async (): Promise<Socket> => {
   if (socket) return socket;
 
   const SOCKET_URL =
-    process.env.EXPO_PUBLIC_SOCKET_URL || "http://192.168.1.21:5000";
+    process.env.EXPO_PUBLIC_SOCKET_URL || "http://192.168.1.17:5000";
 
   const token = await AsyncStorage.getItem("auth_token");
 

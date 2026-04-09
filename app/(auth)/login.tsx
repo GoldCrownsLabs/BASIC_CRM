@@ -8,7 +8,7 @@ import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { useAuthStore } from "@/store/auth.store";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -41,18 +41,21 @@ export default function LoginScreen() {
   const { loginWithGoogle, isLoading: isGoogleLoading } = useGoogleAuth();
   const { loginWithFacebook, isLoading: isFacebookLoading } = useFacebookAuth();
 
+  // Clear error on mount - only once
   useEffect(() => {
     clearError();
-  }, []);
+  }, [clearError]);
 
+  // Handle errors
   useEffect(() => {
     if (error) {
       Alert.alert("Login Error", error);
       clearError();
     }
-  }, [error]);
+  }, [error, clearError]);
 
-  const handleLogin = async () => {
+  // Memoized handlers
+  const handleLogin = useCallback(async () => {
     setLocalError(null);
 
     if (!email.trim() || !password.trim()) {
@@ -70,14 +73,35 @@ export default function LoginScreen() {
     if (success) {
       router.replace("/(tabs)");
     }
-  };
+  }, [email, password, login]);
 
-  const dismissKeyboard = () => {
+  const handleGoogleLogin = useCallback(() => {
+    if (!isGoogleLoading && !isLoading && !isFacebookLoading) {
+      loginWithGoogle();
+    }
+  }, [loginWithGoogle, isGoogleLoading, isLoading, isFacebookLoading]);
+
+  const handleFacebookLogin = useCallback(() => {
+    if (!isFacebookLoading && !isLoading && !isGoogleLoading) {
+      loginWithFacebook();
+    }
+  }, [loginWithFacebook, isFacebookLoading, isLoading, isGoogleLoading]);
+
+  const dismissKeyboard = useCallback(() => {
     Keyboard.dismiss();
-  };
+  }, []);
 
-  // Update loading state to include Facebook loading
-  const isAnyLoading = isLoading || isGoogleLoading || isFacebookLoading;
+  const handleEmailChange = useCallback((text: string) => setEmail(text), []);
+  const handlePasswordChange = useCallback(
+    (text: string) => setPassword(text),
+    [],
+  );
+
+  // Memoize loading state
+  const isAnyLoading = useMemo(
+    () => isLoading || isGoogleLoading || isFacebookLoading,
+    [isLoading, isGoogleLoading, isFacebookLoading],
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
@@ -209,7 +233,7 @@ export default function LoginScreen() {
                       placeholder="you@example.com"
                       placeholderTextColor="#9CA3AF"
                       value={email}
-                      onChangeText={setEmail}
+                      onChangeText={handleEmailChange}
                       onFocus={() => setIsFocusedEmail(true)}
                       onBlur={() => setIsFocusedEmail(false)}
                       autoCapitalize="none"
@@ -258,7 +282,7 @@ export default function LoginScreen() {
                       placeholder="Enter your password"
                       placeholderTextColor="#9CA3AF"
                       value={password}
-                      onChangeText={setPassword}
+                      onChangeText={handlePasswordChange}
                       onFocus={() => setIsFocusedPassword(true)}
                       onBlur={() => setIsFocusedPassword(false)}
                       secureTextEntry
@@ -376,8 +400,8 @@ export default function LoginScreen() {
 
                 {/* Social Login Buttons */}
                 <SocialLoginButtons
-                  onGooglePress={loginWithGoogle}
-                  onFacebookPress={loginWithFacebook}
+                  onGooglePress={handleGoogleLogin}
+                  onFacebookPress={handleFacebookLogin}
                   isGoogleLoading={isGoogleLoading}
                   isFacebookLoading={isFacebookLoading}
                   disabled={isLoading}
@@ -438,7 +462,7 @@ export default function LoginScreen() {
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
 
-      {/* Loading Overlay - Fixed backdropFilter issue */}
+      {/* Loading Overlay */}
       {isAnyLoading && (
         <View
           style={{

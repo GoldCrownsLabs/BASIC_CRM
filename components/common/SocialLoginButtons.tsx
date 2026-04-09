@@ -1,6 +1,6 @@
 // components/common/SocialLoginButtons.tsx
 import { FontAwesome } from "@expo/vector-icons";
-import React from "react";
+import React, { memo } from "react";
 import {
   Text,
   TouchableOpacity,
@@ -17,57 +17,61 @@ interface SocialLoginButtonsProps {
   disabled?: boolean;
 }
 
-export const SocialLoginButtons: React.FC<SocialLoginButtonsProps> = ({
-  onGooglePress,
-  onFacebookPress,
-  isGoogleLoading = false,
-  isFacebookLoading = false,
-  disabled = false,
-}) => {
-  return (
-    <View style={styles.container}>
-      {/* Google Login */}
-      <TouchableOpacity
-        style={[styles.button, styles.googleButton]}
-        onPress={onGooglePress}
-        disabled={disabled || isGoogleLoading}
-        activeOpacity={0.8}
-      >
-        {isGoogleLoading ? (
-          <ActivityIndicator color="#374151" size="small" />
-        ) : (
-          <>
-            <View style={styles.iconContainer}>
-              <FontAwesome name="google" size={20} color="#DB4437" />
-            </View>
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
-          </>
-        )}
-      </TouchableOpacity>
+export const SocialLoginButtons = memo<SocialLoginButtonsProps>(
+  ({
+    onGooglePress,
+    onFacebookPress,
+    isGoogleLoading = false,
+    isFacebookLoading = false,
+    disabled = false,
+  }) => {
+    return (
+      <View style={styles.container}>
+        {/* Google Login */}
+        <TouchableOpacity
+          style={[styles.button, styles.googleButton]}
+          onPress={onGooglePress}
+          disabled={disabled || isGoogleLoading}
+          activeOpacity={0.8}
+        >
+          {isGoogleLoading ? (
+            <ActivityIndicator color="#374151" size="small" />
+          ) : (
+            <>
+              <View style={styles.iconContainer}>
+                <FontAwesome name="google" size={20} color="#DB4437" />
+              </View>
+              <Text style={styles.googleButtonText}>Continue with Google</Text>
+            </>
+          )}
+        </TouchableOpacity>
 
-      {/* Facebook Login */}
-      <TouchableOpacity
-        style={[styles.button, styles.facebookButton]}
-        onPress={onFacebookPress}
-        disabled={disabled || isFacebookLoading}
-        activeOpacity={0.8}
-      >
-        {isFacebookLoading ? (
-          <ActivityIndicator color="#fff" size="small" />
-        ) : (
-          <>
-            <View style={styles.iconContainer}>
-              <FontAwesome name="facebook" size={20} color="#fff" />
-            </View>
-            <Text style={styles.facebookButtonText}>
-              Continue with Facebook
-            </Text>
-          </>
-        )}
-      </TouchableOpacity>
-    </View>
-  );
-};
+        {/* Facebook Login */}
+        <TouchableOpacity
+          style={[styles.button, styles.facebookButton]}
+          onPress={onFacebookPress}
+          disabled={disabled || isFacebookLoading}
+          activeOpacity={0.8}
+        >
+          {isFacebookLoading ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <>
+              <View style={styles.iconContainer}>
+                <FontAwesome name="facebook" size={20} color="#fff" />
+              </View>
+              <Text style={styles.facebookButtonText}>
+                Continue with Facebook
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+    );
+  },
+);
+
+SocialLoginButtons.displayName = "SocialLoginButtons";
 
 const styles = StyleSheet.create({
   container: {

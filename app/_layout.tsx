@@ -4,7 +4,9 @@ import "react-native-reanimated";
 
 import { Drawer } from "expo-router/drawer";
 import { StatusBar } from "expo-status-bar";
-import { useColorScheme, View } from "react-native";
+import { useColorScheme, View, Platform } from "react-native";
+import { useEffect } from "react";
+import * as WebBrowser from "expo-web-browser";
 
 import CustomDrawerContent from "@/components/CustomDrawerContent";
 import SplashScreen from "@/components/SplashScreen";
@@ -15,6 +17,11 @@ import { LeadsProvider } from "@/context/LeadsContext";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { SupportProvider } from "@/context/SupportContext";
+
+// Initialize WebBrowser once at app root
+if (Platform.OS !== "web") {
+  WebBrowser.maybeCompleteAuthSession();
+}
 
 // Separate component that uses the theme
 function AppContent() {
@@ -70,70 +77,73 @@ function AppContent() {
     );
   }
 
- return (
-   <NavigationThemeProvider value={navigationTheme}>
-     <View style={{ flex: 1, backgroundColor: colors.background }}>
-       <Drawer
-         drawerContent={(props) => <CustomDrawerContent {...props} />}
-         screenOptions={{
-           headerShown: false,
-           drawerPosition: "left",
-           swipeEnabled: true,
-           drawerStyle: {
-             backgroundColor: "transparent",
-           },
-         }}
-       >
-         {/* MAIN APP */}
-         <Drawer.Screen
-           name="(tabs)"
-           options={{ title: "Home", drawerLabel: "Dashboard" }}
-         />
+  return (
+    <NavigationThemeProvider value={navigationTheme}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <Drawer
+          drawerContent={(props) => <CustomDrawerContent {...props} />}
+          screenOptions={{
+            headerShown: false,
+            drawerPosition: "left",
+            swipeEnabled: true,
+            drawerStyle: {
+              backgroundColor: "transparent",
+            },
+          }}
+        >
+          {/* MAIN APP */}
+          <Drawer.Screen
+            name="(tabs)"
+            options={{ title: "Home", drawerLabel: "Dashboard" }}
+          />
 
-         {/* ✅ ADD THIS - Auth Callback (Hidden) */}
-         <Drawer.Screen
-           name="auth-callback"
-           options={{
-             drawerItemStyle: { display: "none" },
-             title: "Authenticating...",
-           }}
-         />
+          {/* ✅ ADD THIS - Auth Callback (Hidden) */}
+          <Drawer.Screen
+            name="auth-callback"
+            options={{
+              drawerItemStyle: { display: "none" },
+              title: "Authenticating...",
+            }}
+          />
 
-         {/* Payment Screens */}
-         <Drawer.Screen
-           name="checkout"
-           options={{ drawerItemStyle: { display: "none" } }}
-         />
-         <Drawer.Screen
-           name="subscription"
-           options={{ title: "My Subscriptions", drawerLabel: "Subscriptions" }}
-         />
+          {/* Payment Screens */}
+          <Drawer.Screen
+            name="checkout"
+            options={{ drawerItemStyle: { display: "none" } }}
+          />
+          <Drawer.Screen
+            name="subscription"
+            options={{
+              title: "My Subscriptions",
+              drawerLabel: "Subscriptions",
+            }}
+          />
 
-         {/* Auth Screens */}
-         <Drawer.Screen
-           name="(auth)/login"
-           options={{ drawerItemStyle: { display: "none" } }}
-         />
-         <Drawer.Screen
-           name="(auth)/register"
-           options={{ drawerItemStyle: { display: "none" } }}
-         />
+          {/* Auth Screens */}
+          <Drawer.Screen
+            name="(auth)/login"
+            options={{ drawerItemStyle: { display: "none" } }}
+          />
+          <Drawer.Screen
+            name="(auth)/register"
+            options={{ drawerItemStyle: { display: "none" } }}
+          />
 
-         {/* Other Routes */}
-         <Drawer.Screen
-           name="index"
-           options={{ drawerItemStyle: { display: "none" } }}
-         />
-         <Drawer.Screen
-           name="modal"
-           options={{ drawerLabel: "Modal", title: "Modal" }}
-         />
-       </Drawer>
+          {/* Other Routes */}
+          <Drawer.Screen
+            name="index"
+            options={{ drawerItemStyle: { display: "none" } }}
+          />
+          <Drawer.Screen
+            name="modal"
+            options={{ drawerLabel: "Modal", title: "Modal" }}
+          />
+        </Drawer>
 
-       <StatusBar style={statusBarStyle} backgroundColor={colors.background} />
-     </View>
-   </NavigationThemeProvider>
- );
+        <StatusBar style={statusBarStyle} backgroundColor={colors.background} />
+      </View>
+    </NavigationThemeProvider>
+  );
 }
 
 export default function RootLayout() {
