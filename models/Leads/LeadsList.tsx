@@ -6,6 +6,13 @@ import { useAppTheme } from "@/context/ThemeContext";
 import { Lead } from "@/lib/api/leads.api";
 import { LeadCard } from "./LeadCard";
 
+// 🔥 IMPORT FEATURE FLAGS
+import {
+  LEADS_ASSIGN,
+  LEADS_FOLLOWUP_REMINDER,
+  LEADS_EXPORT,
+} from "@/components/constants/FeatureFlags";
+
 interface LeadsListProps {
   loading: boolean;
   leads: Lead[];
@@ -21,6 +28,10 @@ interface LeadsListProps {
   getPriorityColor: (priority: string) => string;
   formatCurrency: (amount: number) => string;
   calculateDaysToClose: (dateString?: string) => number | null;
+  // 🔥 Feature flags props (optional, can come from parent or use directly)
+  canAssignLead?: boolean;
+  canSetReminder?: boolean;
+  canExport?: boolean;
 }
 
 export const LeadsList: React.FC<LeadsListProps> = ({
@@ -35,8 +46,17 @@ export const LeadsList: React.FC<LeadsListProps> = ({
   getPriorityColor,
   formatCurrency,
   calculateDaysToClose,
+  canAssignLead = LEADS_ASSIGN, // 🔥 Default from FeatureFlags
+  canSetReminder = LEADS_FOLLOWUP_REMINDER, // 🔥 Default from FeatureFlags
+  canExport = LEADS_EXPORT, // 🔥 Default from FeatureFlags
 }) => {
   const { colors } = useAppTheme();
+
+  // Handle export leads
+  const handleExportLeads = () => {
+    console.log("Exporting leads:", leads.length);
+    // Add your export logic here
+  };
 
   if (loading) {
     return (
@@ -97,6 +117,9 @@ export const LeadsList: React.FC<LeadsListProps> = ({
           getPriorityColor={getPriorityColor}
           formatCurrency={formatCurrency}
           calculateDaysToClose={calculateDaysToClose}
+          // 🔥 Pass feature flags to LeadCard
+          canAssign={canAssignLead}
+          canSetReminder={canSetReminder}
         />
       ))}
 
@@ -130,6 +153,39 @@ export const LeadsList: React.FC<LeadsListProps> = ({
             <Ionicons name="chevron-forward" size={20} color={colors.primary} />
           </TouchableOpacity>
         </View>
+
+        {/* 🔥 Export Button - Conditional */}
+        {canExport && leads.length > 0 && (
+          <TouchableOpacity
+            onPress={handleExportLeads}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              backgroundColor: colors.primary + "10",
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: colors.primary + "30",
+            }}
+          >
+            <Ionicons
+              name="download-outline"
+              size={18}
+              color={colors.primary}
+            />
+            <ThemedText
+              style={{
+                color: colors.primary,
+                fontSize: 12,
+                fontWeight: "500",
+              }}
+            >
+              Export
+            </ThemedText>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );

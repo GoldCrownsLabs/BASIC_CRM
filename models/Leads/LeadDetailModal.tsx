@@ -13,11 +13,22 @@ import { useAppTheme } from "@/context/ThemeContext";
 import { Lead } from "@/lib/api/leads.api";
 import leadsApi from "@/lib/api/leads.api";
 
+// 🔥 IMPORT FEATURE FLAGS
+import {
+  LEADS_ASSIGN,
+  LEADS_FOLLOWUP_REMINDER,
+  CONTACTS_CALL_FROM_APP,
+  CONTACTS_WHATSAPP_MESSAGE,
+} from "@/components/constants/FeatureFlags";
+
 interface LeadDetailModalProps {
   visible: boolean;
   lead: Lead;
   onClose: () => void;
   onLeadUpdated: () => void;
+  // 🔥 Feature flags props
+  canAssignLead?: boolean;
+  canSetReminder?: boolean;
 }
 
 export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
@@ -25,6 +36,8 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
   lead,
   onClose,
   onLeadUpdated,
+  canAssignLead = LEADS_ASSIGN,
+  canSetReminder = LEADS_FOLLOWUP_REMINDER,
 }) => {
   const { colors } = useAppTheme();
   const [selectedLead, setSelectedLead] = useState(lead);
@@ -190,7 +203,41 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
     );
   };
 
+  // 🔥 Handle Assign Lead
+  const handleAssignLead = () => {
+    Alert.alert(
+      "Assign Lead",
+      `Assign "${selectedLead.firstName} ${selectedLead.lastName || ""}" to a team member?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Assign",
+          onPress: () => console.log("Assigning lead:", selectedLead._id),
+        },
+      ],
+    );
+  };
+
+  // 🔥 Handle Set Reminder
+  const handleSetReminder = () => {
+    Alert.alert(
+      "Set Reminder",
+      `Set reminder for "${selectedLead.firstName} ${selectedLead.lastName || ""}"`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Set",
+          onPress: () => console.log("Setting reminder:", selectedLead._id),
+        },
+      ],
+    );
+  };
+
   const handleCall = (phone?: string) => {
+    if (!CONTACTS_CALL_FROM_APP) {
+      Alert.alert("Info", "Call feature is disabled");
+      return;
+    }
     if (!phone) {
       Alert.alert("Error", "Phone number not available");
       return;
@@ -204,6 +251,21 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
       return;
     }
     Linking.openURL(`mailto:${email}`);
+  };
+
+  // 🔥 Handle WhatsApp Message
+  const handleWhatsApp = (phone?: string) => {
+    if (!CONTACTS_WHATSAPP_MESSAGE) {
+      Alert.alert("Info", "WhatsApp feature is disabled");
+      return;
+    }
+    if (!phone) {
+      Alert.alert("Error", "Phone number not available");
+      return;
+    }
+    // Remove any non-digit characters
+    const cleanPhone = phone.replace(/\D/g, "");
+    Linking.openURL(`whatsapp://send?phone=${cleanPhone}`);
   };
 
   const stageColor = getStageColor(selectedLead.status);
@@ -316,28 +378,40 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
                 </ThemedText>
               </View>
 
-              <View style={{ flexDirection: "row", gap: 12, marginBottom: 20 }}>
-                <TouchableOpacity
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 8,
-                    paddingHorizontal: 16,
-                    paddingVertical: 10,
-                    borderRadius: 12,
-                    backgroundColor: colors.primary + "15",
-                    flex: 1,
-                  }}
-                  onPress={() => handleCall(selectedLead.phone)}
-                >
-                  <Ionicons name="call" size={20} color={colors.primary} />
-                  <ThemedText
-                    style={{ color: colors.primary, fontWeight: "500" }}
+              {/* 🔥 Action Buttons Row - Conditional */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  gap: 12,
+                  marginBottom: 20,
+                  flexWrap: "wrap",
+                }}
+              >
+                {/* Call Button - Conditional */}
+                {CONTACTS_CALL_FROM_APP && (
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                      paddingHorizontal: 16,
+                      paddingVertical: 10,
+                      borderRadius: 12,
+                      backgroundColor: colors.primary + "15",
+                      flex: 1,
+                    }}
+                    onPress={() => handleCall(selectedLead.phone)}
                   >
-                    Call
-                  </ThemedText>
-                </TouchableOpacity>
+                    <Ionicons name="call" size={20} color={colors.primary} />
+                    <ThemedText
+                      style={{ color: colors.primary, fontWeight: "500" }}
+                    >
+                      Call
+                    </ThemedText>
+                  </TouchableOpacity>
+                )}
 
+                {/* Email Button - Always Show */}
                 <TouchableOpacity
                   style={{
                     flexDirection: "row",
@@ -359,6 +433,29 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
                   </ThemedText>
                 </TouchableOpacity>
 
+                {/* WhatsApp Button - Conditional */}
+                {CONTACTS_WHATSAPP_MESSAGE && (
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                      paddingHorizontal: 16,
+                      paddingVertical: 10,
+                      borderRadius: 12,
+                      backgroundColor: "#25D366" + "15",
+                      flex: 1,
+                    }}
+                    onPress={() => handleWhatsApp(selectedLead.phone)}
+                  >
+                    <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+                    <ThemedText style={{ color: "#25D366", fontWeight: "500" }}>
+                      WhatsApp
+                    </ThemedText>
+                  </TouchableOpacity>
+                )}
+
+                {/* Add Note Button - Always Show */}
                 <TouchableOpacity
                   style={{
                     flexDirection: "row",
@@ -380,8 +477,77 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
                   </ThemedText>
                 </TouchableOpacity>
               </View>
+
+              {/* 🔥 Assign and Reminder Buttons Row - Conditional */}
+              {(canAssignLead || canSetReminder) && (
+                <View
+                  style={{ flexDirection: "row", gap: 12, marginBottom: 20 }}
+                >
+                  {canAssignLead && (
+                    <TouchableOpacity
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                        paddingVertical: 10,
+                        borderRadius: 12,
+                        backgroundColor: colors.primary + "10",
+                        borderWidth: 1,
+                        borderColor: colors.primary + "30",
+                        flex: 1,
+                      }}
+                      onPress={handleAssignLead}
+                    >
+                      <Ionicons
+                        name="person-add-outline"
+                        size={18}
+                        color={colors.primary}
+                      />
+                      <ThemedText
+                        style={{ color: colors.primary, fontWeight: "500" }}
+                      >
+                        Assign
+                      </ThemedText>
+                    </TouchableOpacity>
+                  )}
+
+                  {canSetReminder && (
+                    <TouchableOpacity
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                        paddingVertical: 10,
+                        borderRadius: 12,
+                        backgroundColor: colors.warning + "10",
+                        borderWidth: 1,
+                        borderColor: colors.warning + "30",
+                        flex: 1,
+                      }}
+                      onPress={handleSetReminder}
+                    >
+                      <Ionicons
+                        name="notifications-outline"
+                        size={18}
+                        color={colors.warning || "#FF9800"}
+                      />
+                      <ThemedText
+                        style={{
+                          color: colors.warning || "#FF9800",
+                          fontWeight: "500",
+                        }}
+                      >
+                        Reminder
+                      </ThemedText>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
             </View>
 
+            {/* Contact Information Section - Always Show */}
             <View style={{ marginBottom: 24 }}>
               <ThemedText
                 type="subtitle"
@@ -488,6 +654,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
               </View>
             </View>
 
+            {/* Lead Information Section - Always Show */}
             <View style={{ marginBottom: 24 }}>
               <ThemedText
                 type="subtitle"
@@ -605,6 +772,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
               </View>
             </View>
 
+            {/* Notes Section - Always Show */}
             {selectedLead.notes && selectedLead.notes.length > 0 && (
               <View style={{ marginBottom: 24 }}>
                 <ThemedText
@@ -658,6 +826,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
               </View>
             )}
 
+            {/* Update Status Section - Always Show */}
             <View style={{ marginBottom: 24 }}>
               <ThemedText
                 type="subtitle"
@@ -716,6 +885,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
               </ScrollView>
             </View>
 
+            {/* Action Buttons - Always Show */}
             <View style={{ flexDirection: "row", gap: 12, marginBottom: 20 }}>
               <TouchableOpacity
                 style={{

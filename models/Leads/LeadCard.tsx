@@ -5,6 +5,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 import { Lead } from "@/lib/api/leads.api";
 
+// 🔥 IMPORT FEATURE FLAGS
+import {
+  LEADS_ASSIGN,
+  LEADS_FOLLOWUP_REMINDER,
+} from "@/components/constants/FeatureFlags";
+
 interface LeadCardProps {
   lead: Lead;
   onPress: () => void;
@@ -14,6 +20,9 @@ interface LeadCardProps {
   getPriorityColor: (priority: string) => string;
   formatCurrency: (amount: number) => string;
   calculateDaysToClose: (dateString?: string) => number | null;
+  // 🔥 Feature flags props
+  canAssign?: boolean;
+  canSetReminder?: boolean;
 }
 
 export const LeadCard: React.FC<LeadCardProps> = ({
@@ -25,12 +34,33 @@ export const LeadCard: React.FC<LeadCardProps> = ({
   getPriorityColor,
   formatCurrency,
   calculateDaysToClose,
+  canAssign = LEADS_ASSIGN, // 🔥 Default from FeatureFlags
+  canSetReminder = LEADS_FOLLOWUP_REMINDER, // 🔥 Default from FeatureFlags
 }) => {
   const { colors } = useAppTheme();
 
   const daysToClose = calculateDaysToClose(lead.nextFollowUp);
   const stageColor = getStageColor(lead.status);
   const priorityColor = getPriorityColor(lead.priority);
+
+  // 🔥 Handler for assign button
+  const handleAssign = (e: any) => {
+    e.stopPropagation();
+    console.log("Assign lead:", lead._id, lead.firstName, lead.lastName);
+    // Add your assign logic here
+  };
+
+  // 🔥 Handler for reminder button
+  const handleSetReminder = (e: any) => {
+    e.stopPropagation();
+    console.log(
+      "Set reminder for lead:",
+      lead._id,
+      lead.firstName,
+      lead.lastName,
+    );
+    // Add your reminder logic here
+  };
 
   return (
     <TouchableOpacity
@@ -48,6 +78,7 @@ export const LeadCard: React.FC<LeadCardProps> = ({
       onPress={onPress}
       activeOpacity={0.7}
     >
+      {/* Header Row with Name and Value */}
       <View
         style={{
           flexDirection: "row",
@@ -63,6 +94,7 @@ export const LeadCard: React.FC<LeadCardProps> = ({
               alignItems: "center",
               gap: 8,
               marginBottom: 4,
+              flexWrap: "wrap",
             }}
           >
             <ThemedText
@@ -71,6 +103,8 @@ export const LeadCard: React.FC<LeadCardProps> = ({
             >
               {lead.firstName} {lead.lastName || ""}
             </ThemedText>
+
+            {/* Priority Badge */}
             <View
               style={{
                 width: 24,
@@ -88,6 +122,7 @@ export const LeadCard: React.FC<LeadCardProps> = ({
               />
             </View>
           </View>
+
           <ThemedText style={{ color: colors.textSecondary, fontSize: 13 }}>
             {lead.company || "No company"} • {lead.email}
           </ThemedText>
@@ -98,11 +133,88 @@ export const LeadCard: React.FC<LeadCardProps> = ({
             type="defaultSemiBold"
             style={{ color: colors.primary, fontSize: 16, fontWeight: "bold" }}
           >
-            {formatCurrency(lead.budget || 0).replace("$", "₹")} 
+            {formatCurrency(lead.budget || 0).replace("$", "₹")}
           </ThemedText>
         </View>
       </View>
 
+      {/* 🔥 Action Buttons Row - Conditional */}
+      {(canAssign || canSetReminder) && (
+        <View
+          style={{
+            flexDirection: "row",
+            gap: 12,
+            marginBottom: 12,
+            paddingBottom: 8,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border + "40",
+          }}
+        >
+          {/* 🔥 Assign Button - Conditional */}
+          {canAssign && (
+            <TouchableOpacity
+              onPress={handleAssign}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                backgroundColor: colors.primary + "10",
+                borderRadius: 20,
+              }}
+            >
+              <Ionicons
+                name="person-add-outline"
+                size={14}
+                color={colors.primary}
+              />
+              <ThemedText
+                style={{
+                  color: colors.primary,
+                  fontSize: 12,
+                  fontWeight: "500",
+                }}
+              >
+                Assign
+              </ThemedText>
+            </TouchableOpacity>
+          )}
+
+          {/* 🔥 Reminder Button - Conditional */}
+          {canSetReminder && (
+            <TouchableOpacity
+              onPress={handleSetReminder}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                backgroundColor: colors.warning + "10",
+                borderRadius: 20,
+              }}
+            >
+              <Ionicons
+                name="notifications-outline"
+                size={14}
+                color={colors.warning || "#FF9800"}
+              />
+              <ThemedText
+                style={{
+                  color: colors.warning || "#FF9800",
+                  fontSize: 12,
+                  fontWeight: "500",
+                }}
+              >
+                Reminder
+              </ThemedText>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
+      {/* Stage Badge */}
       <View style={{ gap: 8 }}>
         <View
           style={{
@@ -120,7 +232,8 @@ export const LeadCard: React.FC<LeadCardProps> = ({
           </ThemedText>
         </View>
 
-        <View style={{ flexDirection: "row", gap: 16 }}>
+        {/* Source and Follow Up Info */}
+        <View style={{ flexDirection: "row", gap: 16, flexWrap: "wrap" }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <Ionicons
               name="business-outline"
@@ -129,7 +242,9 @@ export const LeadCard: React.FC<LeadCardProps> = ({
             />
             <ThemedText style={{ color: colors.textSecondary, fontSize: 12 }}>
               Source:{" "}
-              {lead.source.charAt(0).toUpperCase() + lead.source.slice(1)}
+              {lead.source
+                ? lead.source.charAt(0).toUpperCase() + lead.source.slice(1)
+                : "N/A"}
             </ThemedText>
           </View>
 
@@ -161,6 +276,7 @@ export const LeadCard: React.FC<LeadCardProps> = ({
           )}
         </View>
 
+        {/* Job Title - Optional */}
         {lead.jobTitle && (
           <View
             style={{
@@ -169,7 +285,7 @@ export const LeadCard: React.FC<LeadCardProps> = ({
               gap: 6,
               paddingTop: 8,
               borderTopWidth: 1,
-              borderTopColor: "#f0f0f0",
+              borderTopColor: colors.border + "40",
             }}
           >
             <Ionicons

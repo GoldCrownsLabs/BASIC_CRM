@@ -1,17 +1,16 @@
+// app/(tabs)/leads.tsx - Complete Fixed Code
 import React, { useState, useEffect } from "react";
 import {
   ScrollView,
   RefreshControl,
   View,
-  Modal,
-  Alert,
   ActivityIndicator,
   Text,
 } from "react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useLeads } from "@/hooks/useLeads";
 import { useAuthStore } from "@/store/auth.store";
-import { Redirect, router } from "expo-router";
+import { Redirect } from "expo-router";
 import {
   getStageColor,
   getStageLabel,
@@ -32,19 +31,23 @@ import { LeadDetailModal } from "@/models/Leads/LeadDetailModal";
 import { AddLeadModal } from "@/models/Leads/AddLeadModal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+// IMPORT FEATURE FLAGS - SAHI PATH
+import {
+  MODULE_LEADS,
+  LEADS_ASSIGN,
+  LEADS_FOLLOWUP_REMINDER,
+  LEADS_EXPORT,
+  LEADS_FILTER_PERSISTENT,
+  LEADS_SEARCH_CASE_SENSITIVE,
+} from "@/components/constants/FeatureFlags";
+
 export default function LeadsScreen() {
   const { colors } = useAppTheme();
   const { isAuthenticated, isLoading: authLoading } = useAuthStore();
   const [authChecked, setAuthChecked] = useState(false);
   const insets = useSafeAreaInsets();
 
-  // Check authentication
-  useEffect(() => {
-    if (!authLoading) {
-      setAuthChecked(true);
-    }
-  }, [authLoading]);
-
+  // ✅ HOOKS PEHLE CALL KARO (CONDITION SE PEHLE)
   const {
     refreshing,
     loading,
@@ -69,6 +72,31 @@ export default function LeadsScreen() {
   const [selectedLead, setSelectedLead] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [addLeadModalVisible, setAddLeadModalVisible] = useState(false);
+
+  // ✅ CHECK AUTHENTICATION
+  useEffect(() => {
+    if (!authLoading) {
+      setAuthChecked(true);
+    }
+  }, [authLoading]);
+
+  // 🔥 MODULE DISABLED CHECK - LAST MEIN
+  if (!MODULE_LEADS) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: colors.background,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Text style={{ color: colors.text, fontSize: 16 }}>
+          Leads module is disabled
+        </Text>
+      </View>
+    );
+  }
 
   // Redirect if not authenticated
   if (authChecked && !isAuthenticated) {
@@ -118,15 +146,15 @@ export default function LeadsScreen() {
       style={{
         flex: 1,
         backgroundColor: colors.background,
-        paddingTop: 0, // ✅ Remove top padding
+        paddingTop: 0,
       }}
     >
       <ScrollView
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingTop: 0, // ✅ Remove top padding
-          paddingBottom: 20 + insets.bottom, // ✅ Add bottom safe area
+          paddingTop: 0,
+          paddingBottom: 20 + insets.bottom,
         }}
         refreshControl={
           <RefreshControl
@@ -134,8 +162,8 @@ export default function LeadsScreen() {
             onRefresh={onRefresh}
             tintColor={colors.primary}
             colors={[colors.primary]}
-            style={{ backgroundColor: colors.background }} // ✅ Add background
-            progressViewOffset={20} // ✅ Adjust pull position
+            style={{ backgroundColor: colors.background }}
+            progressViewOffset={20}
           />
         }
       >
@@ -145,6 +173,7 @@ export default function LeadsScreen() {
           onSearchChange={handleSearch}
           onAddLead={() => setAddLeadModalVisible(true)}
         />
+
         {/* Stage Filter */}
         <StageFilter
           stages={stageStats}
@@ -152,11 +181,13 @@ export default function LeadsScreen() {
           onSelectStage={handleStageFilter}
           formatCurrency={formatCurrency}
         />
+
         {/* Source Filter */}
         <SourceFilter
           selectedSource={selectedSource}
           onSelectSource={handleSourceFilter}
         />
+
         {/* Priority Filter */}
         <PriorityFilter
           selectedPriority={selectedPriority}
@@ -165,6 +196,7 @@ export default function LeadsScreen() {
           getPriorityColor={getPriorityColor}
           getPriorityDisplayLabel={getPriorityDisplayLabel}
         />
+
         {/* Pipeline Stats */}
         <PipelineStats
           totalPipelineValue={totalPipelineValue}
@@ -172,6 +204,7 @@ export default function LeadsScreen() {
           totalLeads={pagination.total}
           formatCurrency={formatCurrency}
         />
+
         {/* Leads List */}
         <View style={{ paddingHorizontal: 15 }}>
           <LeadsList
@@ -186,9 +219,12 @@ export default function LeadsScreen() {
             getPriorityColor={getPriorityColor}
             formatCurrency={formatCurrency}
             calculateDaysToClose={calculateDaysToClose}
+            canAssignLead={LEADS_ASSIGN}
+            canSetReminder={LEADS_FOLLOWUP_REMINDER}
+            canExport={LEADS_EXPORT}
           />
         </View>
-        <View style={{ height: 20 }} /> 
+        <View style={{ height: 20 }} />
       </ScrollView>
 
       {/* Lead Detail Modal */}
@@ -201,6 +237,8 @@ export default function LeadsScreen() {
             fetchLeads();
             fetchLeadStats();
           }}
+          canAssignLead={LEADS_ASSIGN}
+          canSetReminder={LEADS_FOLLOWUP_REMINDER}
         />
       )}
 

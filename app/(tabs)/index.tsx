@@ -17,21 +17,33 @@ import { MeetingReminder } from "@/models/Home/MeetingReminder";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-// ✅ Import both banners and services
 import BannerSession from "@/models/Home/BannerSession";
-
 import { planService, Plan } from "@/lib/api/plan";
 import PlansBanner from "@/models/Home/PlanBanner";
+
+// 🔥 IMPORT FEATURE FLAGS
+import {
+  MODULE_DASHBOARD,
+  DASHBOARD_TOTAL_LEADS,
+  DASHBOARD_TOTAL_TASKS,
+  DASHBOARD_UPCOMING_MEETINGS,
+  DASHBOARD_QUICK_ACTIONS,
+  DASHBOARD_ANALYTICS_REALTIME,
+  DASHBOARD_TOTAL_CONTACTS,
+  FEATURE_SYNC_STATUS,
+} from "@/components/constants/FeatureFlags";
 
 export default function DashboardScreen() {
   const { user } = useAuthStore();
   const { colors, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
 
-  // ✅ States for subscription and plans
+  // ✅ ALL HOOKS MUST BE CALLED FIRST (BEFORE ANY CONDITIONAL RETURN)
   const [hasSubscription, setHasSubscription] = useState(false);
   const [checkingSubscription, setCheckingSubscription] = useState(true);
   const [plans, setPlans] = useState<Plan[]>([]);
+  const [upcomingMeetings, setUpcomingMeetings] = useState<Activity[]>([]);
+  const [fetchingMeetings, setFetchingMeetings] = useState(false);
 
   const {
     greeting,
@@ -46,27 +58,31 @@ export default function DashboardScreen() {
     formatCurrency,
   } = useDashboard();
 
-  // State for meetings
-  const [upcomingMeetings, setUpcomingMeetings] = useState<Activity[]>([]);
-  const [fetchingMeetings, setFetchingMeetings] = useState(false);
-
   const getMutedBackground = () => {
     return isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)";
   };
 
-  // ✅ Check subscription status and load plans
+  // ✅ useEffect HOOKS - Called BEFORE conditional return
+  useEffect(() => {
+    loadData();
+    fetchUpcomingMeetings();
+  }, []);
+
+  useEffect(() => {
+    if (!refreshing) {
+      loadData();
+      fetchUpcomingMeetings();
+    }
+  }, [refreshing]);
+
+  // ✅ Function definitions
   const loadData = async () => {
     try {
       setCheckingSubscription(true);
-
-      // Check if user has active subscription
       const hasSub = await planService.checkActiveSubscription();
       setHasSubscription(hasSub);
-
-      // Load all available plans
       const response = await planService.getPlans();
       setPlans(response.data || []);
-
       console.log("📊 Dashboard Data:", {
         hasSubscription: hasSub,
         plansCount: response.data?.length || 0,
@@ -80,13 +96,11 @@ export default function DashboardScreen() {
     }
   };
 
-  // Fetch upcoming meetings
   const fetchUpcomingMeetings = async () => {
     try {
       setFetchingMeetings(true);
       const today = new Date();
       const todayString = today.toISOString().split("T")[0];
-
       const response = await fetchActivities({
         type: "meeting",
         startDate: todayString,
@@ -94,7 +108,6 @@ export default function DashboardScreen() {
         sortBy: "date",
         order: "asc",
       });
-
       if (response.success && response.data) {
         setUpcomingMeetings(response.data);
       }
@@ -105,19 +118,10 @@ export default function DashboardScreen() {
     }
   };
 
-  // Initial fetch
-  useEffect(() => {
-    loadData();
-    fetchUpcomingMeetings();
-  }, []);
-
-  // Refresh on pull
-  useEffect(() => {
-    if (!refreshing) {
-      loadData();
-      fetchUpcomingMeetings();
-    }
-  }, [refreshing]);
+  // 🔥 CONDITIONAL RETURN - At the very end, after all hooks
+  if (!MODULE_DASHBOARD) {
+    return null;
+  }
 
   return (
     <View
@@ -145,45 +149,54 @@ export default function DashboardScreen() {
           />
         }
       >
-        {/* Welcome Header */}
+        {/* Welcome Header - Always Show */}
         <WelcomeHeader
           greeting={greeting}
           userName={user?.name || "User"}
           fadeAnim={fadeAnim}
         />
 
-        {/* 🎯 PLANS BANNER - Only if NO subscription */}
+        {/* PLANS BANNER - Only if NO subscription */}
         {!hasSubscription && !checkingSubscription && plans.length > 0 && (
           <PlansBanner plans={plans} />
         )}
 
-        {/* 🎯 LEADS BANNER - Only if HAS subscription (ALWAYS show) */}
+        {/* LEADS BANNER - Only if HAS subscription */}
         {hasSubscription && !checkingSubscription && <BannerSession />}
 
-        {/* Meeting Reminder */}
-        <MeetingReminder
-          upcomingMeetings={upcomingMeetings}
-          colors={colors}
-          isDark={isDark}
-          onMeetingPress={(meeting) => {
-            console.log("Meeting pressed:", meeting);
-            router.push("/(tabs)/(tools)/activities");
-          }}
-        />
+        {/* Meeting Reminder - Conditional */}
+        {DASHBOARD_UPCOMING_MEETINGS && (
+          <MeetingReminder
+            upcomingMeetings={upcomingMeetings}
+            colors={colors}
+            isDark={isDark}
+            onMeetingPress={(meeting) => {
+              console.log("Meeting pressed:", meeting);
+              router.push("/(tabs)/(tools)/activities");
+            }}
+          />
+        )}
 
-        {/* Stats Overview */}
-        <StatsOverview
-          loading={loading}
-          leadStats={leadStats}
-          totalPipelineValue={totalPipelineValue}
-          onCalculateConversionRate={calculateConversionRate}
-          onFormatCurrency={formatCurrency}
-        />
+        {/* Stats Overview - Conditional */}
+        {(DASHBOARD_TOTAL_LEADS ||
+          DASHBOARD_TOTAL_TASKS ||
+          DASHBOARD_TOTAL_CONTACTS) && (
+          <StatsOverview
+            loading={loading}
+            leadStats={leadStats}
+            totalPipelineValue={totalPipelineValue}
+            onCalculateConversionRate={calculateConversionRate}
+            onFormatCurrency={formatCurrency}
+            showTotalLeads={DASHBOARD_TOTAL_LEADS}
+            showTotalTasks={DASHBOARD_TOTAL_TASKS}
+            showTotalContacts={DASHBOARD_TOTAL_CONTACTS}
+          />
+        )}
 
-        {/* Quick Actions */}
-        <QuickActions />
+        {/* Quick Actions - Conditional */}
+        {DASHBOARD_QUICK_ACTIONS && <QuickActions />}
 
-        {/* Recent Leads */}
+        {/* Recent Leads - Always Show */}
         <RecentLeads
           loading={loading}
           recentLeads={recentLeads}
@@ -192,11 +205,11 @@ export default function DashboardScreen() {
           getMutedBackground={getMutedBackground}
         />
 
-        {/* Performance Metrics */}
-        <PerformanceMetrics />
+        {/* Performance Metrics - Conditional */}
+        {DASHBOARD_ANALYTICS_REALTIME && <PerformanceMetrics />}
 
-        {/* Sync Status */}
-        <SyncStatus />
+        {/* Sync Status - Conditional */}
+        {FEATURE_SYNC_STATUS && <SyncStatus />}
 
         {/* Bottom Spacer */}
         <View style={{ height: 20 }} />
