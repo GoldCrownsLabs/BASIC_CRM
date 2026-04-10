@@ -11,6 +11,22 @@ import { useAppTheme } from "@/context/ThemeContext";
 import { useProfile } from "@/hooks/useProfile";
 import { useProfileActions } from "@/hooks/useProfileActions";
 
+// Import Feature Flags
+import {
+  PROFILE_EDIT_NAME,
+  PROFILE_EDIT_EMAIL,
+  PROFILE_EDIT_MOBILE,
+  PROFILE_EDIT_PHOTO,
+  PROFILE_CHANGE_PASSWORD,
+  PROFILE_DELETE_ACCOUNT,
+  PROFILE_ACTIVITY_LOG,
+  PROFILE_ADDRESS_MANAGEMENT,
+  PROFILE_DEVICES_LIST,
+  PROFILE_STATS_CARD,
+  PROFILE_PREFERENCES_CARD,
+  PROFILE_PERSONAL_INFO_CARD,
+} from "@/components/constants/FeatureFlags";
+
 // Modals
 import EditProfileModal from "@/components/Modal/EditProfileModal";
 import ChangePasswordModal from "@/components/Modal/ChangePasswordModal";
@@ -21,7 +37,6 @@ import { ProfileInfoCard } from "@/models/Profile/ProfileInfoCard";
 import { PersonalInfoCard } from "@/models/Profile/PersonalInfoCard";
 import { PreferencesCard } from "@/models/Profile/PreferencesCard";
 import { StatsCard } from "@/models/Profile/StatsCard";
-import { SecuritySettingsCard } from "@/models/Profile/SecuritySettingsCard";
 import { PasswordCard } from "@/models/Profile/PasswordCard";
 import { ActiveDevicesCard } from "@/models/Profile/ActiveDevicesCard";
 import { DangerZoneCard } from "@/models/Profile/DangerZoneCard";
@@ -43,7 +58,6 @@ interface ProfileFormData {
   newsletterSubscription?: boolean;
 }
 
-// Stats type expected by StatsCard
 interface StatsCardData {
   contacts: number;
   activeLeads: number;
@@ -53,9 +67,34 @@ interface StatsCardData {
 
 const ProfilePage = () => {
   const { colors, isDark } = useAppTheme();
+
+  // TABS - Sirf enabled features ke according
+  const getAvailableTabs = () => {
+    const tabs = ["profile"];
+
+    if (
+      PROFILE_CHANGE_PASSWORD ||
+      PROFILE_DELETE_ACCOUNT ||
+      PROFILE_DEVICES_LIST
+    ) {
+      tabs.push("security");
+    }
+
+    if (PROFILE_ACTIVITY_LOG) {
+      tabs.push("activity");
+    }
+
+    if (PROFILE_ADDRESS_MANAGEMENT) {
+      tabs.push("address");
+    }
+
+    return tabs;
+  };
+
+  const availableTabs = getAvailableTabs();
   const [activeTab, setActiveTab] = useState<
     "profile" | "security" | "activity" | "address"
-  >("profile");
+  >(availableTabs[0] as any);
 
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -72,7 +111,7 @@ const ProfilePage = () => {
     confirmPassword: "",
   });
 
-  // Address form - matches Address interface exactly
+  // Address form
   const [addressForm, setAddressForm] = useState<Address>({
     addressType: "home",
     street: "",
@@ -102,8 +141,6 @@ const ProfilePage = () => {
     changePassword,
     deleteAccount,
     addressOperations,
-    setSecuritySettings,
-    logout,
   } = useProfile();
 
   const {
@@ -121,10 +158,8 @@ const ProfilePage = () => {
     fetchAddresses,
   );
 
-  // Combine loading states
   const isLoading = profileLoading || actionsLoading;
 
-  // Transform stats for StatsCard
   const transformedStats: StatsCardData = {
     contacts: stats?.totalUsers || 0,
     activeLeads: stats?.totalActiveUsers || 0,
@@ -136,9 +171,9 @@ const ProfilePage = () => {
   const onRefresh = async () => {
     if (activeTab === "profile") {
       await Promise.all([fetchProfile(), fetchStats()]);
-    } else if (activeTab === "address") {
+    } else if (activeTab === "address" && PROFILE_ADDRESS_MANAGEMENT) {
       await fetchAddresses();
-    } else if (activeTab === "activity") {
+    } else if (activeTab === "activity" && PROFILE_ACTIVITY_LOG) {
       await fetchActivityLogs();
     } else if (activeTab === "security") {
       await fetchSecuritySettings();
@@ -160,7 +195,22 @@ const ProfilePage = () => {
   };
 
   const handleEditProfileSave = async () => {
-    const result = await updateProfile(profileForm);
+    const formDataToSend: any = {};
+
+    if (PROFILE_EDIT_NAME && profileForm.name !== undefined) {
+      formDataToSend.name = profileForm.name;
+    }
+    if (PROFILE_EDIT_EMAIL && profileForm.email !== undefined) {
+      formDataToSend.email = profileForm.email;
+    }
+    if (PROFILE_EDIT_MOBILE && profileForm.phone !== undefined) {
+      formDataToSend.phone = profileForm.phone;
+    }
+    if (PROFILE_EDIT_PHOTO && profileForm.profileImage !== undefined) {
+      formDataToSend.profileImage = profileForm.profileImage;
+    }
+
+    const result = await updateProfile(formDataToSend);
     if (result.success) {
       setShowEditProfile(false);
       setProfileForm({});
@@ -171,6 +221,11 @@ const ProfilePage = () => {
   };
 
   const handleChangePasswordSave = async () => {
+    if (!PROFILE_CHANGE_PASSWORD) {
+      Alert.alert("Error", "Change password feature is disabled");
+      return;
+    }
+
     if (!passwordForm.currentPassword) {
       Alert.alert("Error", "Please enter current password");
       return;
@@ -207,6 +262,11 @@ const ProfilePage = () => {
   };
 
   const handleDeleteAccountSave = async () => {
+    if (!PROFILE_DELETE_ACCOUNT) {
+      Alert.alert("Error", "Delete account feature is disabled");
+      return;
+    }
+
     if (deleteConfirmationText.toLowerCase() !== "delete") {
       Alert.alert("Error", 'Please type "delete" to confirm');
       return;
@@ -222,8 +282,9 @@ const ProfilePage = () => {
   };
 
   const handleAddressSave = async () => {
+    if (!PROFILE_ADDRESS_MANAGEMENT) return;
+
     if (editingAddress) {
-      // Update existing address
       const result = await addressOperations.update(
         editingAddress._id!,
         editingAddress,
@@ -236,7 +297,6 @@ const ProfilePage = () => {
         Alert.alert("Error", result.error || "Failed to update address");
       }
     } else {
-      // Add new address
       const result = await addressOperations.add(addressForm);
       if (result.success) {
         setShowAddAddress(false);
@@ -248,51 +308,42 @@ const ProfilePage = () => {
     }
   };
 
-const handleAddressDelete = (addressId: string) => {
-  // Check if this is the last address
-  if (addresses.length === 1) {
-    Alert.alert(
-      "Cannot Delete",
-      "You cannot delete your last address. Please add another address first.",
-      [{ text: "OK" }],
-    );
-    return;
-  }
+  const handleAddressDelete = (addressId: string) => {
+    if (!PROFILE_ADDRESS_MANAGEMENT) return;
 
-  Alert.alert(
-    "Delete Address",
-    "Are you sure you want to delete this address?",
-    [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          try {
+    if (addresses.length === 1) {
+      Alert.alert(
+        "Cannot Delete",
+        "You cannot delete your last address. Please add another address first.",
+        [{ text: "OK" }],
+      );
+      return;
+    }
+
+    Alert.alert(
+      "Delete Address",
+      "Are you sure you want to delete this address?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
             const result = await addressOperations.delete(addressId);
             if (result.success) {
               Alert.alert("Success", "Address deleted successfully");
             } else {
-              // Handle backend error message
-              const errorMsg = result.error || "Failed to delete address";
-              Alert.alert("Error", errorMsg);
+              Alert.alert("Error", result.error || "Failed to delete address");
             }
-          } catch (error: any) {
-            console.error("Delete error:", error);
-
-            // Check if error is from backend with message
-            if (error?.message) {
-              Alert.alert("Error", error.message);
-            } else {
-              Alert.alert("Error", "Failed to delete address");
-            }
-          }
+          },
         },
-      },
-    ],
-  );
-};
+      ],
+    );
+  };
+
   const handleSetDefaultAddress = async (addressId: string) => {
+    if (!PROFILE_ADDRESS_MANAGEMENT) return;
+
     const result = await addressOperations.setDefault(addressId);
     if (result.success) {
       Alert.alert("Success", "Default address updated");
@@ -303,7 +354,7 @@ const handleAddressDelete = (addressId: string) => {
 
   const handleEditAddress = (address: Address) => {
     setEditingAddress(address);
-    setAddressForm(address); // Directly set the address
+    setAddressForm(address);
     setShowAddAddress(true);
   };
 
@@ -326,6 +377,8 @@ const handleAddressDelete = (addressId: string) => {
   };
 
   const handleImageUploadWrapper = async () => {
+    if (!PROFILE_EDIT_PHOTO) return;
+
     try {
       await handleImageUpload();
       if (profile?.profileImage) {
@@ -362,7 +415,7 @@ const handleAddressDelete = (addressId: string) => {
 
       <ProfileHeader
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={(tab) => setActiveTab(tab as any)}
         onRefresh={onRefresh}
         isRefreshing={refreshing}
       />
@@ -389,36 +442,41 @@ const handleAddressDelete = (addressId: string) => {
         {activeTab === "profile" && user && (
           <View style={{ padding: 16 }}>
             <ProfileInfoCard user={user} onEditProfile={handleEditProfile} />
-            <PersonalInfoCard user={user} />
-            <PreferencesCard user={user} />
-            <StatsCard user={user} stats={transformedStats} />
+
+            {PROFILE_PERSONAL_INFO_CARD && <PersonalInfoCard user={user} />}
+
+            {PROFILE_PREFERENCES_CARD && <PreferencesCard user={user} />}
+
+            {PROFILE_STATS_CARD && (
+              <StatsCard user={user} stats={transformedStats} />
+            )}
           </View>
         )}
 
         {/* Security Tab */}
         {activeTab === "security" && securitySettings && (
           <View style={{ padding: 16 }}>
-            {/* <SecuritySettingsCard
-              securitySettings={securitySettings}
-              onSecuritySettingChange={(key, value) => {
-                if (securitySettings && setSecuritySettings) {
-                  setSecuritySettings({ ...securitySettings, [key]: value });
-                }
-              }}
-            /> */}
-            <PasswordCard
-              securitySettings={securitySettings}
-              onChangePassword={() => setShowChangePassword(true)}
-            />
-            <ActiveDevicesCard securitySettings={securitySettings} />
-            <DangerZoneCard
-              onDeleteAccount={() => setShowDeleteAccount(true)}
-            />
+            {PROFILE_CHANGE_PASSWORD && (
+              <PasswordCard
+                securitySettings={securitySettings}
+                onChangePassword={() => setShowChangePassword(true)}
+              />
+            )}
+
+            {PROFILE_DEVICES_LIST && (
+              <ActiveDevicesCard securitySettings={securitySettings} />
+            )}
+
+            {PROFILE_DELETE_ACCOUNT && (
+              <DangerZoneCard
+                onDeleteAccount={() => setShowDeleteAccount(true)}
+              />
+            )}
           </View>
         )}
 
         {/* Activity Tab */}
-        {activeTab === "activity" && (
+        {activeTab === "activity" && PROFILE_ACTIVITY_LOG && (
           <View
             style={{
               paddingTop: 10,
@@ -435,7 +493,7 @@ const handleAddressDelete = (addressId: string) => {
         )}
 
         {/* Address Tab */}
-        {activeTab === "address" && (
+        {activeTab === "address" && PROFILE_ADDRESS_MANAGEMENT && (
           <View
             style={{
               paddingTop: 10,
@@ -465,66 +523,84 @@ const handleAddressDelete = (addressId: string) => {
         )}
       </ScrollView>
 
-      {/* Modals */}
-      <EditProfileModal
-        visible={showEditProfile}
-        onClose={() => {
-          setShowEditProfile(false);
-          setProfileForm({});
-        }}
-        profile={profileForm}
-        onProfileChange={(field, value) =>
-          setProfileForm({ ...profileForm, [field]: value })
-        }
-        onSave={handleEditProfileSave}
-        isLoading={isLoading}
-        isUploadingImage={isUploadingImage}
-        onImageUpload={handleImageUploadWrapper}
-        colors={colors}
-      />
+      {/* Edit Profile Modal */}
+      {(PROFILE_EDIT_NAME ||
+        PROFILE_EDIT_EMAIL ||
+        PROFILE_EDIT_MOBILE ||
+        PROFILE_EDIT_PHOTO) && (
+        <EditProfileModal
+          visible={showEditProfile}
+          onClose={() => {
+            setShowEditProfile(false);
+            setProfileForm({});
+          }}
+          profile={profileForm}
+          onProfileChange={(field, value) =>
+            setProfileForm({ ...profileForm, [field]: value })
+          }
+          onSave={handleEditProfileSave}
+          isLoading={isLoading}
+          isUploadingImage={isUploadingImage}
+          onImageUpload={handleImageUploadWrapper}
+          colors={colors}
+          canEditName={PROFILE_EDIT_NAME}
+          canEditEmail={PROFILE_EDIT_EMAIL}
+          canEditMobile={PROFILE_EDIT_MOBILE}
+          canEditPhoto={PROFILE_EDIT_PHOTO}
+        />
+      )}
 
-      <ChangePasswordModal
-        visible={showChangePassword}
-        onClose={() => {
-          setShowChangePassword(false);
-          setPasswordForm({
-            currentPassword: "",
-            newPassword: "",
-            confirmPassword: "",
-          });
-        }}
-        passwordForm={passwordForm}
-        onPasswordFormChange={(field, value) =>
-          setPasswordForm({ ...passwordForm, [field]: value })
-        }
-        onSave={handleChangePasswordSave}
-        isLoading={isLoading}
-        colors={colors}
-      />
+      {/* Change Password Modal */}
+      {PROFILE_CHANGE_PASSWORD && (
+        <ChangePasswordModal
+          visible={showChangePassword}
+          onClose={() => {
+            setShowChangePassword(false);
+            setPasswordForm({
+              currentPassword: "",
+              newPassword: "",
+              confirmPassword: "",
+            });
+          }}
+          passwordForm={passwordForm}
+          onPasswordFormChange={(field, value) =>
+            setPasswordForm({ ...passwordForm, [field]: value })
+          }
+          onSave={handleChangePasswordSave}
+          isLoading={isLoading}
+          colors={colors}
+        />
+      )}
 
-      <DeleteAccountModal
-        visible={showDeleteAccount}
-        onClose={() => {
-          setShowDeleteAccount(false);
-          setDeleteConfirmationText("");
-        }}
-        deleteConfirmationText={deleteConfirmationText}
-        onDeleteConfirmationTextChange={setDeleteConfirmationText}
-        onDelete={handleDeleteAccountSave}
-        isLoading={isLoading}
-        colors={colors}
-      />
+      {/* Delete Account Modal */}
+      {PROFILE_DELETE_ACCOUNT && (
+        <DeleteAccountModal
+          visible={showDeleteAccount}
+          onClose={() => {
+            setShowDeleteAccount(false);
+            setDeleteConfirmationText("");
+          }}
+          deleteConfirmationText={deleteConfirmationText}
+          onDeleteConfirmationTextChange={setDeleteConfirmationText}
+          onDelete={handleDeleteAccountSave}
+          isLoading={isLoading}
+          colors={colors}
+        />
+      )}
 
-      <AddressModal
-        visible={showAddAddress}
-        onClose={handleAddressModalClose}
-        address={addressForm}
-        onAddressChange={handleAddressChange}
-        onSave={handleAddressSave}
-        isLoading={isLoading}
-        isEditing={!!editingAddress}
-        colors={colors}
-      />
+      {/* Address Modal */}
+      {PROFILE_ADDRESS_MANAGEMENT && (
+        <AddressModal
+          visible={showAddAddress}
+          onClose={handleAddressModalClose}
+          address={addressForm}
+          onAddressChange={handleAddressChange}
+          onSave={handleAddressSave}
+          isLoading={isLoading}
+          isEditing={!!editingAddress}
+          colors={colors}
+        />
+      )}
     </View>
   );
 };

@@ -17,6 +17,21 @@ import {
   View,
 } from "react-native";
 
+// 🔥 IMPORT FEATURE FLAGS
+import {
+  MODULE_ANALYTICS,
+  MODULE_CALENDAR,
+  MODULE_EMAIL_SENDER,
+  MODULE_IMPORT_EXPORT,
+  MODULE_SETTINGS,
+  MODULE_HELP_SUPPORT,
+  MODULE_ACTIVITIES,
+  FEATURE_THEME_TOGGLE,
+  FEATURE_SYNC_STATUS,
+  FEATURE_RECENT_ITEMS,
+  FEATURE_APP_INFO,
+} from "@/components/constants/FeatureFlags";
+
 export default function CustomDrawerContent(
   props: DrawerContentComponentProps,
 ) {
@@ -28,7 +43,6 @@ export default function CustomDrawerContent(
   const slideAnim = useRef(new Animated.Value(-50)).current;
 
   useEffect(() => {
-    // Animate drawer content on mount
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -48,81 +62,108 @@ export default function CustomDrawerContent(
     props.navigation.closeDrawer();
   };
 
-  // Document के according important features
-  const importantFeatures = [
-    {
-      label: "Activities",
-      icon: "pulse-outline",
-      onPress: () => {
-        router.push("/activities");
-        props.navigation.closeDrawer();
-      },
-    },
+  // 🔥 DYNAMIC FEATURES LIST - Sirf enabled features dikhenge
+  const getImportantFeatures = () => {
+    const features = [];
 
-    {
-      label: "Analytics & Reports",
-      icon: "bar-chart-outline",
-      onPress: () => {
-        router.push("/analytics"); // ✅ analytics/index.tsx
-        props.navigation.closeDrawer();
-      },
-    },
-    {
-      label: "Calendar View",
-      icon: "calendar-outline",
-      onPress: () => {
-        router.push("/calendar"); // ✅ calendar.tsx OR calendar/index.tsx
-        props.navigation.closeDrawer();
-      },
-    },
-    {
-      label: "Email Templates",
-      icon: "mail-outline",
-      onPress: () => {
-        router.push("/email-templates");
-        props.navigation.closeDrawer();
-      },
-    },
-    {
-      label: "Import / Export",
-      icon: "download-outline",
-      onPress: () => {
-        router.push("/import-export"); // ✅ import-export.tsx
-        props.navigation.closeDrawer();
-      },
-    },
-    {
-      label: "Settings",
-      icon: "settings-outline",
-      onPress: () => {
-        router.push("/settings"); // ✅ agar settings tab/page hai
-        props.navigation.closeDrawer();
-      },
-    },
-    {
-      label: "Help & Support",
-      icon: "help-circle-outline",
-      onPress: () => {
-        router.push("/help"); // ✅ help.tsx / help/index.tsx
-        props.navigation.closeDrawer();
-      },
-    },
-  ];
+    if (MODULE_ACTIVITIES) {
+      features.push({
+        label: "Activities",
+        icon: "pulse-outline",
+        onPress: () => {
+          router.push("/activities");
+          props.navigation.closeDrawer();
+        },
+      });
+    }
 
-  // Quick access to recent items
-  const recentItems = [
-    { id: 1, name: "ABC Corp", type: "company", lastActive: "2 hours ago" },
-    { id: 2, name: "John Doe", type: "contact", lastActive: "Yesterday" },
-    {
-      id: 3,
-      name: "Q4 Proposal",
-      type: "opportunity",
-      lastActive: "3 days ago",
-    },
-  ];
+    if (MODULE_ANALYTICS) {
+      features.push({
+        label: "Analytics & Reports",
+        icon: "bar-chart-outline",
+        onPress: () => {
+          router.push("/analytics");
+          props.navigation.closeDrawer();
+        },
+      });
+    }
+
+    if (MODULE_CALENDAR) {
+      features.push({
+        label: "Calendar View",
+        icon: "calendar-outline",
+        onPress: () => {
+          router.push("/calendar");
+          props.navigation.closeDrawer();
+        },
+      });
+    }
+
+    if (MODULE_EMAIL_SENDER) {
+      features.push({
+        label: "Email Templates",
+        icon: "mail-outline",
+        onPress: () => {
+          router.push("/email-templates");
+          props.navigation.closeDrawer();
+        },
+      });
+    }
+
+    if (MODULE_IMPORT_EXPORT) {
+      features.push({
+        label: "Import / Export",
+        icon: "download-outline",
+        onPress: () => {
+          router.push("/import-export");
+          props.navigation.closeDrawer();
+        },
+      });
+    }
+
+    if (MODULE_SETTINGS) {
+      features.push({
+        label: "Settings",
+        icon: "settings-outline",
+        onPress: () => {
+          router.push("/settings");
+          props.navigation.closeDrawer();
+        },
+      });
+    }
+
+    if (MODULE_HELP_SUPPORT) {
+      features.push({
+        label: "Help & Support",
+        icon: "help-circle-outline",
+        onPress: () => {
+          router.push("/help");
+          props.navigation.closeDrawer();
+        },
+      });
+    }
+
+    return features;
+  };
+
+  // 🔥 Recent Items - Sirf tab dikhega jab feature enabled ho
+  const recentItems = FEATURE_RECENT_ITEMS
+    ? [
+        { id: 1, name: "ABC Corp", type: "company", lastActive: "2 hours ago" },
+        { id: 2, name: "John Doe", type: "contact", lastActive: "Yesterday" },
+        {
+          id: 3,
+          name: "Q4 Proposal",
+          type: "opportunity",
+          lastActive: "3 days ago",
+        },
+      ]
+    : [];
 
   const handleThemeToggle = () => {
-    toggleTheme(isDark ? "light" : "dark");
+    if (FEATURE_THEME_TOGGLE) {
+      toggleTheme(isDark ? "light" : "dark");
+    }
   };
 
   const getNextTheme = () => {
@@ -154,6 +195,8 @@ export default function CustomDrawerContent(
     }
   };
 
+  const importantFeatures = getImportantFeatures();
+
   return (
     <Animated.View
       style={[
@@ -165,7 +208,7 @@ export default function CustomDrawerContent(
         },
       ]}
     >
-      {/* Profile Header */}
+      {/* Profile Header - Hamesha dikhega */}
       <Animated.View
         style={[
           styles.header,
@@ -211,31 +254,9 @@ export default function CustomDrawerContent(
             >
               <Text style={{ color: "rgba(255,255,255,0.8)" }}>Role: </Text>
               <Text style={{ color: "rgba(255,255,255,0.8)" }}>
-                {user?.role || "guest@example.com"}
+                {user?.role || "guest"}
               </Text>
             </View>
-
-            {/* <View style={styles.profileStats}>
-              <View style={styles.statItem}>
-                <Text style={[styles.statValue, { color: "white" }]}>
-                  Sales
-                </Text>
-                <Text
-                  style={[styles.statLabel, { color: "rgba(255,255,255,0.8)" }]}
-                >
-                  Manager
-                </Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={[styles.statValue, { color: "white" }]}>28%</Text>
-                <Text
-                  style={[styles.statLabel, { color: "rgba(255,255,255,0.8)" }]}
-                >
-                  Conversion
-                </Text>
-              </View>
-            </View> */}
           </View>
           <Ionicons name="chevron-forward" size={20} color="white" />
         </TouchableOpacity>
@@ -246,279 +267,308 @@ export default function CustomDrawerContent(
         style={[styles.drawerScroll, { backgroundColor: colors.background }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Recently Accessed */}
-        {/* <View style={[styles.section, { backgroundColor: colors.card }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Recently Accessed
-          </Text>
-          {recentItems.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.recentItem}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.recentIcon,
-                  { backgroundColor: colors.primary + "15" },
-                ]}
-              >
-                <Ionicons
-                  name={getItemIcon(item.type) as any}
-                  size={18}
-                  color={colors.primary}
-                />
-              </View>
-              <View style={styles.recentContent}>
-                <Text style={[styles.recentTitle, { color: colors.text }]}>
-                  {item.name}
-                </Text>
-                <Text
-                  style={[
-                    styles.recentSubtitle,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  {item.type} • {item.lastActive}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View> */}
-
-        {/* Divider */}
-        {/* <View style={[styles.divider, { backgroundColor: colors.border }]} /> */}
-
-        {/* Important Features */}
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Features
-          </Text>
-          {importantFeatures.map((item, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.menuItem}
-              onPress={item.onPress}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.menuIconContainer,
-                  { backgroundColor: colors.primary + "15" },
-                ]}
-              >
-                <Ionicons
-                  name={item.icon as any}
-                  size={20}
-                  color={colors.primary}
-                />
-              </View>
-              <Text style={[styles.menuText, { color: colors.text }]}>
-                {item.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Divider */}
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-        {/* Theme Settings */}
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Appearance
-          </Text>
-
-          <View style={styles.themeToggle}>
-            <View style={styles.themeToggleLeft}>
-              <View
-                style={[
-                  styles.themeIconContainer,
-                  { backgroundColor: colors.primary + "15" },
-                ]}
-              >
-                <Ionicons
-                  name={getThemeIcon() as any}
-                  size={20}
-                  color={colors.primary}
-                />
-              </View>
-              <View style={styles.themeTextContainer}>
-                <Text style={[styles.themeTitle, { color: colors.text }]}>
-                  {getThemeLabel()}
-                </Text>
-                <Text
-                  style={[
-                    styles.themeSubtitle,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  {theme === "system"
-                    ? "Follows device settings"
-                    : "Manual selection"}
-                </Text>
-              </View>
-            </View>
-            <Switch
-              value={isDark}
-              onValueChange={handleThemeToggle}
-              trackColor={{
-                false: colors.border,
-                true: colors.primary + "80",
-              }}
-              thumbColor={isDark ? colors.primary : colors.textSecondary}
-              ios_backgroundColor={colors.border}
-            />
-          </View>
-
-          {/* Theme Quick Options */}
-          <View style={styles.themeOptions}>
-            <TouchableOpacity
-              style={[
-                styles.themeOption,
-                {
-                  backgroundColor:
-                    theme === "light" ? colors.primary + "20" : "transparent",
-                  borderColor:
-                    theme === "light" ? colors.primary : colors.border,
-                },
-              ]}
-              onPress={() => toggleTheme("light")}
-            >
-              <Ionicons
-                name="sunny"
-                size={16}
-                color={
-                  theme === "light" ? colors.primary : colors.textSecondary
-                }
-              />
-              <Text
-                style={[
-                  styles.themeOptionText,
-                  {
-                    color:
-                      theme === "light" ? colors.primary : colors.textSecondary,
-                  },
-                ]}
-              >
-                Light
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.themeOption,
-                {
-                  backgroundColor:
-                    theme === "dark" ? colors.primary + "20" : "transparent",
-                  borderColor:
-                    theme === "dark" ? colors.primary : colors.border,
-                },
-              ]}
-              onPress={() => toggleTheme("dark")}
-            >
-              <Ionicons
-                name="moon"
-                size={16}
-                color={theme === "dark" ? colors.primary : colors.textSecondary}
-              />
-              <Text
-                style={[
-                  styles.themeOptionText,
-                  {
-                    color:
-                      theme === "dark" ? colors.primary : colors.textSecondary,
-                  },
-                ]}
-              >
-                Dark
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.themeOption,
-                {
-                  backgroundColor:
-                    theme === "system" ? colors.primary + "20" : "transparent",
-                  borderColor:
-                    theme === "system" ? colors.primary : colors.border,
-                },
-              ]}
-              onPress={() => toggleTheme("system")}
-            >
-              <Ionicons
-                name="contrast-outline"
-                size={16}
-                color={
-                  theme === "system" ? colors.primary : colors.textSecondary
-                }
-              />
-              <Text
-                style={[
-                  styles.themeOptionText,
-                  {
-                    color:
-                      theme === "system"
-                        ? colors.primary
-                        : colors.textSecondary,
-                  },
-                ]}
-              >
-                System
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Divider */}
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-        {/* Sync Status */}
-        <View style={[styles.syncSection, { backgroundColor: colors.card }]}>
-          <View style={styles.syncInfo}>
-            <Ionicons name="cloud-done" size={20} color="#4CAF50" />
-            <View style={styles.syncTextContainer}>
-              <Text style={[styles.syncTitle, { color: colors.text }]}>
-                Sync Status
-              </Text>
-              <Text
-                style={[styles.syncSubtitle, { color: colors.textSecondary }]}
-              >
-                Last synced: Just now
-              </Text>
-            </View>
-          </View>
-          <TouchableOpacity
-            style={[
-              styles.syncButton,
-              { backgroundColor: colors.primary + "15" },
-            ]}
-          >
-            <Ionicons name="sync" size={18} color={colors.primary} />
-            <Text style={[styles.syncButtonText, { color: colors.primary }]}>
-              Sync Now
+        {/* 🔥 Recently Accessed - Conditional */}
+        {FEATURE_RECENT_ITEMS && recentItems.length > 0 && (
+          <View style={[styles.section, { backgroundColor: colors.card }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Recently Accessed
             </Text>
-          </TouchableOpacity>
-        </View>
+            {recentItems.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.recentItem}
+                activeOpacity={0.7}
+              >
+                <View
+                  style={[
+                    styles.recentIcon,
+                    { backgroundColor: colors.primary + "15" },
+                  ]}
+                >
+                  <Ionicons
+                    name={getItemIcon(item.type) as any}
+                    size={18}
+                    color={colors.primary}
+                  />
+                </View>
+                <View style={styles.recentContent}>
+                  <Text style={[styles.recentTitle, { color: colors.text }]}>
+                    {item.name}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.recentSubtitle,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {item.type} • {item.lastActive}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
-        {/* App Info */}
-        <View style={[styles.infoSection, { backgroundColor: colors.card }]}>
-          <Text style={[styles.infoTitle, { color: colors.text }]}>
-            CRM Pro
-          </Text>
-          <Text style={[styles.infoSubtitle, { color: colors.textSecondary }]}>
-            Version 1.0.0 • Offline Capable
-          </Text>
-          <Text
-            style={[styles.infoDescription, { color: colors.textSecondary }]}
-          >
-            Lightweight CRM for sales teams
-          </Text>
-        </View>
+        {/* 🔥 Important Features - Sirf enabled features dikhenge */}
+        {importantFeatures.length > 0 && (
+          <View style={[styles.section, { backgroundColor: colors.card }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Features
+            </Text>
+            {importantFeatures.map((item, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.menuItem}
+                onPress={item.onPress}
+                activeOpacity={0.7}
+              >
+                <View
+                  style={[
+                    styles.menuIconContainer,
+                    { backgroundColor: colors.primary + "15" },
+                  ]}
+                >
+                  <Ionicons
+                    name={item.icon as any}
+                    size={20}
+                    color={colors.primary}
+                  />
+                </View>
+                <Text style={[styles.menuText, { color: colors.text }]}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* Divider - Sirf tab dikhega agar koi section hai */}
+        {(FEATURE_RECENT_ITEMS ||
+          importantFeatures.length > 0 ||
+          FEATURE_THEME_TOGGLE) && (
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+        )}
+
+        {/* 🔥 Theme Settings - Conditional */}
+        {FEATURE_THEME_TOGGLE && (
+          <View style={[styles.section, { backgroundColor: colors.card }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Appearance
+            </Text>
+
+            <View style={styles.themeToggle}>
+              <View style={styles.themeToggleLeft}>
+                <View
+                  style={[
+                    styles.themeIconContainer,
+                    { backgroundColor: colors.primary + "15" },
+                  ]}
+                >
+                  <Ionicons
+                    name={getThemeIcon() as any}
+                    size={20}
+                    color={colors.primary}
+                  />
+                </View>
+                <View style={styles.themeTextContainer}>
+                  <Text style={[styles.themeTitle, { color: colors.text }]}>
+                    {getThemeLabel()}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.themeSubtitle,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {theme === "system"
+                      ? "Follows device settings"
+                      : "Manual selection"}
+                  </Text>
+                </View>
+              </View>
+              <Switch
+                value={isDark}
+                onValueChange={handleThemeToggle}
+                trackColor={{
+                  false: colors.border,
+                  true: colors.primary + "80",
+                }}
+                thumbColor={isDark ? colors.primary : colors.textSecondary}
+                ios_backgroundColor={colors.border}
+              />
+            </View>
+
+            <View style={styles.themeOptions}>
+              <TouchableOpacity
+                style={[
+                  styles.themeOption,
+                  {
+                    backgroundColor:
+                      theme === "light" ? colors.primary + "20" : "transparent",
+                    borderColor:
+                      theme === "light" ? colors.primary : colors.border,
+                  },
+                ]}
+                onPress={() => toggleTheme("light")}
+              >
+                <Ionicons
+                  name="sunny"
+                  size={16}
+                  color={
+                    theme === "light" ? colors.primary : colors.textSecondary
+                  }
+                />
+                <Text
+                  style={[
+                    styles.themeOptionText,
+                    {
+                      color:
+                        theme === "light"
+                          ? colors.primary
+                          : colors.textSecondary,
+                    },
+                  ]}
+                >
+                  Light
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.themeOption,
+                  {
+                    backgroundColor:
+                      theme === "dark" ? colors.primary + "20" : "transparent",
+                    borderColor:
+                      theme === "dark" ? colors.primary : colors.border,
+                  },
+                ]}
+                onPress={() => toggleTheme("dark")}
+              >
+                <Ionicons
+                  name="moon"
+                  size={16}
+                  color={
+                    theme === "dark" ? colors.primary : colors.textSecondary
+                  }
+                />
+                <Text
+                  style={[
+                    styles.themeOptionText,
+                    {
+                      color:
+                        theme === "dark"
+                          ? colors.primary
+                          : colors.textSecondary,
+                    },
+                  ]}
+                >
+                  Dark
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.themeOption,
+                  {
+                    backgroundColor:
+                      theme === "system"
+                        ? colors.primary + "20"
+                        : "transparent",
+                    borderColor:
+                      theme === "system" ? colors.primary : colors.border,
+                  },
+                ]}
+                onPress={() => toggleTheme("system")}
+              >
+                <Ionicons
+                  name="contrast-outline"
+                  size={16}
+                  color={
+                    theme === "system" ? colors.primary : colors.textSecondary
+                  }
+                />
+                <Text
+                  style={[
+                    styles.themeOptionText,
+                    {
+                      color:
+                        theme === "system"
+                          ? colors.primary
+                          : colors.textSecondary,
+                    },
+                  ]}
+                >
+                  System
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* 🔥 Sync Status - Conditional */}
+        {FEATURE_SYNC_STATUS && (
+          <>
+            <View
+              style={[styles.divider, { backgroundColor: colors.border }]}
+            />
+            <View
+              style={[styles.syncSection, { backgroundColor: colors.card }]}
+            >
+              <View style={styles.syncInfo}>
+                <Ionicons name="cloud-done" size={20} color="#4CAF50" />
+                <View style={styles.syncTextContainer}>
+                  <Text style={[styles.syncTitle, { color: colors.text }]}>
+                    Sync Status
+                  </Text>
+                  <Text
+                    style={[
+                      styles.syncSubtitle,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Last synced: Just now
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={[
+                  styles.syncButton,
+                  { backgroundColor: colors.primary + "15" },
+                ]}
+              >
+                <Ionicons name="sync" size={18} color={colors.primary} />
+                <Text
+                  style={[styles.syncButtonText, { color: colors.primary }]}
+                >
+                  Sync Now
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+
+        {/* 🔥 App Info - Conditional */}
+        {FEATURE_APP_INFO && (
+          <View style={[styles.infoSection, { backgroundColor: colors.card }]}>
+            <Text style={[styles.infoTitle, { color: colors.text }]}>
+              CRM Pro
+            </Text>
+            <Text
+              style={[styles.infoSubtitle, { color: colors.textSecondary }]}
+            >
+              Version 1.0.0 • Offline Capable
+            </Text>
+            <Text
+              style={[styles.infoDescription, { color: colors.textSecondary }]}
+            >
+              Lightweight CRM for sales teams
+            </Text>
+          </View>
+        )}
       </DrawerContentScrollView>
 
-      {/* Logout Button */}
+      {/* Logout Button - Hamesha dikhega */}
       <Animated.View
         style={[
           styles.footer,
