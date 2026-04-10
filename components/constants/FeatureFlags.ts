@@ -1,154 +1,167 @@
 // src/constants/FeatureFlags.ts
 
 // ============================================
-// NAVIGATION / SIDEBAR MODULES
+// 🏠 DASHBOARD / HOME MODULE FEATURES
 // ============================================
 export const MODULE_DASHBOARD = true;
-export const MODULE_LEADS = true;
-export const MODULE_TASKS = true;
-export const MODULE_CONTACTS = true;
-export const MODULE_ANALYTICS = true;
-export const MODULE_CALENDAR = true;
-export const MODULE_MEETING_SCHEDULING = true;
-export const MODULE_CHAT_SUPPORT = true;
-export const MODULE_EMAIL_SENDER = false; // false = email templates hide
-export const MODULE_REPORTS = true;
-export const MODULE_PROFILE = true;
-export const MODULE_SETTINGS = true;
-export const MODULE_ACTIVITIES = true;
-export const MODULE_IMPORT_EXPORT = true;
-export const MODULE_HELP_SUPPORT = true;
+export const DASHBOARD_TOTAL_LEADS = true;
+export const DASHBOARD_TOTAL_TASKS = true;
+export const DASHBOARD_TOTAL_CONTACTS = true;
+export const DASHBOARD_UPCOMING_MEETINGS = true;
+export const DASHBOARD_TODAY_EVENTS = true;
+export const DASHBOARD_QUICK_ACTIONS = true;
+export const DASHBOARD_RECENT_CHAT = true;
+export const DASHBOARD_ANALYTICS_REALTIME = true;
+export const DASHBOARD_UNREAD_CHAT_COUNT = true;
+export const DASHBOARD_NOTIFICATION_BELL = true;
 
 // ============================================
-// CHAT SUPPORT MODULE FEATURES
+// 📱 BOTTOM TAB NAVIGATION MODULES
 // ============================================
-export const CHAT_REAL_TIME_TYPING = false;
-export const CHAT_IMAGE_SHARE = false;
-export const CHAT_FILE_SHARE = false;
-export const CHAT_MESSAGE_DELETE = false;
-export const CHAT_BLOCK_USER = false;
-export const CHAT_PUSH_NOTIFICATION = false;
-export const CHAT_MARK_READ_INSTANT = false;
+export const TAB_HOME = true;
+export const TAB_LEADS = true;
+export const TAB_TASKS = true;
+export const TAB_CONTACTS = true;
+export const TAB_ANALYTICS = true;
+export const TAB_CALENDAR = true;
+export const TAB_PROFILE = true;
+export const TAB_TOOLS = false;
 
 // ============================================
-// EMAIL SENDER MODULE FEATURES
+// 📂 SIDEBAR / DRAWER NAVIGATION MODULES
 // ============================================
-export const EMAIL_ATTACHMENT = false;
-export const EMAIL_TEMPLATES = false;
-export const EMAIL_BULK_SEND = false;
+export const SIDEBAR_DASHBOARD = true;
+export const SIDEBAR_LEADS = true;
+export const SIDEBAR_TASKS = true;
+export const SIDEBAR_CONTACTS = true;
+export const SIDEBAR_ANALYTICS = true;
+export const SIDEBAR_CALENDAR = true;
+export const SIDEBAR_MEETING_SCHEDULING = true;
+export const SIDEBAR_CHAT_SUPPORT = true;
+export const SIDEBAR_EMAIL_SENDER = true;
+export const SIDEBAR_REPORTS = true;
+export const SIDEBAR_ACTIVITIES = true;
+export const SIDEBAR_IMPORT_EXPORT = true;
+export const SIDEBAR_SETTINGS = true;
+export const SIDEBAR_HELP_SUPPORT = true;
+export const SIDEBAR_PROFILE = true;
+
+// ============================================
+// 💬 CHAT SUPPORT MODULE FEATURES
+// ============================================
+export const CHAT_REAL_TIME_TYPING = true;
+export const CHAT_IMAGE_SHARE = true;
+export const CHAT_FILE_SHARE = true;
+export const CHAT_MESSAGE_DELETE = true;
+export const CHAT_BLOCK_USER = true;
+export const CHAT_PUSH_NOTIFICATION = true;
+export const CHAT_MARK_READ_INSTANT = true;
+
+// ============================================
+// ✉️ EMAIL SENDER MODULE FEATURES
+// ============================================
+export const EMAIL_ATTACHMENT = true;
+export const EMAIL_TEMPLATES = true;
+export const EMAIL_BULK_SEND = true;
 export const EMAIL_CC_BCC = true;
 export const EMAIL_BCC_HIDE = true;
 
 // ============================================
-// ANALYTICS MODULE FEATURES
+// 📊 ANALYTICS MODULE FEATURES
 // ============================================
-export const ANALYTICS_TOP_PERFORMER = false;
-export const ANALYTICS_PDF_EXPORT = false;
-export const ANALYTICS_REAL_TIME = false;
-export const ANALYTICS_MONTHLY_COMPARISON = false;
+export const ANALYTICS_TOP_PERFORMER = true;
+export const ANALYTICS_PDF_EXPORT = true;
+export const ANALYTICS_REAL_TIME = true;
+export const ANALYTICS_MONTHLY_COMPARISON = true;
 export const ANALYTICS_LEAD_CONVERSION = true;
 
 // ============================================
-// CALENDAR MODULE FEATURES
+// 📅 CALENDAR MODULE FEATURES
 // ============================================
-export const CALENDAR_EVENT_REMINDER = false;
-export const CALENDAR_GOOGLE_SYNC = false;
-export const CALENDAR_REPEAT_EVENT = false;
-export const CALENDAR_SHARE_EVENT = false;
+export const CALENDAR_EVENT_REMINDER = true;
+export const CALENDAR_GOOGLE_SYNC = true;
+export const CALENDAR_REPEAT_EVENT = true;
+export const CALENDAR_SHARE_EVENT = true;
 export const CALENDAR_SEARCH_ADVANCED = true;
 
 // ============================================
-// MEETING SCHEDULING MODULE FEATURES
+// 📆 MEETING SCHEDULING MODULE FEATURES
 // ============================================
-export const MEETING_ZOOM_INTEGRATION = false;
-export const MEETING_GOOGLE_MEET = false;
-export const MEETING_REMINDER = false;
-export const MEETING_INVITE_EMAIL = false;
-export const MEETING_RECURRING = false;
-export const MEETING_IN_APP_JOIN = false;
+export const MEETING_ZOOM_INTEGRATION = true;
+export const MEETING_GOOGLE_MEET = true;
+export const MEETING_REMINDER = true;
+export const MEETING_INVITE_EMAIL = true;
+export const MEETING_RECURRING = true;
+export const MEETING_IN_APP_JOIN = true;
 export const MEETING_PARTICIPANT_TRACKING = true;
 
 // ============================================
-// LEADS MODULE FEATURES
+// 👥 LEADS MODULE FEATURES
 // ============================================
-export const LEADS_ASSIGN = false;
-export const LEADS_FOLLOWUP_REMINDER = false;
-export const LEADS_EXPORT = false;
-export const LEADS_FILTER_PERSISTENT = false;
+export const LEADS_ASSIGN = true;
+export const LEADS_FOLLOWUP_REMINDER = true;
+export const LEADS_EXPORT = true;
+export const LEADS_FILTER_PERSISTENT = true;
 export const LEADS_SEARCH_CASE_SENSITIVE = true;
 
 // ============================================
-// TASKS MODULE FEATURES
+// ✅ TASKS MODULE FEATURES
 // ============================================
-export const TASKS_REMINDER = false;
-export const TASKS_ASSIGN = false;
-export const TASKS_SUB_TASK = false;
-export const TASKS_ATTACHMENT = false;
+export const TASKS_REMINDER = true;
+export const TASKS_ASSIGN = true;
+export const TASKS_SUB_TASK = true;
+export const TASKS_ATTACHMENT = true;
 export const TASKS_ATTACHMENT_IMAGES_ONLY = true;
-export const TASKS_DUE_DATE_FILTER_ADVANCED = false;
+export const TASKS_DUE_DATE_FILTER_ADVANCED = true;
 
 // ============================================
-// CONTACTS MODULE FEATURES
+// 📇 CONTACTS MODULE FEATURES
 // ============================================
-export const CONTACTS_CALL_FROM_APP = false;
+export const CONTACTS_CALL_FROM_APP = true;
 export const CONTACTS_WHATSAPP_MESSAGE = true;
-export const CONTACTS_EXPORT = false;
-export const CONTACTS_IMPORT_PHONE = false;
-export const CONTACTS_GROUP = false;
+export const CONTACTS_EXPORT = true;
+export const CONTACTS_IMPORT_PHONE = true;
+export const CONTACTS_GROUP = true;
 
 // ============================================
-// PROFILE MODULE FEATURES
+// 👤 PROFILE MODULE FEATURES
 // ============================================
 export const PROFILE_EDIT_NAME = true;
 export const PROFILE_EDIT_EMAIL = true;
 export const PROFILE_EDIT_MOBILE = true;
 export const PROFILE_EDIT_PHOTO = true;
 export const PROFILE_CHANGE_PASSWORD = true;
-export const PROFILE_DELETE_ACCOUNT = false;
+export const PROFILE_DELETE_ACCOUNT = true;
 export const PROFILE_ACTIVITY_LOG = true;
 export const PROFILE_ADDRESS_MANAGEMENT = true;
 export const PROFILE_DEVICES_LIST = true;
 export const PROFILE_STATS_CARD = true;
 export const PROFILE_PREFERENCES_CARD = true;
 export const PROFILE_PERSONAL_INFO_CARD = true;
-export const PROFILE_REMOVE_PHOTO_CACHE = false;
-export const PROFILE_LOGIN_ACTIVITY = false;
+export const PROFILE_REMOVE_PHOTO_CACHE = true;
+export const PROFILE_LOGIN_ACTIVITY = true;
 
 // ============================================
-// SETTINGS MODULE FEATURES
+// ⚙️ SETTINGS MODULE FEATURES
 // ============================================
-export const SETTINGS_LANGUAGE_CHANGE = false;
+export const SETTINGS_LANGUAGE_CHANGE = true;
 export const SETTINGS_DARK_MODE = true;
-export const SETTINGS_LOGOUT_ALL_DEVICES = false;
-export const SETTINGS_DATA_EXPORT = false;
+export const SETTINGS_LOGOUT_ALL_DEVICES = true;
+export const SETTINGS_DATA_EXPORT = true;
 export const SETTINGS_NOTIFICATION_TOGGLE = true;
 export const SETTINGS_CLEAR_CACHE = true;
 export const SETTINGS_PRIVACY_POLICY = true;
 export const SETTINGS_TERMS_CONDITIONS = true;
 
 // ============================================
-// DASHBOARD / HOME MODULE FEATURES
+// 📄 REPORTS MODULE FEATURES
 // ============================================
-export const DASHBOARD_TOTAL_CONTACTS = true;
-export const DASHBOARD_RECENT_CHAT = false;
-export const DASHBOARD_ANALYTICS_REALTIME = false;
-export const DASHBOARD_UNREAD_CHAT_COUNT = false;
-export const DASHBOARD_TOTAL_LEADS = true;
-export const DASHBOARD_TOTAL_TASKS = true;
-export const DASHBOARD_UPCOMING_MEETINGS = true;
-export const DASHBOARD_TODAY_EVENTS = true;
-export const DASHBOARD_QUICK_ACTIONS = true;
-export const DASHBOARD_NOTIFICATION_BELL = true;
+export const REPORTS_PDF_EXPORT = true;
+export const REPORTS_EXCEL_EXPORT = true;
+export const REPORTS_SCHEDULED_EMAIL = true;
 
 // ============================================
-// REPORTS MODULE FEATURES
-// ============================================
-export const REPORTS_PDF_EXPORT = false;
-export const REPORTS_EXCEL_EXPORT = false;
-export const REPORTS_SCHEDULED_EMAIL = false;
-
-// ============================================
-// UI / APPEARANCE FEATURES
+// 🎨 UI / APPEARANCE FEATURES
 // ============================================
 export const FEATURE_RECENT_ITEMS = true;
 export const FEATURE_THEME_TOGGLE = true;
@@ -158,82 +171,104 @@ export const FEATURE_DARK_MODE = true;
 export const FEATURE_OFFLINE_MODE = true;
 
 // ============================================
-// AUTHENTICATION FEATURES
+// 🔐 AUTHENTICATION FEATURES
 // ============================================
-export const GOOGLE_OAUTH = false;
-export const FACEBOOK_OAUTH = false;
-export const GITHUB_OAUTH = false;
-export const OTP_VERIFICATION = false;
-export const EMAIL_VERIFICATION = false;
-export const SOCIAL_LOGIN = false;
+export const GOOGLE_OAUTH = true;
+export const FACEBOOK_OAUTH = true;
+export const GITHUB_OAUTH = true;
+export const OTP_VERIFICATION = true;
+export const EMAIL_VERIFICATION = true;
+export const SOCIAL_LOGIN = true;
 
 // ============================================
-// NOTIFICATION FEATURES
+// 🔔 NOTIFICATION FEATURES
 // ============================================
 export const PUSH_NOTIFICATIONS = true;
 export const EMAIL_NOTIFICATIONS = true;
 export const IN_APP_NOTIFICATIONS = true;
-export const SMS_NOTIFICATIONS = false;
+export const SMS_NOTIFICATIONS = true;
 
 // ============================================
-// DATA MANAGEMENT FEATURES
+// 💾 DATA MANAGEMENT FEATURES
 // ============================================
-export const DATA_BACKUP = false;
-export const DATA_RESTORE = false;
+export const DATA_BACKUP = true;
+export const DATA_RESTORE = true;
 export const DATA_SYNC = true;
-export const DATA_EXPORT_JSON = false;
-export const DATA_EXPORT_CSV = false;
+export const DATA_EXPORT_JSON = true;
+export const DATA_EXPORT_CSV = true;
 
 // ============================================
-// INTEGRATION FEATURES
+// 🔌 INTEGRATION FEATURES
 // ============================================
-export const INTEGRATION_ZOOM = false;
-export const INTEGRATION_GOOGLE_CALENDAR = false;
-export const INTEGRATION_SLACK = false;
-export const INTEGRATION_TEAMS = false;
+export const INTEGRATION_ZOOM = true;
+export const INTEGRATION_GOOGLE_CALENDAR = true;
+export const INTEGRATION_SLACK = true;
+export const INTEGRATION_TEAMS = true;
 export const INTEGRATION_WHATSAPP = true;
-export const INTEGRATION_GOOGLE_DRIVE = false;
-export const INTEGRATION_DROPBOX = false;
+export const INTEGRATION_GOOGLE_DRIVE = true;
+export const INTEGRATION_DROPBOX = true;
 
 // ============================================
-// PAYMENT / BILLING FEATURES
+// 💳 PAYMENT / BILLING FEATURES
 // ============================================
-export const PAYMENT_STRIPE = false;
-export const PAYMENT_RAZORPAY = false;
-export const PAYMENT_PAYPAL = false;
-export const SUBSCRIPTION_PLANS = false;
-export const INVOICE_GENERATION = false;
+export const PAYMENT_STRIPE = true;
+export const PAYMENT_RAZORPAY = true;
+export const PAYMENT_PAYPAL = true;
+export const SUBSCRIPTION_PLANS = true;
+export const INVOICE_GENERATION = true;
 
 // ============================================
-// ROLE BASED FEATURES
+// 👑 ROLE BASED FEATURES
 // ============================================
 export const ROLE_ADMIN = true;
 export const ROLE_MANAGER = true;
 export const ROLE_USER = true;
 export const ROLE_GUEST = true;
-export const MULTI_TEAM_SUPPORT = false;
-export const PERMISSION_MANAGEMENT = false;
+export const MULTI_TEAM_SUPPORT = true;
+export const PERMISSION_MANAGEMENT = true;
 
 // ============================================
-// EXPORT ALL FLAGS AS OBJECT
+// 📦 EXPORT ALL FLAGS AS SINGLE OBJECT
 // ============================================
 export const FeatureFlags = {
-  // Navigation
-  MODULE_DASHBOARD,
-  MODULE_LEADS,
-  MODULE_TASKS,
-  MODULE_CONTACTS,
-  MODULE_ANALYTICS,
-  MODULE_CALENDAR,
-  MODULE_MEETING_SCHEDULING,
-  MODULE_CHAT_SUPPORT,
-  MODULE_EMAIL_SENDER,
-  MODULE_REPORTS,
-  MODULE_PROFILE,
-  MODULE_SETTINGS,
-  MODULE_ACTIVITIES,
-  MODULE_IMPORT_EXPORT,
-  MODULE_HELP_SUPPORT,
+  // Dashboard
+  DASHBOARD_TOTAL_LEADS,
+  DASHBOARD_TOTAL_TASKS,
+  DASHBOARD_TOTAL_CONTACTS,
+  DASHBOARD_UPCOMING_MEETINGS,
+  DASHBOARD_TODAY_EVENTS,
+  DASHBOARD_QUICK_ACTIONS,
+  DASHBOARD_RECENT_CHAT,
+  DASHBOARD_ANALYTICS_REALTIME,
+  DASHBOARD_UNREAD_CHAT_COUNT,
+  DASHBOARD_NOTIFICATION_BELL,
+
+  // Bottom Tabs
+  TAB_HOME,
+  TAB_LEADS,
+  TAB_TASKS,
+  TAB_CONTACTS,
+  TAB_ANALYTICS,
+  TAB_CALENDAR,
+  TAB_PROFILE,
+  TAB_TOOLS,
+
+  // Sidebar
+  SIDEBAR_DASHBOARD,
+  SIDEBAR_LEADS,
+  SIDEBAR_TASKS,
+  SIDEBAR_CONTACTS,
+  SIDEBAR_ANALYTICS,
+  SIDEBAR_CALENDAR,
+  SIDEBAR_MEETING_SCHEDULING,
+  SIDEBAR_CHAT_SUPPORT,
+  SIDEBAR_EMAIL_SENDER,
+  SIDEBAR_REPORTS,
+  SIDEBAR_ACTIVITIES,
+  SIDEBAR_IMPORT_EXPORT,
+  SIDEBAR_SETTINGS,
+  SIDEBAR_HELP_SUPPORT,
+  SIDEBAR_PROFILE,
 
   // Chat
   CHAT_REAL_TIME_TYPING,
@@ -321,18 +356,6 @@ export const FeatureFlags = {
   SETTINGS_CLEAR_CACHE,
   SETTINGS_PRIVACY_POLICY,
   SETTINGS_TERMS_CONDITIONS,
-
-  // Dashboard
-  DASHBOARD_TOTAL_CONTACTS,
-  DASHBOARD_RECENT_CHAT,
-  DASHBOARD_ANALYTICS_REALTIME,
-  DASHBOARD_UNREAD_CHAT_COUNT,
-  DASHBOARD_TOTAL_LEADS,
-  DASHBOARD_TOTAL_TASKS,
-  DASHBOARD_UPCOMING_MEETINGS,
-  DASHBOARD_TODAY_EVENTS,
-  DASHBOARD_QUICK_ACTIONS,
-  DASHBOARD_NOTIFICATION_BELL,
 
   // Reports
   REPORTS_PDF_EXPORT,

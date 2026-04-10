@@ -1,4 +1,4 @@
-// components/common/SocialLoginButtons.tsx
+// components/common/SocialLoginButtons.tsx (Fixed Version)
 import { FontAwesome } from "@expo/vector-icons";
 import React, { memo } from "react";
 import {
@@ -71,6 +71,7 @@ export const SocialLoginButtons = memo<SocialLoginButtonsProps>(
   },
 );
 
+// Add display name to fix ESLint error
 SocialLoginButtons.displayName = "SocialLoginButtons";
 
 const styles = StyleSheet.create({

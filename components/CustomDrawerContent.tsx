@@ -17,15 +17,15 @@ import {
   View,
 } from "react-native";
 
-// 🔥 IMPORT FEATURE FLAGS
+// 🔥 IMPORT FEATURE FLAGS - UPDATED NAMES
 import {
-  MODULE_ANALYTICS,
-  MODULE_CALENDAR,
-  MODULE_EMAIL_SENDER,
-  MODULE_IMPORT_EXPORT,
-  MODULE_SETTINGS,
-  MODULE_HELP_SUPPORT,
-  MODULE_ACTIVITIES,
+  SIDEBAR_ANALYTICS,
+  SIDEBAR_CALENDAR,
+  SIDEBAR_EMAIL_SENDER,
+  SIDEBAR_IMPORT_EXPORT,
+  SIDEBAR_SETTINGS,
+  SIDEBAR_HELP_SUPPORT,
+  SIDEBAR_ACTIVITIES,
   FEATURE_THEME_TOGGLE,
   FEATURE_SYNC_STATUS,
   FEATURE_RECENT_ITEMS,
@@ -66,7 +66,7 @@ export default function CustomDrawerContent(
   const getImportantFeatures = () => {
     const features = [];
 
-    if (MODULE_ACTIVITIES) {
+    if (SIDEBAR_ACTIVITIES) {
       features.push({
         label: "Activities",
         icon: "pulse-outline",
@@ -77,7 +77,7 @@ export default function CustomDrawerContent(
       });
     }
 
-    if (MODULE_ANALYTICS) {
+    if (SIDEBAR_ANALYTICS) {
       features.push({
         label: "Analytics & Reports",
         icon: "bar-chart-outline",
@@ -88,7 +88,7 @@ export default function CustomDrawerContent(
       });
     }
 
-    if (MODULE_CALENDAR) {
+    if (SIDEBAR_CALENDAR) {
       features.push({
         label: "Calendar View",
         icon: "calendar-outline",
@@ -99,7 +99,7 @@ export default function CustomDrawerContent(
       });
     }
 
-    if (MODULE_EMAIL_SENDER) {
+    if (SIDEBAR_EMAIL_SENDER) {
       features.push({
         label: "Email Templates",
         icon: "mail-outline",
@@ -110,7 +110,7 @@ export default function CustomDrawerContent(
       });
     }
 
-    if (MODULE_IMPORT_EXPORT) {
+    if (SIDEBAR_IMPORT_EXPORT) {
       features.push({
         label: "Import / Export",
         icon: "download-outline",
@@ -121,7 +121,7 @@ export default function CustomDrawerContent(
       });
     }
 
-    if (MODULE_SETTINGS) {
+    if (SIDEBAR_SETTINGS) {
       features.push({
         label: "Settings",
         icon: "settings-outline",
@@ -132,7 +132,7 @@ export default function CustomDrawerContent(
       });
     }
 
-    if (MODULE_HELP_SUPPORT) {
+    if (SIDEBAR_HELP_SUPPORT) {
       features.push({
         label: "Help & Support",
         icon: "help-circle-outline",
@@ -164,12 +164,6 @@ export default function CustomDrawerContent(
     if (FEATURE_THEME_TOGGLE) {
       toggleTheme(isDark ? "light" : "dark");
     }
-  };
-
-  const getNextTheme = () => {
-    if (theme === "light") return "dark";
-    if (theme === "dark") return "system";
-    return "light";
   };
 
   const getThemeIcon = () => {
@@ -267,48 +261,6 @@ export default function CustomDrawerContent(
         style={[styles.drawerScroll, { backgroundColor: colors.background }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* 🔥 Recently Accessed - Conditional */}
-        {FEATURE_RECENT_ITEMS && recentItems.length > 0 && (
-          <View style={[styles.section, { backgroundColor: colors.card }]}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Recently Accessed
-            </Text>
-            {recentItems.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.recentItem}
-                activeOpacity={0.7}
-              >
-                <View
-                  style={[
-                    styles.recentIcon,
-                    { backgroundColor: colors.primary + "15" },
-                  ]}
-                >
-                  <Ionicons
-                    name={getItemIcon(item.type) as any}
-                    size={18}
-                    color={colors.primary}
-                  />
-                </View>
-                <View style={styles.recentContent}>
-                  <Text style={[styles.recentTitle, { color: colors.text }]}>
-                    {item.name}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.recentSubtitle,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    {item.type} • {item.lastActive}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
         {/* 🔥 Important Features - Sirf enabled features dikhenge */}
         {importantFeatures.length > 0 && (
           <View style={[styles.section, { backgroundColor: colors.card }]}>
@@ -342,10 +294,8 @@ export default function CustomDrawerContent(
           </View>
         )}
 
-        {/* Divider - Sirf tab dikhega agar koi section hai */}
-        {(FEATURE_RECENT_ITEMS ||
-          importantFeatures.length > 0 ||
-          FEATURE_THEME_TOGGLE) && (
+        {/* Divider */}
+        {(importantFeatures.length > 0 || FEATURE_THEME_TOGGLE) && (
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
         )}
 
@@ -652,26 +602,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "rgba(255, 255, 255, 0.8)",
     marginBottom: 8,
-  },
-  profileStats: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  statItem: {
-    alignItems: "center",
-  },
-  statValue: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  statLabel: {
-    fontSize: 11,
-  },
-  statDivider: {
-    width: 1,
-    height: 20,
-    backgroundColor: "rgba(255,255,255,0.3)",
-    marginHorizontal: 12,
   },
   drawerScroll: {
     flex: 1,

@@ -7,13 +7,23 @@ import { router, Tabs, Redirect } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Image, Pressable, Text, View, ActivityIndicator } from "react-native";
 
+// IMPORT FEATURE FLAGS
+import {
+  TAB_HOME,
+  TAB_LEADS,
+  TAB_TASKS,
+  TAB_CONTACTS,
+  TAB_ANALYTICS,
+  TAB_CALENDAR,
+  TAB_PROFILE,
+} from "@/components/constants/FeatureFlags";
+
 export default function TabLayout() {
   const { colors } = useAppTheme();
   const { user, isAuthenticated, isLoading, checkAuth } = useAuthStore();
   const navigation = useAppNavigation();
   const [authChecked, setAuthChecked] = useState(false);
 
-  // Check authentication on mount
   useEffect(() => {
     const verifyAuth = async () => {
       await checkAuth();
@@ -22,7 +32,6 @@ export default function TabLayout() {
     verifyAuth();
   }, []);
 
-  // Show loading while checking auth
   if (isLoading || !authChecked) {
     return (
       <View
@@ -140,11 +149,12 @@ export default function TabLayout() {
         ),
       }}
     >
-      {/* VISIBLE TABS */}
+      {/* Home Tab */}
       <Tabs.Screen
         name="index"
         options={{
           title: "Home",
+          href: TAB_HOME ? undefined : null,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "home" : "home-outline"}
@@ -155,10 +165,12 @@ export default function TabLayout() {
         }}
       />
 
+      {/* Leads Tab - href: null hides the tab */}
       <Tabs.Screen
         name="leads"
         options={{
           title: "Leads",
+          href: TAB_LEADS ? undefined : null, // 🔥 KEY FIX
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "trending-up" : "trending-up-outline"}
@@ -169,10 +181,12 @@ export default function TabLayout() {
         }}
       />
 
+      {/* Tasks Tab */}
       <Tabs.Screen
         name="tasks"
         options={{
           title: "Tasks",
+          href: TAB_TASKS ? undefined : null,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "checkmark-circle" : "checkmark-circle-outline"}
@@ -183,10 +197,12 @@ export default function TabLayout() {
         }}
       />
 
+      {/* Contacts Tab */}
       <Tabs.Screen
         name="contacts"
         options={{
           title: "Contacts",
+          href: TAB_CONTACTS ? undefined : null,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "people" : "people-outline"}
@@ -197,10 +213,44 @@ export default function TabLayout() {
         }}
       />
 
+      {/* Analytics Tab */}
+      <Tabs.Screen
+        name="analytics"
+        options={{
+          title: "Analytics",
+          href: TAB_ANALYTICS ? undefined : null,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "bar-chart" : "bar-chart-outline"}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+
+      {/* Calendar Tab */}
+      <Tabs.Screen
+        name="calendar"
+        options={{
+          title: "Calendar",
+          href: TAB_CALENDAR ? undefined : null,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "calendar" : "calendar-outline"}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+
+      {/* Profile Tab */}
       <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
+          href: TAB_PROFILE ? undefined : null,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "person" : "person-outline"}
@@ -211,7 +261,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* HIDDEN SCREENS - No tab bar visible */}
+      {/* Hidden Screens */}
       <Tabs.Screen
         name="(tools)"
         options={{

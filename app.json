@@ -11,7 +11,7 @@
     "android": {
       "package": "com.basiccrm.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        // "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
       "permissions": ["android.permission.INTERNET"]
@@ -23,7 +23,7 @@
     },
 
     "web": {
-      "favicon": "./assets/favicon.png"
+      // "favicon": "./assets/favicon.png"
     },
 
     "experiments": {
