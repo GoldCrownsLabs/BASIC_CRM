@@ -143,6 +143,7 @@ function AppContent() {
         <StatusBar style={statusBarStyle} backgroundColor={colors.background} />
       </View>
     </NavigationThemeProvider>
+    
   );
 }
 

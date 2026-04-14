@@ -4,6 +4,7 @@
 // 🏠 DASHBOARD / HOME MODULE FEATURES
 // ============================================
 export const MODULE_DASHBOARD = true;
+
 export const DASHBOARD_TOTAL_LEADS = true;
 export const DASHBOARD_TOTAL_TASKS = true;
 export const DASHBOARD_TOTAL_CONTACTS = true;

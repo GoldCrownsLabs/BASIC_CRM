@@ -5,6 +5,7 @@ import * as Haptics from 'expo-haptics';
 export function HapticTab(props: BottomTabBarButtonProps) {
   return (
     <PlatformPressable
+    
       {...props}
       onPressIn={(ev) => {
         if (process.env.EXPO_OS === 'ios') {

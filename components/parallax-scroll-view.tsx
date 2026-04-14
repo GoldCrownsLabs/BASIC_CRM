@@ -5,6 +5,7 @@ import Animated, {
   useAnimatedRef,
   useAnimatedStyle,
   useScrollOffset,
+  
 } from 'react-native-reanimated';
 
 import { ThemedView } from '@/components/themed-view';
