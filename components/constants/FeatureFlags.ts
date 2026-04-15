@@ -28,6 +28,9 @@ export const TAB_CALENDAR = true;
 export const TAB_PROFILE = true;
 export const TAB_TOOLS = false;
 
+
+
+
 // ============================================
 // 📂 SIDEBAR / DRAWER NAVIGATION MODULES
 // ============================================
@@ -84,6 +87,8 @@ export const CALENDAR_GOOGLE_SYNC = true;
 export const CALENDAR_REPEAT_EVENT = true;
 export const CALENDAR_SHARE_EVENT = true;
 export const CALENDAR_SEARCH_ADVANCED = true;
+
+
 
 // ============================================
 // 📆 MEETING SCHEDULING MODULE FEATURES

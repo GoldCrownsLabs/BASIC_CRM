@@ -15,6 +15,8 @@ interface Props {
   categoryColor: string;
 }
 
+// Card component for displaying individual email templates in the list
+
 export const TemplateCard: React.FC<Props> = ({
   template,
   onPress,

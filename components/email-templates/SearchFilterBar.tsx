@@ -12,7 +12,7 @@ import { useAppTheme } from "@/context/ThemeContext";
 import { templateCategories } from "./constants";
 import { createStyles } from "./styles";
 
-
+// Define the props for the SearchFilterBar component
 interface Props {
   searchQuery: string;
   onSearchChange: (text: string) => void;
@@ -22,6 +22,7 @@ interface Props {
   onFavoritesToggle: () => void;
   onCreatePress: () => void;
 }
+// Search and filter bar component for email templates
 
 export const SearchFilterBar: React.FC<Props> = ({
   searchQuery,
@@ -36,6 +37,7 @@ export const SearchFilterBar: React.FC<Props> = ({
   const styles = createStyles(colors, isDark);
 
   return (
+    // Container for the search and filter bar
     <View style={styles.searchContainer}>
       <View style={styles.searchInputContainer}>
         <Feather name="search" size={20} color={colors.textSecondary} />
