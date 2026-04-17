@@ -49,7 +49,7 @@ export interface CalendarEvent {
   createdAt: string;
   updatedAt: string;
 }
-
+// Event type interface
 export interface EventType {
   _id: string;
   name: string;
@@ -68,6 +68,8 @@ export interface CalendarStats {
   eventsByType: Record<string, number>;
   eventsByStatus: Record<string, number>;
 }
+
+// Payload interfaces for API requests
 
 export interface CreateEventPayload {
   title: string;

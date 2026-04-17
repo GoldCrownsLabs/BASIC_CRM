@@ -21,6 +21,7 @@ interface SplashScreenProps {
 const SplashScreen: React.FC<SplashScreenProps> = ({ onAnimationComplete }) => {
   const { colors, isDark } = useAppTheme();
 
+  
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;

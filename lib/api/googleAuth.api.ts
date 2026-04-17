@@ -20,6 +20,7 @@ export interface GoogleUserData {
     familyName?: string;
   };
 }
+// Response from backend after Google login/register
 
 export interface GoogleLoginResponse {
   success: boolean;
@@ -46,6 +47,7 @@ export interface GoogleLoginResponse {
   };
   error?: string;
 }
+// Google auth info for current user
 export interface GoogleAuthInfo {
   googleId: string;
   email: string;
@@ -297,5 +299,6 @@ export const formatGoogleUserData = (
     },
   };
 };
+
 
 export default googleAuthApi;
