@@ -37,6 +37,7 @@ export const calculateConversionRate = (leadStats: any): string => {
   if (totalClosed === 0) return "0.00";
 
   const conversionRate = (wonLeads / totalClosed) * 100;
+  
   return conversionRate.toFixed(2);
 };
 

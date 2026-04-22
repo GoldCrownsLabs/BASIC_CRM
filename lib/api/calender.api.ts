@@ -65,6 +65,7 @@ export interface CalendarStats {
   upcomingEvents: number;
   completedEvents: number;
   pendingEvents: number;
+  
   eventsByType: Record<string, number>;
   eventsByStatus: Record<string, number>;
 }

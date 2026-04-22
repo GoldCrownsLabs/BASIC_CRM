@@ -330,6 +330,7 @@ export default function LoginScreen() {
                 {/* Divider */}
                 <View style={styles.dividerContainer}>
                   <View style={styles.dividerLine} />
+                  
                   <Text style={styles.dividerText}>OR CONTINUE WITH</Text>
                   <View style={styles.dividerLine} />
                 </View>

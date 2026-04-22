@@ -9,8 +9,11 @@ import {
   StyleSheet,
 } from "react-native";
 
+
+
 interface SocialLoginButtonsProps {
   onGooglePress: () => void;
+  
   onFacebookPress: () => void;
   isGoogleLoading?: boolean;
   isFacebookLoading?: boolean;

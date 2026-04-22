@@ -32,6 +32,8 @@ export default function RegisterScreen() {
     clearError();
   }, []);
 
+
+  
   // Handle store errors
   useEffect(() => {
     if (error) {

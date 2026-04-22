@@ -41,6 +41,7 @@ export interface GoogleLoginResponse {
     createdAt?: string | Date; // ✅ Allow both string and Date
   };
   googleAuth?: {
+    
     googleId: string;
     loginCount: number;
     lastLoginAt: Date;

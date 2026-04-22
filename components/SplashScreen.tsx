@@ -377,6 +377,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onAnimationComplete }) => {
             ]}
           />
         </View>
+        
       </View>
     </Animated.View>
   );

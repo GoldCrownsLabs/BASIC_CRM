@@ -15,6 +15,7 @@ const ContactCard = () => {
 export default ContactCard;
 
 const styles = {
+  
   container: {
     padding: 16,
     backgroundColor: "#fff",

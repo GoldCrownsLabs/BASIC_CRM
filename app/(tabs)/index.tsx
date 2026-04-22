@@ -11,12 +11,10 @@ import { QuickActions } from "@/models/Home/QuickActions";
 import { RecentLeads } from "@/models/Home/RecentLeads";
 import { PerformanceMetrics } from "@/models/Home/PerformanceMetrics";
 import { SyncStatus } from "@/models/Home/SyncStatus";
-
 import { fetchActivities, Activity } from "@/lib/api/activities.api";
 import { MeetingReminder } from "@/models/Home/MeetingReminder";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
 import BannerSession from "@/models/Home/BannerSession";
 import { planService, Plan } from "@/lib/api/plan";
 import PlansBanner from "@/models/Home/PlanBanner";

@@ -24,6 +24,7 @@ export interface Notification {
     | "payment";
   data?: any;
   read: boolean;
+  
   pushSent: boolean;
   pushToken?: string;
   createdAt: string;
