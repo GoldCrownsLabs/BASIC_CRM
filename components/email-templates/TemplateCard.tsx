@@ -97,6 +97,7 @@ export const TemplateCard: React.FC<Props> = ({
       
     </TouchableOpacity>
   );
+  
 };
 
 

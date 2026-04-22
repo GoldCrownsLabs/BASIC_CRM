@@ -1332,6 +1332,7 @@ export const RecipientSelectorModal: React.FC<Props> = ({
                 backgroundColor: colors.card,
               }}
             >
+
               <TouchableOpacity
                 style={{
                   backgroundColor: colors.primary,
@@ -1342,6 +1343,7 @@ export const RecipientSelectorModal: React.FC<Props> = ({
                   justifyContent: "center",
                   gap: 8,
                 }}
+
                 onPress={handleContinue}
               >
                 <Feather name="eye" size={20} color="#fff" />
@@ -1354,6 +1356,7 @@ export const RecipientSelectorModal: React.FC<Props> = ({
             </View>
           )}
         </View>
+        
 
         {/* Preview Modal */}
         {previewRecipient && <PreviewModal />}

@@ -181,6 +181,7 @@ export interface EmailSendOptions {
 export interface EmailSendResponse {
   success: boolean;
   message: string;
+  
   messageId?: string;
   recipients: string[];
   failedRecipients?: Array<{
@@ -191,6 +192,7 @@ export interface EmailSendResponse {
 
 // 🔥 NEW: Template usage analytics
 export interface TemplateUsage {
+
   templateId: string;
   templateName: string;
   totalSends: number;

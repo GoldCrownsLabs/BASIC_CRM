@@ -7,6 +7,7 @@ import { createStyles } from "./styles";
 
 
 interface Props {
+  
   stats: Stats;
 }
 //Status baar component to show total templates, favorites, used today and remaining uses for the day
