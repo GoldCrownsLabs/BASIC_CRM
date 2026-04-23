@@ -16,6 +16,7 @@ import { createStyles } from "./styles";
 
 
 interface Props {
+
   visible: boolean;
   onClose: () => void;
   onCreate: (form: any) => Promise<void>;
@@ -32,8 +33,10 @@ export const CreateTemplateModal: React.FC<Props> = ({
     form,
     showVariables,
     setShowVariables,
+    
     updateField,
     insertVariable,
+    
     resetForm,
     validate,
   } = useTemplateForm();

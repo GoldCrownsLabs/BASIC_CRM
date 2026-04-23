@@ -27,7 +27,7 @@ export default function RegisterScreen() {
   const { register, isLoading, error, clearError } = useAuthStore();
   const [showTermsModal, setShowTermsModal] = useState(false);
     const [showPrivacyModal, setShowPrivacyModal] = useState(false);
-  // Clear error when component mounts
+// Clear any existing errors when the component mounts
   useEffect(() => {
     clearError();
   }, []);
@@ -100,6 +100,7 @@ export default function RegisterScreen() {
   };
 
   return (
+    // Main Container
     <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}

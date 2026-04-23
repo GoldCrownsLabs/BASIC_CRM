@@ -80,6 +80,7 @@ export const TemplateCard: React.FC<Props> = ({
           <Feather name="hash" size={12} color={colors.textSecondary} />
           <Text style={styles.useCountText}>
             Used {template.useCount} times
+            
           </Text>
         </View>
 
