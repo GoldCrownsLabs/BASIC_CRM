@@ -78,6 +78,7 @@ function AppContent() {
   }
 
   return (
+    // Theme Navigator For all devices
     <NavigationThemeProvider value={navigationTheme}>
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <Drawer

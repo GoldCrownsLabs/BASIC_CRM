@@ -23,6 +23,8 @@ export default function AuthCallback() {
           return;
         }
 
+        // Access Token
+
         if (access_token) {
           // Get user info from Google
           const userInfoResponse = await fetch(
